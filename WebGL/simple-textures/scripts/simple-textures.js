@@ -4,14 +4,14 @@ import {
     quaternionMultiply, 
     rotationAxisToQuaternion, quaternionRotate, quaternionConjugate,
     crossProduct, dot} from "./math-functions.js"
-import {makeCylinder} from "./make-objects.js"
+import {makeCylinder, makeSphere} from "./make-objects.js"
 import {MouseInput} from "./mouse-handler.js"
 
 
 let canvas = document.getElementById("sketch-canvas");
 let gl = canvas.getContext("webgl");
 let image = new Image();
-image.src = "./texture-map.png";
+image.src = "../../Textures/world.bmp";
 new Promise(e => setTimeout(main, 500));
 
 
@@ -41,11 +41,12 @@ function main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferID);
     let cylinder1 = makeCylinder(0.01, 2.0*Math.sqrt(0.5), 25);
     let cylinder2 = makeCylinder(0.5, 0.25*Math.sqrt(0.5), 4);
+    let sphere = makeSphere(1.0, 150, 150);
     /* for (let i = 0; i < cylinder1.length; i++) {
         cylinder1[i] -= (i % 13 === 1)? 0.125: 0.0;
     }
     cylinder1.map(e => cylinder2.push(e));*/
-    let vertices = new Float32Array(cylinder2);
+    let vertices = new Float32Array(sphere);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
     let posAttrib = gl.getAttribLocation(shaderProgram, 'pos');
@@ -112,7 +113,7 @@ function main() {
     }
 
     let mouseHandler = new MouseInput();
-    mouseHandler.setMouseMoveCallback(mouseHandlerFunction2);
+    mouseHandler.setMouseMoveCallback(mouseHandlerFunction);
     document.addEventListener("mousemove", 
                               ev => mouseHandler.handleMouseInput(ev, true));
     document.addEventListener("mouseup", ev => mouseHandler.deactivate());

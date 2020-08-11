@@ -3,6 +3,63 @@ import {crossProduct,
 import {TextureSelect} from "./texture-select.js"
 
 
+function makeSphere(radius, 
+                    pointsPerHalfLongitude, 
+                    pointsPerLatitude) {
+    let vertices = [];
+    let circleLen = pointsPerLatitude;
+    let arcLen = pointsPerHalfLongitude;
+    let r = radius;
+    for (let j = 0; j < arcLen; j++) {
+        for (let i = 0; i < circleLen; i++) {
+            // triangle 1 - v1 -> v2 -> v3
+            // triangle 2 - v4 -> v3 -> v2
+            let v1 = [r*(Math.cos(2*Math.PI*i/circleLen)*
+                      Math.sin(Math.PI*(j + 1)/arcLen)),
+                      r*(Math.sin(2*Math.PI*i/circleLen)*
+                      Math.sin(Math.PI*(j + 1)/arcLen)),
+                      r*Math.cos(Math.PI*(j + 1)/arcLen),
+                      1.0, 1.0 - i/circleLen, (j + 1)/arcLen
+                     ];
+            let v2 = [r*(Math.cos(2*Math.PI*(i + 1)/circleLen)*
+                      Math.sin(Math.PI*(j + 1)/arcLen)),
+                      r*(Math.sin(2*Math.PI*(i + 1)/circleLen)*
+                      Math.sin(Math.PI*(j + 1)/arcLen)),
+                      r*Math.cos(Math.PI*(j + 1)/arcLen),
+                      1.0, 1.0 - (i+1)/circleLen, (j + 1)/arcLen
+                      ];
+            let v3 = [r*(Math.cos(2*Math.PI*i/circleLen)*
+                      Math.sin(Math.PI*j/arcLen)),
+                      r*(Math.sin(2*Math.PI*i/circleLen)*
+                      Math.sin(Math.PI*j/arcLen)),
+                      r*Math.cos(Math.PI*j/arcLen),
+                      1.0, 1.0 - i/circleLen, j/arcLen
+                      ];
+            let v4 = [r*(Math.cos(2*Math.PI*(i + 1)/circleLen)*
+                      Math.sin(Math.PI*j/arcLen)),
+                      r*(Math.sin(2*Math.PI*(i + 1)/circleLen)*
+                      Math.sin(Math.PI*j/arcLen)),
+                      r*Math.cos(Math.PI*j/arcLen),
+                      1.0, 1.0 - (i+1)/circleLen, j/arcLen
+                      ];
+            let edge1 = subtract(v2, v1);
+            let edge2 = subtract(v3, v2);
+            let norm = crossProduct(edge1, edge2);
+            norm = normalize(norm);
+            let color = [0.0, 0.0, 1.0, 1.0];
+            for (let v of [v1, v2, v3, v4]) {
+                norm.forEach(e => v.push(e));
+                color.forEach(e => v.push(e));
+            }
+            for (let v of [v1, v2, v3, v3, v4, v2]) {
+                v.forEach(e => vertices.push(e));
+            }
+        }
+    }
+    return vertices;
+
+}
+
 function makeCylinder(height, radius, 
                       numberOfPointsOnEdge) {
     let vertices = [];
@@ -90,4 +147,4 @@ function makeCylinder(height, radius,
     return vertices;
 }
 
-export {makeCylinder}
+export {makeCylinder, makeSphere}
