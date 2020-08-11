@@ -11,7 +11,7 @@ import {MouseInput} from "./mouse-handler.js"
 let canvas = document.getElementById("sketch-canvas");
 let gl = canvas.getContext("webgl");
 let image = new Image();
-image.src = "./world.bmp";
+image.src = "world.bmp";
 new Promise(e => setTimeout(main, 500));
 
 
@@ -41,7 +41,7 @@ function main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferID);
     let cylinder1 = makeCylinder(0.01, 2.0*Math.sqrt(0.5), 25);
     let cylinder2 = makeCylinder(0.5, 0.25*Math.sqrt(0.5), 4);
-    let sphere = makeSphere(1.0, 150, 150);
+    let sphere = makeSphere(0.5, 150, 150);
     /* for (let i = 0; i < cylinder1.length; i++) {
         cylinder1[i] -= (i % 13 === 1)? 0.125: 0.0;
     }
