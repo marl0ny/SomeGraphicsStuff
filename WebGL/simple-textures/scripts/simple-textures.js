@@ -11,7 +11,7 @@ import {MouseInput} from "./mouse-handler.js"
 let canvas = document.getElementById("sketch-canvas");
 let gl = canvas.getContext("webgl");
 let image = new Image();
-image.src = "../../Textures/world.bmp";
+image.src = "./world.bmp";
 new Promise(e => setTimeout(main, 500));
 
 
