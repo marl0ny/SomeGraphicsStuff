@@ -41,25 +41,28 @@ void main () {
 const waveCreationFragmentSource = `
 precision highp float;
 varying highp vec2 fragTexCoord;
-uniform float dx;
-uniform float dy;
+uniform float w;
+uniform float h;
 uniform float bx;
 uniform float by;
+uniform int colType;
 
 void main () {
-    if (fragTexCoord.x > dx && fragTexCoord.x < 1.0-dx &&
-        fragTexCoord.y > dy && fragTexCoord.y < 1.0-dy) {
+    if (fragTexCoord.x > 1.0/w && fragTexCoord.x < 1.0-1.0/w &&
+        fragTexCoord.y > 1.0/h && fragTexCoord.y < 1.0-1.0/h) {
         float x = fragTexCoord.x;
         float y = fragTexCoord.y;
-        float sx = 1.4142135623730951/(1.0/(dx*10.0));
-        float sy = 1.4142135623730951/(1.0/(dy*10.0));
+        float sx = 1.4142135623730951/(w/7.0);
+        float sy = 1.4142135623730951/(h/7.0);
         float u = ((x - bx)/sx), v = ((y - by)/sy);
         float val = 5.0*exp(- u*u - v*v);
-        gl_FragColor = vec4(val, 0.0, 0.0, 1.0); 
-    gl_FragColor = vec4(val, 0.0, 0.0, 1.0); 
-        gl_FragColor = vec4(val, 0.0, 0.0, 1.0); 
-    gl_FragColor = vec4(val, 0.0, 0.0, 1.0); 
-        gl_FragColor = vec4(val, 0.0, 0.0, 1.0); 
+        if (colType == 0) {
+            gl_FragColor = vec4(val/4.0, val/2.0, val, 1.0);
+        } else if (colType == 1) {
+            gl_FragColor = vec4(val, val/4.0, val/4.0, 1.0);
+        } else if (colType == 2) {
+            gl_FragColor = vec4(val/2.0, val/4.0, val, 1.0);
+        }
     } else {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); 
     }
@@ -73,8 +76,7 @@ uniform sampler2D tex1;
 
 void main () {
     vec4 col = texture2D(tex1, fragTexCoord);
-    col.r += 25.0/255.0;
-    gl_FragColor = vec4(col.r/4.0, col.r/2.0, col.r, 1.0); 
+    gl_FragColor = vec4(col.rgb, 1.0); 
 }
 `
 
@@ -87,7 +89,7 @@ uniform sampler2D tex2;
 void main () {
     vec4 col1 = texture2D(tex1, fragTexCoord);
     vec4 col2 = texture2D(tex2, fragTexCoord);
-    gl_FragColor = vec4(col1.r + col2.r, 0.0, 0.0, 1.0); 
+    gl_FragColor = vec4(col1.rgb + col2.rgb, 1.0); 
 }
 `
 
@@ -210,8 +212,11 @@ let copyToShader = makeShader(gl.FRAGMENT_SHADER, copyOverFragmentSource);
 let copyToProgram = makeProgram(vShader, copyToShader);
 
 
+canvas.style.width = `${2*window.innerHeight}px`;
+canvas.style.height = `${window.innerHeight}px`;
 let w = canvas.width, h = canvas.height;
-
+let hScale = parseInt(canvas.style.height)/h; 
+let wScale = parseInt(canvas.style.width)/w;
 new Promise(() => setTimeout(main, 500));
 function main() {
 
@@ -227,16 +232,20 @@ function main() {
         swapFrames[2].useProgram(waveCreationProgram);
         swapFrames[2].bind();
         gl.bindTexture(gl.TEXTURE_2D, makeTexture(null, w, h));
-        swapFrames[2].setFloatUniforms({dx: 1.0/w, dy: 1.0/h,
+        console.log(bx/canvas.width, 1.0 - by/canvas.height);
+        swapFrames[2].setFloatUniforms({w: w, h: h,
                                             bx: bx/canvas.width, 
                                             by: 1.0 - by/canvas.height});
+        let colType = parseInt(3.0*Math.random());
+        swapFrames[2].setIntUniforms({colType: colType});
         draw();
         unbind();
         gl.activeTexture(gl.TEXTURE0 + swapFrames[2].frameNumber);
         gl.bindTexture(gl.TEXTURE_2D, swapFrames[2].frameTexture);
         storeFrame.useProgram(copyToProgram);
         storeFrame.bind();
-        storeFrame.setIntUniforms({tex1: swapFrames[2].frameNumber, tex2: 5});
+        storeFrame.setIntUniforms({tex1: swapFrames[2].frameNumber, 
+                                   tex2: 5});
         draw();
         unbind();
     }
@@ -294,8 +303,8 @@ function main() {
 
     let mouseReleaseWave = function(ev) {
         justReleased = true;
-        bx = Math.floor((ev.clientX - canvas.offsetLeft));
-        by = Math.floor((ev.clientY - canvas.offsetTop));
+        bx = Math.floor((ev.clientX - canvas.offsetLeft)/wScale);
+        by = Math.floor((ev.clientY - canvas.offsetTop)/hScale);
     }
 
     let touchReleaseWave = function(ev) {
