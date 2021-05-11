@@ -1,0 +1,15 @@
+*.o
+*~
+*.gch
+*.config
+*.creator
+*.files
+*.includes
+.*
+!.gitignore
+program
+simple_cube
+simple_cylinder
+simple_triangle
+wave
+world
