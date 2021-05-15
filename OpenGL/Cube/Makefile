@@ -2,8 +2,8 @@ SHELL = /bin/bash
 FLAGS = -O0 -Wall -g
 
 # Put your own include and lib paths here:
-INCLUDE = -I${HOME}/include -I${HOME}/Programs/include 
-LIBS = -L${HOME}/lib -L${HOME}/Programs/lib -lm  -lGLESv2 -lGLEW -lglfw
+INCLUDE =  
+LIBS = -lm  -lGLESv2 -lGLEW -lglfw
 
 TARGETDIR = .
 # TARGETDIR = ${HOME}

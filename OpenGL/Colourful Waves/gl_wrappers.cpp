@@ -1,6 +1,4 @@
-#include "gl_wrappers.hpp"
-#include <cstdint>
-
+#include "gl_wrappers.h"
 
 GLFWwindow *init_window(int width, int height) {
     if (glfwInit() != GL_TRUE) {
@@ -26,7 +24,6 @@ GLuint make_program(GLuint vs_ref, GLuint fs_ref) {
     return program;
 }
 
-
 void init_glew() {
     GLenum err = glewInit();
     if (err != GLEW_OK) {
@@ -51,7 +48,6 @@ void compile_shader(GLuint shader_ref, const char *shader_source) {
     }
 }
 
-
 GLuint make_vertex_shader(const char *v_source) {
     GLuint vs_ref = glCreateShader(GL_VERTEX_SHADER);
     if (vs_ref == 0) {
@@ -63,7 +59,6 @@ GLuint make_vertex_shader(const char *v_source) {
     compile_shader(vs_ref, v_source);
     return vs_ref;
 }
-
 
 GLuint make_fragment_shader(const char *f_source) {
     GLuint fs_ref = glCreateShader(GL_FRAGMENT_SHADER);
@@ -77,6 +72,21 @@ GLuint make_fragment_shader(const char *f_source) {
     return fs_ref;
 }
 
+GLuint get_shader(const char *shader_loc, GLuint shader_type) {
+    std::ifstream shader_stream{std::string(shader_loc)};
+    if (!shader_stream) {
+        std::fprintf(stderr, "Unable to open %s.", shader_loc);
+        return 0;
+    }
+    std::string shader_source(10001, '\0');
+    shader_stream.readsome((char *)shader_source.c_str(), 10000);
+    if (shader_type == GL_VERTEX_SHADER) {
+        return make_vertex_shader(shader_source.c_str());
+    } else {
+        return make_fragment_shader(shader_source.c_str());
+    }
+    return 0;
+}
 
 GLuint get_tex() {
     GLuint texture;
@@ -86,13 +96,14 @@ GLuint get_tex() {
 }
 
 void do_texture_paramertiri_and_mipmap() {
-    glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
+    // Switching from glTextureParameteri to glTexParameteri actually gets
+    // the third argument which has to do with the boundaries to be followed. 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 } 
-
 
 GLuint make_texture(uint8_t *image, size_t image_w, size_t image_h) {
     GLuint texture = get_tex();
@@ -112,8 +123,6 @@ GLuint make_float_texture(float *image, size_t image_w, size_t image_h) {
     return texture;
 }
 
- 
-
 void unbind() {
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -121,7 +130,6 @@ void unbind() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
-
 
 int Frame::total_frames = 0;
 
@@ -132,7 +140,6 @@ int Frame::get_value() const {
 int Frame::get_tex_unit() const {
     return GL_TEXTURE0 + get_value();
 }
-
 
 Quad:: Quad() {}
 
@@ -147,7 +154,6 @@ void Quad::init_texture(int width, int height, int texture_type) {
         glBindTexture(GL_TEXTURE_2D, texture);
     }
 }
-
 
 void Quad::init_objects() {
     glGenVertexArrays(1, &vao);

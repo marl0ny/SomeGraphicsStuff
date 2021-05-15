@@ -10,7 +10,6 @@ uniform float g;
 uniform float b;
 uniform sampler2D tex;
 
-
 void main () {
     vec4 prevVal = texture(tex, fragTextCoord);
     float x = fragTextCoord.x - x0;

@@ -78,9 +78,13 @@ namespace gl_wrappers {
         if (frame_number != 0) {
             glGenFramebuffers(1, &fbo);
             glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            // glGenRenderbuffers(1, &rbo);
+            // glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+            //                       width, height);
             glGenRenderbuffers(1, &rbo);
             glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
                                   width, height);
             glFramebufferRenderbuffer(GL_FRAMEBUFFER,
                                       GL_DEPTH_ATTACHMENT,

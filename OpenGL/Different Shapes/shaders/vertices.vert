@@ -57,6 +57,6 @@ void main() {
     fragNormal = resize*rotate(normal, quaternionAxis);
     fragColour = vec3(colour);
     fragTexture = vec2(texture);
-    gl_Position = zProject(resize*rotate(position, quaternionAxis),
+    gl_Position = zProject(fragPosition,
                             -2.0, 1.0, 1.0, -1.5, 4.0);
 }

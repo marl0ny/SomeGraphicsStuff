@@ -6,7 +6,7 @@ FLAGS = -O0 -Wall -g -std=c++11
 # FLAGS = -Og -Wall -g
 
 INCLUDE = 
-LIBS = -lm -lGLESv2 -lGLEW -lglfw
+LIBS = -lm -lGL -lGLEW -lglfw
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/wave

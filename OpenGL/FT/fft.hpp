@@ -219,35 +219,4 @@ void fftfreq2(double *arr, int w, int h) {
     }
 }
 
-// #include <thread>
-// #include <functional>
-// #include <vector>
-// template <typename T>
-// void inplace_fft2(T *z, int w) {
-//      auto fft = [&](int i) {
-//             inplace_fft<T>(&z[i*w], w);
-//         };
-//     // #pragma omp parallel for
-//     std::vector<std::thread> threads;
-//     for (int i = 0; i < w; i++) {
-//         threads.push_back(std::thread(fft, i));
-//         // inplace_fft<T>(&z[i*w], w);
-//     }
-//     for (auto &thread: threads) {
-//         thread.detach();
-//     }
-//     square_transpose<T>(z, w);
-//     // #pragma omp parallel for
-//     std::vector<std::thread> threads2;
-//     for (int i = 0; i < w; i++) {
-//         threads2.push_back(std::thread(fft, i));
-//         // inplace_fft<T>(&z[i*w], w);
-//     }
-//     for (auto &thread: threads2) {
-//         thread.detach();
-//     }
-//     square_transpose<T>(z, w);
-// }
-
-
 #endif

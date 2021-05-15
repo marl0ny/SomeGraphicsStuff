@@ -2,9 +2,12 @@
 #include <GLFW/glfw3.h>
 #include <map>
 #include <string>
+#include <fstream>
+#include <iostream>
+#include <cstdlib>
+#include <cstdint>
 #ifndef _GL_WRAPPERS_HPP_
 #define _GL_WRAPPERS_HPP_  
-
 
 GLFWwindow *init_window(int width, int height);
 
@@ -16,12 +19,7 @@ void unbind();
 
 GLuint make_program(GLuint vs_ref, GLuint fs_ref);
 
-GLuint make_vertex_shader(const char *v_source);
-
-GLuint make_fragment_shader(const char *f_source);
-
-void compile_shader(GLuint shader_ref, const char *shader_source);
-
+GLuint get_shader(const char *shader_loc, GLuint shader_type);
 
 class Frame {
     protected:
@@ -35,7 +33,6 @@ class Frame {
     }
 };
 
- 
 class Quad: public Frame {
     GLuint program = 0;
     GLuint vao = 0;

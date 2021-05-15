@@ -1,9 +1,14 @@
 SHELL = /bin/bash
+
+COMPILE = /usr/bin/clang
 FLAGS = -O0 -Wall -g
+# COMPILE = /usr/bin/g++ 
+# FLAGS = -Og -Wall -g
+
 
 # Put your own include and lib paths here:
-INCLUDE = -I${HOME}/include -I${HOME}/Programs/include 
-LIBS = -L${HOME}/lib -L${HOME}/Programs/lib -lm  -lGLESv2 -lGLEW -lglfw
+INCLUDE = 
+LIBS = -lm  -lGLESv2 -lGLEW -lglfw
 
 TARGETDIR = .
 # TARGETDIR = ${HOME}
@@ -15,10 +20,10 @@ SHADERS = ./shaders/vertex_shader.vert ./shaders/fragment_shader.frag
 all: ${TARGET}
 
 ${TARGET}: ${OBJECTS}
-	cc ${FLAGS} -o $@ $^ ${LIBS}
+	${COMPILE} ${FLAGS} -o $@ $^ ${LIBS}
 
 ${OBJECTS}: ${SOURCES}
-	cc ${FLAGS} -c $^ ${INCLUDE}
+	${COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 clean:
 	rm -f *.o *~ ${TARGET}

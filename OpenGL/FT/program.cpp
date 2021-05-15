@@ -80,7 +80,8 @@ int main() {
     bool key_pressed = false;
     int view_mode = 0;
     double x0 = 0.5, y0 = 0.5;
-    double k = 50;
+    double k = 50, j = 50;
+    double sigma = 0.025;
     for (int i = 0; i < w*h; ++i) {
         image[i*4] = (uint8_t)i;
         image[i*4 + 1] = (uint8_t)i;
@@ -112,26 +113,9 @@ int main() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex);
 
-    // Quad q1 = Quad::make_frame(w, h);
-    // q1.set_program(view_program);
-    // q1.bind();
-    // q1.set_int_uniforms({{"tex", 0}});
-    // q1.set_float_uniform("gridSize", w);
-    // q1.set_float_uniform("brightness", 1.0);
-    // q1.draw();
-    // unbind();
-
     Quad q2 = Quad::make_float_frame(w, h);
     Quad q3 = Quad::make_float_frame(w, h);
     Quad q4 = Quad::make_float_frame(w, h);
-
-    // q2.set_program(view_program);
-    // q2.bind();
-    // q2.set_int_uniforms({{"tex", 0}});
-    // q2.set_float_uniform("gridSize", w);
-    // q2.set_float_uniform("brightness", 1.0);
-    // q2.draw();
-    // unbind();
 
     q2.set_program(make_tex_program);
     q2.bind();
@@ -163,20 +147,6 @@ int main() {
                                  << "\n";
 
     Quad *quads[3] = {&q2, &q3, &q4};
-    // fft(hpas_program, quads, (float)w, 0);
-    /*quads[0]->bind();
-    quads[0]->get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-    square_transpose<FloatRGBA>(arr, w);
-    for (int i = 0; i < h; i++) {
-        bitreverse2<FloatRGBA>((FloatRGBA *)arr + i*w, w);
-    }
-    square_transpose<FloatRGBA>(arr, w);
-    quads[0]->substitute_array(w, h, GL_FLOAT, arr);
-    unbind();
-    fft(hpas_program, quads, (float)w, 1); */
-    // fft_shift(fftshift_program, quads, 1);
-    // fft_shift(fftshift_program, quads, 0);
-    // fft_shift(fftshift_program, quads, 1);
     double brightness = 1.0;
     for (int i = 0; !glfwWindowShouldClose(window); i++) {
         if (key_pressed) {
@@ -184,8 +154,8 @@ int main() {
             q2.bind();
             q2.set_int_uniform("type", view_mode);
             q2.set_float_uniforms({
-                    {"k", k},
-                    {"sigma", 0.025}, {"a", 5.0},
+                    {"k", k}, {"j", j},
+                    {"sigma", sigma}, {"a", 5.0},
                     {"x0", x0}, {"y0", y0}, {"r", 1.0}
             });
             q2.set_int_uniform("tex", Quad::get_blank());
@@ -223,24 +193,32 @@ int main() {
             brightness *= 0.9;
         }
         glfwSwapBuffers(window);
+        button_update(window, GLFW_KEY_Q, sigma, sigma - 0.0025);
+        button_update(window, GLFW_KEY_E, sigma, sigma + 0.0025);
         button_update(window, GLFW_KEY_W, y0, y0+0.01);
         button_update(window, GLFW_KEY_A, x0, x0-0.01);
         button_update(window, GLFW_KEY_S, y0, y0-0.01);
         button_update(window, GLFW_KEY_D, x0, x0+0.01);
-        button_update(window, GLFW_KEY_R, k, k*1.1);
-        button_update(window, GLFW_KEY_F, k, k*0.9);
-        for (int i = 0; i < 6; i++) {
+        button_update(window, GLFW_KEY_R, k, k + 1.0);
+        button_update(window, GLFW_KEY_F, k, k - 1.0);
+        button_update(window, GLFW_KEY_T, j, j + 1.0);
+        button_update(window, GLFW_KEY_G, j, j - 1.0);
+        for (int i = 0; i < 7; i++) {
             button_update(window, GLFW_KEY_0+i, view_mode, i);
         }
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 7; i++) {
             button_update(window, GLFW_KEY_0+i, key_pressed, true);
         }
+        button_update(window, GLFW_KEY_Q, key_pressed, true);
+        button_update(window, GLFW_KEY_E, key_pressed, true);
         button_update(window, GLFW_KEY_W, key_pressed, true);
         button_update(window, GLFW_KEY_A, key_pressed, true);
         button_update(window, GLFW_KEY_S, key_pressed, true);
         button_update(window, GLFW_KEY_D, key_pressed, true);
         button_update(window, GLFW_KEY_R, key_pressed, true);
         button_update(window, GLFW_KEY_F, key_pressed, true);
+        button_update(window, GLFW_KEY_T, key_pressed, true);
+        button_update(window, GLFW_KEY_G, key_pressed, true);
         glViewport(0, 0, w, h);
     }
     glfwDestroyWindow(window);
