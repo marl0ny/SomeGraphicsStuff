@@ -1,13 +1,13 @@
 SHELL = /bin/bash
 
-C_COMPILE = /usr/bin/clang
-CPP_COMPILE = /usr/bin/clang++
-C_FLAGS = -O0 -Wall -g
-CPP_FLAGS = -O0 -Wall -g -std=c++11
-# C_COMPILE = /usr/bin/gcc
-# CPP_COMPILE = /usr/bin/g++
-# C_FLAGS = -Og -Wall -g
-# CPP_FLAGS = -Og -Wall -g
+# C_COMPILE = /usr/bin/clang
+# CPP_COMPILE = /usr/bin/clang++
+# C_FLAGS = -O0 -Wall -g
+# CPP_FLAGS = -O0 -Wall -g -std=c++11
+C_COMPILE = /usr/bin/gcc
+CPP_COMPILE = /usr/bin/g++
+C_FLAGS = -Og -Wall -g
+CPP_FLAGS = -Og -Wall -g
 
 INCLUDE = -I./gl_wrappers2d -I./math_helpers -I./shapes
 LIBS = -lm -lGL -lGLEW -lglfw

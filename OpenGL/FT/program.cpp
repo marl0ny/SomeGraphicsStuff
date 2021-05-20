@@ -4,7 +4,7 @@
 #include <cmath>
 #include <thread>
 #include <ctime>
-#include <omp.h>
+// #include <omp.h>
 
 struct FloatRGBA {
     union {
@@ -45,32 +45,59 @@ void button_update(GLFWwindow *window, int key,
     if (glfwGetKey(window, key) == GLFW_PRESS) param = new_val;
 }
 
+template <typename T>
+void button_released_update(GLFWwindow *window, int key,
+                   T &param, T new_val) {
+    if (glfwGetKey(window, key) == GLFW_RELEASE) param = new_val;
+}
 
-void fft(GLuint program, Quad *quads[2], float w, bool is_vert) {
+
+Quad *fft(GLuint program, Quad *quads[2], float w, bool is_vert) {
     for (float block_size = 2.0; block_size <= w; block_size *= 2.0) {
         quads[1]->set_program(program);
         quads[1]->bind();
         quads[1]->set_int_uniform("tex", quads[0]->get_value());
         quads[1]->set_int_uniform("isVertical", (int)is_vert);
-        quads[1]->set_float_uniform("blockSize", block_size/w);
+        quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
+                                      {"sign", 1.0},
+                                      {"invSize", 1.0},
+                                      });
         quads[1]->draw();
         unbind();
         Quad *tmp = quads[1];
         quads[1] = quads[0];
         quads[0] = tmp;
     }
+    return quads[0];
 }
 
-void fft_shift(GLuint program, Quad *quads[2], bool is_vert) {
-    quads[1]->set_program(program);
-    quads[1]->bind();
-    quads[1]->set_int_uniform("tex", quads[0]->get_value());
-    quads[1]->set_int_uniform("isVertical", is_vert);
-    quads[1]->draw();
+Quad *ifft(GLuint program, Quad *quads[2], float w, bool is_vert) {
+    for (float block_size = 2.0; block_size <= w; block_size *= 2.0) {
+        quads[1]->set_program(program);
+        quads[1]->bind();
+        quads[1]->set_int_uniform("tex", quads[0]->get_value());
+        quads[1]->set_int_uniform("isVertical", (int)is_vert);
+        quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
+                                      {"sign", -1.0},
+                                      {"invSize", (block_size >= (float)w)?
+                                       (float)w : 1.0},
+                                      });
+        quads[1]->draw();
+        unbind();
+        Quad *tmp = quads[1];
+        quads[1] = quads[0];
+        quads[0] = tmp;
+    }
+    return quads[0];
+}
+
+void fft_shift(GLuint program, Quad *dest, Quad *src, bool is_vert) {
+    dest->set_program(program);
+    dest->bind();
+    dest->set_int_uniform("tex", src->get_value());
+    dest->set_int_uniform("isVertical", is_vert);
+    dest->draw();
     unbind();
-    Quad *tmp = quads[1];
-    quads[1] = quads[0];
-    quads[0] = tmp;
 }
 
 
@@ -101,11 +128,22 @@ int main() {
     // GLuint sort_shader = get_shader("./shaders/reverse-bit-sort2.frag", GL_FRAGMENT_SHADER);
     GLuint hpas_shader = get_shader("./shaders/fft-iter.frag", GL_FRAGMENT_SHADER);
     GLuint fftshift_shader = get_shader("./shaders/fftshift.frag", GL_FRAGMENT_SHADER);
+    GLuint quad_vert_shader = get_shader("./shaders/quad.vert", GL_VERTEX_SHADER);
+    GLuint quad_frag_shader = get_shader("./shaders/quad.frag", GL_FRAGMENT_SHADER);
+    GLuint copy2program = make_program(quad_vert_shader, quad_frag_shader);
     GLuint make_tex_program = make_program(vert_shader, make_tex_shader);
     GLuint view_program = make_program(vert_shader, view_shader);
     // GLuint sort_program = make_program(r2_vert_shader, view_shader);
     GLuint hpas_program = make_program(vert_shader, hpas_shader);
     GLuint fftshift_program = make_program(vert_shader, fftshift_shader);
+
+    auto copy_tex = [&](Quad *dest, Quad *src) {
+        dest->set_program(copy2program);
+        dest->bind();
+        dest->set_int_uniform("tex", src->get_value());
+        dest->draw();
+        unbind();
+    };
 
     Quad q0 = Quad::make_frame(3.0*w, h);
 
@@ -113,64 +151,92 @@ int main() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex);
 
+    Quad q1 = Quad::make_float_frame(w, h);
     Quad q2 = Quad::make_float_frame(w, h);
     Quad q3 = Quad::make_float_frame(w, h);
     Quad q4 = Quad::make_float_frame(w, h);
 
-    q2.set_program(make_tex_program);
-    q2.bind();
-    q2.set_int_uniform("type", 0);
-    q2.set_float_uniforms({
-        {"k", 50},
-        {"sigma", 0.025}, {"a", 5.0},
-        {"x0", 0.5}, {"y0", 0.5}, {"r", 1.0}
-    });
-    q2.set_int_uniform("tex", Quad::get_blank());
-    q2.draw();
     FloatRGBA *arr = new FloatRGBA[w*h];
-    // clock_t t1 = clock();
-    double t1 = omp_get_wtime();
-    q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-    inplace_fft2<FloatRGBA>(arr, w);
-    inplace_fftshift2(arr, w);
-    q3.substitute_array(w, h, GL_FLOAT, arr);
-    inplace_fftshift2(arr, w);
-    inplace_ifft2<FloatRGBA>(arr, w);
-    // inplace_fftshift2(arr, w);
-    q4.substitute_array(w, h, GL_FLOAT, arr);
-    // clock_t t2 = clock();
-    double t2 = omp_get_wtime();
-    unbind();
-    // double time_taken = (double)(t2 - t1)/(double)CLOCKS_PER_SEC;
-    double time_taken = t2 - t1;
-    std::cout << "Time taken: " << time_taken
-                                 << "\n";
+
+    auto gpu_fft = [&] () {
+        q2.set_program(make_tex_program);
+        q2.bind();
+        q2.set_int_uniform("type", view_mode);
+        q2.set_float_uniforms({
+                {"k", k}, {"j", j},
+                {"sigma", sigma}, {"a", 5.0},
+                {"x0", x0}, {"y0", y0}, {"r", 1.0}
+        });
+        q2.set_int_uniform("tex", Quad::get_blank());
+        q2.draw();
+
+        q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
+        square_bitreverse2(arr, w);
+        q3.substitute_array(w, h, GL_FLOAT, arr);
+        unbind();
+        Quad *qs[2] = {&q3, &q1};
+        fft(hpas_program, qs, w, true);
+        Quad *q = fft(hpas_program, qs, w, false);
+        if (q == &q1) copy_tex(&q3, &q1);
+        fft_shift(fftshift_program, &q1, &q3, true);
+        fft_shift(fftshift_program, &q3, &q1, false);
+
+        q3.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
+        square_bitreverse2(arr, w);
+        q4.substitute_array(w, h, GL_FLOAT, arr);
+        fft_shift(fftshift_program, &q1, &q4, true);
+        fft_shift(fftshift_program, &q4, &q1, false);
+        qs[0] = &q4, qs[1] = &q1;
+        ifft(hpas_program, qs, w, true);
+        q = ifft(hpas_program, qs, w, false);
+        if (q == &q1) copy_tex(&q4, &q1);
+    };
+
+    auto cpu_fft = [&] () {
+        q2.set_program(make_tex_program);
+        q2.bind();
+        q2.set_int_uniform("type", view_mode);
+        q2.set_float_uniforms({
+                {"k", k}, {"j", j},
+                {"sigma", sigma}, {"a", 5.0},
+                {"x0", x0}, {"y0", y0}, {"r", 1.0}
+        });
+        q2.set_int_uniform("tex", Quad::get_blank());
+        q2.draw();
+        // unbind();
+        // clock_t t1 = clock();
+        // double t1 = omp_get_wtime();
+        q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
+        inplace_fft2<FloatRGBA>(arr, w);
+        inplace_fftshift2(arr, w);
+        q3.substitute_array(w, h, GL_FLOAT, arr);
+        inplace_fftshift2(arr, w);
+        inplace_ifft2<FloatRGBA>(arr, w);
+        // inplace_fftshift2(arr, w);
+        q4.substitute_array(w, h, GL_FLOAT, arr);
+        // clock_t t2 = clock();
+        // double t2 = omp_get_wtime();
+        // double time_taken = (double)(t2 - t1)/(double)CLOCKS_PER_SEC;
+        // double time_taken = t2 - t1;
+        // std::cout << "Time taken: " << time_taken
+        //                                 << "\n";
+        unbind();
+    };
+
+    cpu_fft();
 
     Quad *quads[3] = {&q2, &q3, &q4};
     double brightness = 1.0;
+    bool use_cpu = true;
+
     for (int i = 0; !glfwWindowShouldClose(window); i++) {
         if (key_pressed) {
-            q2.set_program(make_tex_program);
-            q2.bind();
-            q2.set_int_uniform("type", view_mode);
-            q2.set_float_uniforms({
-                    {"k", k}, {"j", j},
-                    {"sigma", sigma}, {"a", 5.0},
-                    {"x0", x0}, {"y0", y0}, {"r", 1.0}
-            });
-            q2.set_int_uniform("tex", Quad::get_blank());
-            q2.draw();
-            // unbind();
-            q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-            inplace_fft2<FloatRGBA>(arr, w);
-            inplace_fftshift2(arr, w);
-            q3.substitute_array(w, h, GL_FLOAT, arr);
-            inplace_fftshift2(arr, w);
-            inplace_ifft2<FloatRGBA>(arr, w);
-            // inplace_fftshift2(arr, w);
-            q4.substitute_array(w, h, GL_FLOAT, arr);
+            if (use_cpu) {
+                cpu_fft();
+            } else {
+                gpu_fft();
+            }
             key_pressed = false;
-            unbind();
         }
         glViewport(0, 0, 3*w, h);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -193,6 +259,7 @@ int main() {
             brightness *= 0.9;
         }
         glfwSwapBuffers(window);
+        button_update(window, GLFW_KEY_TAB, use_cpu, !use_cpu);
         button_update(window, GLFW_KEY_Q, sigma, sigma - 0.0025);
         button_update(window, GLFW_KEY_E, sigma, sigma + 0.0025);
         button_update(window, GLFW_KEY_W, y0, y0+0.01);

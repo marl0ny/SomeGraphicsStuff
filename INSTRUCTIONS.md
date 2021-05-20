@@ -1,6 +1,7 @@
 ## Prerequisites
 ### OpenGL:
 Currently the OpenGL programs only compile under Linux. The required libraries are [GLES](https://www.khronos.org/opengles/), [GLEW](http://glew.sourceforge.net/), and [GLFW](https://www.glfw.org/).
+For the Spherical Harmonics project, you must also have Git, Python3 with the Sympy library and the Boost libraries installed.
 ### WebGL:
 The WebGL programs require a modern web browser that supports WebGL. These include Chrome, Firefox, Edge, etc.
 

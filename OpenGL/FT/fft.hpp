@@ -29,11 +29,11 @@ static void bitreverse2(T *arr, int n) {
     }
 }
 
+#define _USE_COS_ARR
+#ifdef _USE_COS_ARR
 static double _cos_arr[256];
-
-template <typename T>
-static inline void _fft(bool is_inverse, T* z, int n) {
-    bitreverse2(z, n);
+static bool _is_cos_arr_init = false;
+static void _cos_arr_init(int n) {
     double angle=tau/n;
     double c, s;
     _cos_arr[0] = 1.0;
@@ -48,6 +48,18 @@ static inline void _fft(bool is_inverse, T* z, int n) {
         _cos_arr[n/4 + i] = -s;
         _cos_arr[n/2 - i] = -c;
     }
+}
+#endif
+
+template <typename T>
+static inline void _fft(bool is_inverse, T* z, int n) {
+    bitreverse2(z, n);
+    #ifdef _USE_COS_ARR
+    if (! _is_cos_arr_init) {
+        _cos_arr_init(n);
+         _is_cos_arr_init = true;
+    }
+    #endif
     T even, odd;
     T exp;
     double cos_val, sin_val;
@@ -57,10 +69,15 @@ static inline void _fft(bool is_inverse, T* z, int n) {
         block_total = n/block_size;
         for (int j = 0; j < n; j += block_size) {
             for (int i = 0; i < block_size/2; i++) {
+                #ifdef _USE_COS_ARR
                 cos_val = _cos_arr[i*block_total];
                 sin_val = (i*block_total < n/4)?
                          (-sign*_cos_arr[i*block_total + n/4]):
                          (sign*_cos_arr[i*block_total - n/4]);
+                #else
+                cos_val = cos(tau*i/block_size);
+                sin_val = sign*sin(tau*i/block_size);
+                #endif
                 /*Get even and odd elements*/
                 even = z[j + i];
                 odd = z[block_size/2 + j + i];
@@ -135,6 +152,18 @@ static T *alloc_square_transpose(T *arr, int n) {
     return arr_cpy;
 }
 
+template <typename T>
+static void square_bitreverse2(T *arr, int n) {
+    for (int i = 0; i < n; i++) {
+        bitreverse2<T>(&arr[i*n], n);
+    }
+    square_transpose<T>(arr, n);
+    for (int i = 0; i < n; i++) {
+        bitreverse2<T>(&arr[i*n], n);
+    }
+    square_transpose<T>(arr, n);
+    
+}
 
 template <typename T>
 void inplace_fft2(T *z, int w) {

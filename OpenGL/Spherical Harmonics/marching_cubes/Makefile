@@ -14,8 +14,8 @@ LIBS = -lm -fPIC -fopenmp
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/libmarching_cubes.so
-CPP_SOURCES = marching_cubes.cpp # laplacian_smoothing.cpp 
-CPP_HEADERS = marching_cubes.h # laplacian_smoothing.h 
+CPP_SOURCES = marching_cubes.cpp laplacian_smoothing.cpp 
+CPP_HEADERS = marching_cubes.h laplacian_smoothing.h 
 CPP_FILES = ${CPP_SOURCES} ${CPP_HEADERS} 
 OBJECTS = *.o
 

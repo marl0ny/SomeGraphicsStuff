@@ -30,8 +30,8 @@ float specular(vec3 incomingLight, vec3 cameraPosition) {
 void main() {
     vec3 colour;
     vec3 incomingLight = lightSource - fragPosition;
-    float lighting = (0.5 + 0.5*getDiffuseLighting(incomingLight)
-                      + 0.25*specular(cameraLoc, incomingLight));
+    float lighting = (0.25 + 0.75*getDiffuseLighting(incomingLight)
+                      + 0.5*specular(cameraLoc, incomingLight));
     if (!bool(isTexture)) {
         colour = fragColour*lighting;
     } else {

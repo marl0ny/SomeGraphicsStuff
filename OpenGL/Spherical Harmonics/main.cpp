@@ -7,7 +7,8 @@
 #include <iostream>
 #include "marching_cubes/marching_cubes.cpp"
 #include "marching_cubes/marching_cubes.h"
-// #include "marching_cubes/laplacian_smoothing.h"
+#include "marching_cubes/laplacian_smoothing.cpp"
+#include "marching_cubes/laplacian_smoothing.h"
 #include "spherical_harmonics/harmonics.h"
 #include "colour.h"
 
@@ -26,7 +27,7 @@ using namespace gl_wrappers;
 #define PI 3.141592653589793
 
 
-const size_t size = 200;
+const size_t size = 50;
 constexpr size_t size3 = size*size*size;
 std::vector<float> abs_vol = std::vector<float>(size3);
 std::vector<Colour> colours = std::vector<Colour>(size3);
@@ -92,7 +93,7 @@ void fill_surface_data(std::vector<float> &data) {
 void fill_surface_data(std::vector<float> &data, 
                        std::vector<int> &elem_data) {
     Mesh mesh = march(&abs_vol[0], size, size, size, 0.050);
-    // smooth(mesh, 4);
+    smooth(mesh, 4);
     for (size_t i = 0; i < mesh.vertexCount; i++) {
         float x = mesh.vertices[i][0];
         float y = mesh.vertices[i][1];

@@ -1,12 +1,13 @@
 SHELL = /bin/bash
 
 # COMPILE = /usr/bin/clang++
-# FLAGS = -O2 -Wall -g -std=c++11 -pthread
+# FLAGS = -O2 -Wall -g -std=c++11
 COMPILE = /usr/bin/g++ 
-FLAGS = -Og -Wall -g -pthread
+FLAGS = -Og -Wall -g
 
-INCLUDE = -fopenmp
-LIBS = -lm -lGL -lGLEW -lglfw -fopenmp -fPIC
+OPENMP = -fopenmp
+INCLUDE = ${OPENMP}
+LIBS = -lm -lGL -lGLEW -lglfw -fPIC ${OPENMP}
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/program
