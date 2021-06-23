@@ -10,7 +10,7 @@
 * Unlike texture2D, texelFetch seems to escape this issue.
 */
 
-# version 150 core
+#version 330 core
 
 varying highp vec2 fragTextCoord;
 precision highp float;
@@ -22,9 +22,10 @@ uniform sampler2D lookupTex;
 
 void main() {
     vec2 xy = fragTextCoord;
-    vec2 lookupPos = texture2D(lookupTex, xy).xy;
     vec4 col = vec4(0.0, 0.0, 0.0, 1.0);
-    ivec2 intLookup = ivec2(int(width*lookupPos.x), int(height*lookupPos.y));
-    col += texelFetch(tex, intLookup, 0);
+    vec2 lookupPos = texture2D(lookupTex, xy).xy;
+    ivec2 intLookupPos = ivec2(int(width*lookupPos.x), 
+                               int(height*lookupPos.y));
+    col += texelFetch(tex, intLookupPos, 0);
     gl_FragColor =  col;
 }

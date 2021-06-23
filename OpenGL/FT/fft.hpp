@@ -53,78 +53,6 @@ static void _cos_arr_init(int n) {
 
 
 template <typename T>
-static inline void _fft_v2(bool is_inverse, T* z, int n) {
-    #ifdef _USE_COS_ARR
-    if (! _is_cos_arr_init) {
-        _cos_arr_init(n);
-         _is_cos_arr_init = true;
-    }
-    #endif
-    double cos_val, sin_val;
-    int block_total;
-    double sign = (is_inverse)? -1.0: 1.0;
-    // Going in the other direction?
-    // Matrix([
-    // [-b/(-a - b), -a/(-a - b)],
-    // [-1/(-a - b),  1/(-a - b)]])
-    // Matrix([
-    // [b/(a + b), a/(a + b)],
-    // [1/(a + b),  -1/(a + b)]])
-    for (int block_size = n; block_size >= 2; block_size /= 2) {
-        block_total = n/block_size;
-        for (int j = 0; j < n; j += block_size) {
-            for (int i = 0; i < block_size/2; i++) {
-                #ifdef _USE_COS_ARR
-                cos_val = _cos_arr[i*block_total];
-                sin_val = (i*block_total < n/4)?
-                         (-sign*_cos_arr[i*block_total + n/4]):
-                         (sign*_cos_arr[i*block_total - n/4]);
-                #else
-                cos_val = cos(tau*i/block_size);
-                sin_val = sign*sin(tau*i/block_size);
-                #endif
-                cos_val = (cos_val == 0.0)? 1e-30: cos_val;
-                // e^(tau*i/block_size) + e^(-tau*i/block_size)
-                // = 2*cos(tau*i/block_size)
-                T lower = z[j + i];
-                T upper = z[block_size/2 + j + i];
-                //  e^(-tau*i/block_size)/(2 cos(tau*i/block_size))
-                double t00_real = 0.5;
-                double t00_imag = -0.5*sin_val/cos_val;
-                // -e^(tau*i/block_size)/(2 cos(tau*i/block_size))
-                double t01_real = -0.5;
-                double t01_imag = -0.5*sin_val/cos_val;
-                // 1/(2 cos(tau*i/block_size))
-                double t10_real = 0.5/cos_val;
-                double t10_imag = 0.0;
-                // -1/(2 cos(tau*i/block_size))
-                double t11_real = -0.5/cos_val;
-                double t11_imag = 0.0;
-                double n_val = 1.0;
-                if (is_inverse && block_size == n) n_val = n;
-                z[j + i].real(
-                    (t00_real*lower.real() - t00_imag*lower.imag()
-                    + t01_real*upper.real() - t01_imag*upper.imag())/n_val
-                );
-                z[j + i].imag(
-                    (t00_imag*lower.real() + t00_real*lower.imag()
-                    + t01_imag*upper.real() + t01_real*upper.imag())/n_val
-                );
-                z[block_size/2 + j + i].real(
-                    (t10_real*lower.real() - t10_imag*lower.imag()
-                    + t11_real*upper.real() - t11_imag*upper.imag())/n_val
-                );
-                z[block_size/2 + j + i].imag(
-                    (t10_imag*lower.real() + t10_real*lower.imag()
-                    + t11_imag*upper.real() + t11_real*upper.imag())/n_val
-                );
-            }
-        }
-    }
-}
-
-
-template <typename T>
 static inline void _fft(bool is_inverse, T* z, int n) {
     bitreverse2(z, n);
     #ifdef _USE_COS_ARR
@@ -252,6 +180,10 @@ void inplace_fft2(T *z, int w) {
     square_transpose<T>(z, w);
 }
 
+template <typename T>
+void inplace_fft2(T *z, int w, int h) {
+    // TODO
+}
 
 template <typename T>
 void inplace_ifft2(T *z, int w) {
@@ -267,6 +199,10 @@ void inplace_ifft2(T *z, int w) {
     square_transpose<T>(z, w);
 }
 
+template <typename T>
+void inplace_ifft2(T *z, int w, int h) {
+    // TODO
+}
 
 template <typename T>
 void inplace_fftshift(T *z, int n) {
@@ -276,7 +212,6 @@ void inplace_fftshift(T *z, int n) {
         z[i] = tmp;
     }
 }
-
 
 template <typename T>
 void inplace_fftshift2(T *z, int w) {
@@ -292,6 +227,10 @@ void inplace_fftshift2(T *z, int w) {
     square_transpose<T>(z, w);
 }
 
+template <typename T>
+void inplace_fftshift2(T *z, int w, int h) {
+    // TODO
+}
 
 void fftfreq(double *arr, int n) {
     if (n % 2 == 0) {
@@ -316,6 +255,7 @@ void fftfreq(double *arr, int n) {
 }
 
 void fftfreq2(double *arr, int w, int h) {
+    // TODO
     for (int i = 0; i < h; i++) {
         fftfreq(&arr[w*i], w);
     }

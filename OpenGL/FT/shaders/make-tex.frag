@@ -1,4 +1,4 @@
-# version 150 core
+#version 330 core
 
 varying highp vec2 fragTextCoord;
 precision highp float;

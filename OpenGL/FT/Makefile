@@ -14,8 +14,8 @@ LIBS = -lm -lGL -lGLEW -lglfw -fPIC ${OPENMP}
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/program
-SOURCES = program.cpp gl_wrappers.cpp fft.hpp
-OBJECTS = program.o gl_wrappers.o # fft.o
+SOURCES = program.cpp gl_wrappers.cpp fft_gl.cpp fft.hpp
+OBJECTS = program.o gl_wrappers.o fft_gl.o
 
 all: ${TARGET}
 

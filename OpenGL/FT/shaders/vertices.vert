@@ -1,4 +1,4 @@
-# version 150 core
+#version 330 core
 
 attribute vec3 position;
 varying highp vec2 fragTextCoord;

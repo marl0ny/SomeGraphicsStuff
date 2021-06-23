@@ -1,10 +1,12 @@
-#include "fft.hpp"
 #include "gl_wrappers.hpp"
 #include <GLFW/glfw3.h>
 #include <cmath>
-#include <thread>
 #include <ctime>
-// #include <omp.h>
+#include "fft.hpp"
+#include "fft_gl.hpp"
+#ifndef __clang__
+#include <omp.h>
+#endif
 
 struct FloatRGBA {
     union {
@@ -52,57 +54,6 @@ void button_released_update(GLFWwindow *window, int key,
 }
 
 
-Quad *fft(GLuint program, Quad *quads[2], float w, bool is_vert) {
-    for (float block_size = 2.0; block_size <= w; block_size *= 2.0) {
-        quads[1]->set_program(program);
-        quads[1]->bind();
-        quads[1]->set_int_uniform("tex", quads[0]->get_value());
-        quads[1]->set_int_uniform("isVertical", (int)is_vert);
-        quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
-                                      {"angleSign", 1.0},
-                                      {"size", (float)w},
-                                      {"scale", 1.0},
-                                      });
-        quads[1]->draw();
-        unbind();
-        Quad *tmp = quads[1];
-        quads[1] = quads[0];
-        quads[0] = tmp;
-    }
-    return quads[0];
-}
-
-Quad *ifft(GLuint program, Quad *quads[2], float w, bool is_vert) {
-    for (float block_size = 2.0; block_size <= w; block_size *= 2.0) {
-        quads[1]->set_program(program);
-        quads[1]->bind();
-        quads[1]->set_int_uniform("tex", quads[0]->get_value());
-        quads[1]->set_int_uniform("isVertical", (int)is_vert);
-        quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
-                                      {"angleSign", -1.0},
-                                      {"size", float(w)},
-                                      {"scale", (block_size == w)? 
-                                                1.0/(float)w: 1.0},
-                                      });
-        quads[1]->draw();
-        unbind();
-        Quad *tmp = quads[1];
-        quads[1] = quads[0];
-        quads[0] = tmp;
-    }
-    return quads[0];
-}
-
-void fft_shift(GLuint program, Quad *dest, Quad *src, bool is_vert) {
-    dest->set_program(program);
-    dest->bind();
-    dest->set_int_uniform("tex", src->get_value());
-    dest->set_int_uniform("isVertical", is_vert);
-    dest->draw();
-    unbind();
-}
-
-
 int main() {
     int w = 512, h = 512;
     uint8_t *image = new uint8_t[h*w*4];
@@ -127,7 +78,7 @@ int main() {
     // GLuint r2_vert_shader = get_shader("./shaders/reverse2-vertices.vert", GL_VERTEX_SHADER);
     GLuint make_tex_shader = get_shader("./shaders/make-tex.frag", GL_FRAGMENT_SHADER);
     GLuint view_shader = get_shader("./shaders/view.frag", GL_FRAGMENT_SHADER);
-    GLuint sort_shader = get_shader("./shaders/reverse-bit-sort2.frag", GL_FRAGMENT_SHADER);
+    GLuint sort_shader = get_shader("./shaders/rearrange.frag", GL_FRAGMENT_SHADER);
     GLuint hpas_shader = get_shader("./shaders/fft-iter.frag", GL_FRAGMENT_SHADER);
     GLuint fftshift_shader = get_shader("./shaders/fftshift.frag", GL_FRAGMENT_SHADER);
     GLuint quad_vert_shader = get_shader("./shaders/quad.vert", GL_VERTEX_SHADER);
@@ -206,32 +157,26 @@ int main() {
         });
         q2.set_int_uniform("tex", premade_tex);
         q2.draw();
-
+        clock_t t1 = clock();
         rev_bit_sort(&q3, &q2, q5.get_value());
-        // q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-        // square_bitreverse2(arr, w);
-        // q3.substitute_array(w, h, GL_FLOAT, arr);
-
         Quad *qs[2] = {&q3, &q1};
-        fft(hpas_program, qs, w, true);
-        Quad *q = fft(hpas_program, qs, w, false);
+        horizontal_fft(hpas_program, qs, w);
+        Quad *q = vertical_fft(hpas_program, qs, w);
         if (q == &q1) copy_tex(&q3, &q1);
-        fft_shift(fftshift_program, &q1, &q3, true);
-        fft_shift(fftshift_program, &q3, &q1, false);
+        vertical_fft_shift(&q1, &q3, fftshift_program);
+        horizontal_fft_shift(&q3, &q1, fftshift_program);
         copy_tex(&q4, &q3);
-        fft_shift(fftshift_program, &q1, &q4, true);
-        fft_shift(fftshift_program, &q4, &q1, false);
-
+        vertical_fft_shift(&q1, &q4, fftshift_program);
+        horizontal_fft_shift(&q4, &q1, fftshift_program);
         rev_bit_sort(&q1, &q4, q5.get_value());
         copy_tex(&q4, &q1);
-        // q4.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-        // square_bitreverse2(arr, w);
-        // q4.substitute_array(w, h, GL_FLOAT, arr);
-
         qs[0] = &q4, qs[1] = &q1;
-        ifft(hpas_program, qs, w, true);
-        q = ifft(hpas_program, qs, w, false);
+        vertical_ifft(hpas_program, qs, w);
+        q = horizontal_ifft(hpas_program, qs, w);
         if (q == &q1) copy_tex(&q4, &q1);
+        clock_t t2 = clock();
+        double time_taken = (double)(t2 - t1)/(double)CLOCKS_PER_SEC;
+        std::cout << "Time taken (gpu): " << time_taken << " s\n";
     };
 
     auto cpu_fft = [&] () {
@@ -245,23 +190,27 @@ int main() {
         });
         q2.set_int_uniform("tex", Quad::get_blank());
         q2.draw();
-        // unbind();
-        // clock_t t1 = clock();
-        // double t1 = omp_get_wtime();
+        #ifndef __clang__
+        double t1 = omp_get_wtime();
+        #else
+        clock_t t1 = clock();
+        #endif
         q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
         inplace_fft2<FloatRGBA>(arr, w);
         inplace_fftshift2(arr, w);
         q3.substitute_array(w, h, GL_FLOAT, arr);
         inplace_fftshift2(arr, w);
         inplace_ifft2<FloatRGBA>(arr, w);
-        // inplace_fftshift2(arr, w);
         q4.substitute_array(w, h, GL_FLOAT, arr);
-        // clock_t t2 = clock();
-        // double t2 = omp_get_wtime();
-        // double time_taken = (double)(t2 - t1)/(double)CLOCKS_PER_SEC;
-        // double time_taken = t2 - t1;
-        // std::cout << "Time taken: " << time_taken
-        //                                 << "\n";
+        #ifndef __clang__
+        double t2 = omp_get_wtime();
+        double time_taken = t2 - t1;
+        std::cout << "Time taken (cpu): " << time_taken << " s\n";
+        #else
+        clock_t t2 = clock();
+        double time_taken = (double)(t2 - t1)/(double)CLOCKS_PER_SEC;
+        std::cout << "Time taken (cpu): " << time_taken << " s\n";
+        #endif
         unbind();
     };
 

@@ -1,4 +1,4 @@
-#version 150 core
+#version 330 core
 
 varying vec2 fragTextCoord;
 uniform sampler2D tex;
