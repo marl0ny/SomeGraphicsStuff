@@ -44,8 +44,7 @@ int main() {
     for (int k = 0; !glfwWindowShouldClose(window); k++) {
         if (left_click.released) {
             for (int i = 0; i < 2; i++) {
-                draw_frame.set_program(draw_program);
-                draw_frame.bind();
+                draw_frame.bind(draw_program);
                 draw_frame.set_float_uniforms({
                     {"r", 1.0*(k%3 == 0)}, {"g", 1.0*(k%3 == 1)}, {"b", 1.0*(k%3 == 2)},
                     {"sigma", 0.01}, {"x0", left_click.x}, {"y0", left_click.y}, {"a", 0.2}
@@ -53,23 +52,20 @@ int main() {
                 draw_frame.set_int_uniform("tex", quads[i]->get_value());
                 draw_frame.draw();
                 unbind();
-                quads[i]->set_program(view_program);
-                quads[i]->bind();
+                quads[i]->bind(view_program);
                 quads[i]->set_int_uniform("tex", draw_frame.get_value());
                 quads[i]->draw();
                 unbind();
             }
         }
-        quads[2]->set_program(step_program);
-        quads[2]->bind();
+        quads[2]->bind(step_program);
         quads[2]->set_float_uniforms({{"dx", 1.0/width}, {"dy", 1.0/height}});
         quads[2]->set_int_uniforms({{"tex1", quads[0]->get_value()}, 
                                     {"tex2", quads[1]->get_value()}});
         quads[2]->draw();
         unbind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        view_frame.set_program(view_program);
-        view_frame.bind();
+        view_frame.bind(view_program);
         view_frame.set_int_uniform("tex", quads[2]->get_value());
         view_frame.draw();
         unbind();

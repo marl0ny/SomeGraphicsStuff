@@ -145,6 +145,10 @@ namespace gl_wrappers {
         this->bind();
     }
 
+    void Frame3D::set_draw_type(GLuint draw_type) {
+        this->draw_type = draw_type;
+    }
+
     void Frame3D::set_number_of_vertices(int n) {
         this->vertices_index_count = n;
     }
@@ -180,10 +184,10 @@ namespace gl_wrappers {
     void Frame3D::draw() const {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (is_edge) {
-            glDrawElements(GL_TRIANGLES, this->edge_data_size, 
+            glDrawElements(this->draw_type, this->edge_data_size, 
                            GL_UNSIGNED_INT, 0);
         } else {
-            glDrawArrays(GL_TRIANGLES, 0, this->vertices_index_count);
+            glDrawArrays(this->draw_type, 0, this->vertices_index_count);
         }
     }
 

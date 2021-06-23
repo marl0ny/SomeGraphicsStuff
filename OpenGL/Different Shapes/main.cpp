@@ -23,6 +23,7 @@ int main() {
     CharacterInput key_up(GLFW_KEY_UP);
     CharacterInput key_down(GLFW_KEY_DOWN);
     CharacterInput key_e(GLFW_KEY_E);
+    CharacterInput key_a(GLFW_KEY_A);
     axis a = init_axis(1.0, 1.0, 0.0, 0.0);
     int image_w, image_h;
     vec4 camera_position = init_vec4(0.0, 0.0, -1.0, 0.0);
@@ -116,6 +117,7 @@ int main() {
     frame.set_float_uniform("resize", 2.5);
     frame.draw();
     unbind();
+    // frame.set_draw_type(GL_LINES);
 
     int sphere_n = 200000;
     std::vector<float>sphere_vertices(sphere_n, 0.0);
@@ -137,6 +139,60 @@ int main() {
     frame2.set_float_uniform("resize", 1.0);
     frame2.draw();
     unbind();
+    // frame2.set_draw_type(GL_LINES);
+
+    std::vector<float>vec_field{};
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            float s = -0.5 + (float)i/10.0;
+            float t = -0.5 + (float)j/10.0;
+            for (int k = 0; k < 3; k++) {
+                // position
+                vec_field.push_back(s + (float)k/(float)20.0);
+                vec_field.push_back(t + (float)k/(float)20.0);
+                vec_field.push_back(0.0);
+                
+                // colour
+                vec_field.push_back(1.0);
+                vec_field.push_back(0.0);
+                vec_field.push_back(0.0);
+                // normal
+                vec_field.push_back(0.0);
+                vec_field.push_back(0.0);
+                vec_field.push_back(-1.0);
+                // texture
+                vec_field.push_back(0.0);
+                vec_field.push_back(0.0);
+            }
+        }
+    }
+    Frame3D frame3(vec_field, width, height, GL_UNSIGNED_BYTE);
+    frame3.bind(program);
+    frame3.set_attribute("position", 3, 11, 0);
+    frame3.set_attribute("colour", 3, 11, 3);
+    frame3.set_attribute("normal", 3, 11, 6);
+    frame3.set_attribute("texture", 2, 11, 9);
+    frame3.set_number_of_vertices(200);
+    frame3.set_float_uniform("resize", 1.0);
+    frame3.draw();
+    unbind();
+    frame3.set_draw_type(GL_LINES);
+    std::function<void()> draw_frame3 = [&] {
+        frame3.bind(program);
+        frame3.set_vec4_uniform("quaternionAxis", (float *)&q.elem[0]);
+        frame3.set_vec3_uniform("lightSource", (float *)&light_source_loc);
+        frame3.set_vec3_uniform("cameraLoc", (float *)&camera_position);
+        frame3.set_float_uniform("resize", 2.0);
+        frame3.draw();
+        unbind();
+        q0.bind(view_program);
+        q0.set_int_uniforms({{"tex", frame3.get_value()},
+                             {"width", width},
+                             {"height", height}});
+        // q0.set_int_uniform("tex", frame3.get_value());
+        q0.draw();
+        unbind();
+    };
 
     std::function<void()>draw_q1 = [&] {
         q0.bind(view_program);
@@ -205,13 +261,14 @@ int main() {
     };
 
     std::vector<Input *>inputs {&left, &right,
-                                &key_q, &key_w, &key_e,
+                                &key_q, &key_w, &key_e, &key_a,
                                 &key_up, &key_down};
     for (int k = 0; !glfwWindowShouldClose(window); k++) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (key_q.pressed) draw_frame2();
         else if (key_w.pressed) draw_q1();
         else if (key_e.pressed) draw_cubemap();
+        else if (key_a.pressed) draw_frame3();
         else draw_frame();
         if (key_up.pressed) resize_val *= 1.01;
         if (key_down.pressed) resize_val *= 0.99;

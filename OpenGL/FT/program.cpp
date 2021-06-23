@@ -59,8 +59,9 @@ Quad *fft(GLuint program, Quad *quads[2], float w, bool is_vert) {
         quads[1]->set_int_uniform("tex", quads[0]->get_value());
         quads[1]->set_int_uniform("isVertical", (int)is_vert);
         quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
-                                      {"sign", 1.0},
-                                      {"invSize", 1.0},
+                                      {"angleSign", 1.0},
+                                      {"size", (float)w},
+                                      {"scale", 1.0},
                                       });
         quads[1]->draw();
         unbind();
@@ -78,9 +79,10 @@ Quad *ifft(GLuint program, Quad *quads[2], float w, bool is_vert) {
         quads[1]->set_int_uniform("tex", quads[0]->get_value());
         quads[1]->set_int_uniform("isVertical", (int)is_vert);
         quads[1]->set_float_uniforms({{"blockSize", block_size/(float)w},
-                                      {"sign", -1.0},
-                                      {"invSize", (block_size >= (float)w)?
-                                       (float)w : 1.0},
+                                      {"angleSign", -1.0},
+                                      {"size", float(w)},
+                                      {"scale", (block_size == w)? 
+                                                1.0/(float)w: 1.0},
                                       });
         quads[1]->draw();
         unbind();
@@ -125,7 +127,7 @@ int main() {
     // GLuint r2_vert_shader = get_shader("./shaders/reverse2-vertices.vert", GL_VERTEX_SHADER);
     GLuint make_tex_shader = get_shader("./shaders/make-tex.frag", GL_FRAGMENT_SHADER);
     GLuint view_shader = get_shader("./shaders/view.frag", GL_FRAGMENT_SHADER);
-    // GLuint sort_shader = get_shader("./shaders/reverse-bit-sort2.frag", GL_FRAGMENT_SHADER);
+    GLuint sort_shader = get_shader("./shaders/reverse-bit-sort2.frag", GL_FRAGMENT_SHADER);
     GLuint hpas_shader = get_shader("./shaders/fft-iter.frag", GL_FRAGMENT_SHADER);
     GLuint fftshift_shader = get_shader("./shaders/fftshift.frag", GL_FRAGMENT_SHADER);
     GLuint quad_vert_shader = get_shader("./shaders/quad.vert", GL_VERTEX_SHADER);
@@ -133,14 +135,27 @@ int main() {
     GLuint copy2program = make_program(quad_vert_shader, quad_frag_shader);
     GLuint make_tex_program = make_program(vert_shader, make_tex_shader);
     GLuint view_program = make_program(vert_shader, view_shader);
-    // GLuint sort_program = make_program(r2_vert_shader, view_shader);
+    GLuint sort_program = make_program(vert_shader, sort_shader);
     GLuint hpas_program = make_program(vert_shader, hpas_shader);
     GLuint fftshift_program = make_program(vert_shader, fftshift_shader);
+
 
     auto copy_tex = [&](Quad *dest, Quad *src) {
         dest->set_program(copy2program);
         dest->bind();
         dest->set_int_uniform("tex", src->get_value());
+        dest->draw();
+        unbind();
+    };
+
+    auto rev_bit_sort = [&](Quad *dest, Quad *src, int lookupTex) {
+        dest->set_program(sort_program);
+        dest->bind();
+        dest->set_float_uniforms({{"width", w}, {"height", h}});
+        dest->set_int_uniforms({
+            {"tex", src->get_value()},
+            {"lookupTex", lookupTex},
+        });
         dest->draw();
         unbind();
     };
@@ -155,8 +170,30 @@ int main() {
     Quad q2 = Quad::make_float_frame(w, h);
     Quad q3 = Quad::make_float_frame(w, h);
     Quad q4 = Quad::make_float_frame(w, h);
+    Quad q5 = Quad::make_float_frame(w, h);
+    Quad q6 = Quad::make_float_frame(w, h);
+    int premade_tex = Quad::get_blank();
 
     FloatRGBA *arr = new FloatRGBA[w*h];
+
+    for (int i = 0; i < w; i++) {
+        for (int j = 0; j < h; j++) {
+            arr[j*w + i].r = (float)i/(float)w;
+            arr[j*w + i].g = (float)j/(float)h;
+            arr[j*w + i].b = 0.0;
+            arr[j*w + i].a = 1.0;
+        } 
+    }
+    /*for (int i = 0; i < w; i++) {
+        for (int j = 0; j <= w/2 - 1; j++) {
+            arr[i*w + j] = arr[i*w + j*2];
+            arr[i*w + w/2 + j] = arr[i*w + j*2 + 1];
+        }
+    }*/
+    square_bitreverse2<FloatRGBA>(arr, w);
+    q5.substitute_array(w, h, GL_FLOAT, arr);
+    unbind();
+
 
     auto gpu_fft = [&] () {
         q2.set_program(make_tex_program);
@@ -167,25 +204,30 @@ int main() {
                 {"sigma", sigma}, {"a", 5.0},
                 {"x0", x0}, {"y0", y0}, {"r", 1.0}
         });
-        q2.set_int_uniform("tex", Quad::get_blank());
+        q2.set_int_uniform("tex", premade_tex);
         q2.draw();
 
-        q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-        square_bitreverse2(arr, w);
-        q3.substitute_array(w, h, GL_FLOAT, arr);
-        unbind();
+        rev_bit_sort(&q3, &q2, q5.get_value());
+        // q2.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
+        // square_bitreverse2(arr, w);
+        // q3.substitute_array(w, h, GL_FLOAT, arr);
+
         Quad *qs[2] = {&q3, &q1};
         fft(hpas_program, qs, w, true);
         Quad *q = fft(hpas_program, qs, w, false);
         if (q == &q1) copy_tex(&q3, &q1);
         fft_shift(fftshift_program, &q1, &q3, true);
         fft_shift(fftshift_program, &q3, &q1, false);
-
-        q3.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
-        square_bitreverse2(arr, w);
-        q4.substitute_array(w, h, GL_FLOAT, arr);
+        copy_tex(&q4, &q3);
         fft_shift(fftshift_program, &q1, &q4, true);
         fft_shift(fftshift_program, &q4, &q1, false);
+
+        rev_bit_sort(&q1, &q4, q5.get_value());
+        copy_tex(&q4, &q1);
+        // q4.get_texture_array(arr, 0, 0, w, h, GL_FLOAT);
+        // square_bitreverse2(arr, w);
+        // q4.substitute_array(w, h, GL_FLOAT, arr);
+
         qs[0] = &q4, qs[1] = &q1;
         ifft(hpas_program, qs, w, true);
         q = ifft(hpas_program, qs, w, false);
@@ -227,7 +269,7 @@ int main() {
 
     Quad *quads[3] = {&q2, &q3, &q4};
     double brightness = 1.0;
-    bool use_cpu = true;
+    bool use_cpu = false;
 
     for (int i = 0; !glfwWindowShouldClose(window); i++) {
         if (key_pressed) {
@@ -270,12 +312,13 @@ int main() {
         button_update(window, GLFW_KEY_F, k, k - 1.0);
         button_update(window, GLFW_KEY_T, j, j + 1.0);
         button_update(window, GLFW_KEY_G, j, j - 1.0);
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 8; i++) {
             button_update(window, GLFW_KEY_0+i, view_mode, i);
         }
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 8; i++) {
             button_update(window, GLFW_KEY_0+i, key_pressed, true);
         }
+        button_update(window, GLFW_KEY_7, premade_tex, q5.get_value());
         button_update(window, GLFW_KEY_Q, key_pressed, true);
         button_update(window, GLFW_KEY_E, key_pressed, true);
         button_update(window, GLFW_KEY_W, key_pressed, true);

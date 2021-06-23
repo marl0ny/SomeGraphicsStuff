@@ -48,7 +48,8 @@ void main() {
     if (st.x > 1.0 && st.x < 2.0) col = texture(tex2, st);
     else if (st.x > 2.0) col = texture(tex3, st);
     if (st.x < 1.0 || st.x >= 2.0) {
-        gl_FragColor = vec4(brightness*abs(col.r)*complexToColour(col.r, 0.0), 1.0);
+        gl_FragColor = vec4(brightness*sqrt(col.g*col.g + col.r*col.r)*
+                            complexToColour(col.r, col.g), 1.0);
     } else if (st.x < 2.0) {
         // float a = brightness*(-1.0/((col.g*col.g + col.r*col.r)/
         // (gridSize*gridSize) + 1.0) + 1.0);

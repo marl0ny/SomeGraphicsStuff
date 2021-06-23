@@ -46,7 +46,7 @@ namespace gl_wrappers {
     class ImageFrame: public Frame {
         GLuint texture = 0;
         public:
-        ImageFrame(int w, int h, uint8_t *image, 
+        ImageFrame(int w, int h, uint8_t *image,
                    GLuint channel_type=GL_RGB);
         void draw();
         ~ImageFrame() {
@@ -95,6 +95,7 @@ namespace gl_wrappers {
         int vertices_index_count = 0;
         int width = 0;
         int height = 0;
+        int draw_type = GL_TRIANGLES;
         void init_objects(float *vertex_data, int *edge_data,
                         int vertex_data_size, int edge_data_size);
         void init_objects(float *vertex_data, int vertex_data_size);
@@ -113,6 +114,7 @@ namespace gl_wrappers {
         void bind();
         void bind(GLuint program);
         void get_texture() const;
+        void set_draw_type(GLuint draw_type);
         void set_attribute(const std::string &attrib_name, int size,
                             int vertex_size, size_t offset,
                             int type=GL_FLOAT, int normalize=GL_FALSE);
@@ -146,6 +148,33 @@ namespace gl_wrappers {
         int get_texture() const;
         void draw();
 
+    };
+
+    class VectorField2D: public ProgrammableFrame {
+        GLuint vao = 0;
+        GLuint vbo = 0;
+        GLuint fbo = 0;
+        GLuint rbo = 0;
+        GLuint texture = 0;
+        int vertex_data_size = 0;
+        int vertices_index_count = 0;
+        int width = 0;
+        int height = 0;
+        void init_objects(float *vertex_data, int vertex_data_size);
+        void init_texture(int width, int height, int texture_type);
+        public:
+        void set_attribute(const std::string &attrib_name, int size,
+                           int vertex_size, size_t offset,
+                           int type=GL_FLOAT, int normalize=GL_FALSE);
+        void set_attributes(const std::vector<std::pair<std::string, int>>
+                            &attribute);
+        VectorField2D(std::vector<float> &vertex_data, int width, int height,
+                      int texture_type);
+        void bind();
+        void bind_array(std::vector<float> &vertex_data);
+        void bind(GLuint program);
+        int get_texture() const;
+        void draw();
     };
 
     class Quad: public ProgrammableFrame {

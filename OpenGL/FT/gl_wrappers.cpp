@@ -101,11 +101,11 @@ GLuint get_tex() {
 }
 
 void do_texture_paramertiri_and_mipmap() {
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
 } 
 
 
@@ -119,9 +119,9 @@ GLuint make_texture(uint8_t *image, size_t image_w, size_t image_h) {
 }
 
 struct TextureMaker {
-    GLuint s_boundary = GL_CLAMP_TO_EDGE;
-    GLuint t_boundary = GL_CLAMP_TO_EDGE;
-    GLuint interpolation = GL_NEAREST;
+    GLuint s_boundary = GL_REPEAT;
+    GLuint t_boundary = GL_REPEAT;
+    GLuint interpolation = GL_LINEAR;
     GLuint internal_format = GL_RGBA32F;
     GLuint type = GL_FLOAT;
     GLuint format = GL_RGBA;
@@ -131,10 +131,10 @@ struct TextureMaker {
         glTexImage2D(GL_TEXTURE_2D, 0, internal_format,
                      image_w, image_h, 0, format,
                      type, image);
-        glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s_boundary);
-        glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t_boundary);
-        glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, interpolation);
-        glTextureParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, interpolation);
+        glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, s_boundary);
+        glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, t_boundary);
+        glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, interpolation);
+        glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, interpolation);
         if (generateMipmap) {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
@@ -148,7 +148,6 @@ GLuint make_float_texture(float *image, size_t image_w, size_t image_h) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
                  image_w, image_h, 0, GL_RGBA,
                  GL_FLOAT, image);
-    do_texture_paramertiri_and_mipmap();
     return texture;
 }
 
@@ -329,6 +328,9 @@ int Quad::get_texture() const {
 
 void Quad::get_texture_array(void *arr, int x0, int y0,
                              int w, int h, int type) {
+    bind();
+    glActiveTexture(get_tex_unit());
+    glBindTexture(GL_TEXTURE_2D, get_texture());
     if (type == GL_UNSIGNED_BYTE) {
         return glReadPixels(x0, y0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, 
                             arr);

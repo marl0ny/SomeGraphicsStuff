@@ -131,6 +131,10 @@ void unbind() {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
+void draw(const Quad &q) {
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
 int Frame::total_frames = 0;
 
 int Frame::get_value() const {
@@ -188,6 +192,11 @@ void Quad::bind() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     set_vertex_name(vertex_name);
+}
+
+void Quad::bind(GLuint program) {
+    set_program(program);
+    bind();
 }
 
 void Quad::set_vertex_name(const std::string &name) {

@@ -49,6 +49,7 @@ class Quad: public Frame {
     void set_vertex_name(const char *name);
     void set_vertex_name(const std::string &name);
     void bind();
+    void bind(GLuint program);
     int get_texture() const;
     static Quad make_frame(int width, int height,
         const std::string &vertex_name=std::string("position"));
@@ -71,5 +72,7 @@ class Quad: public Frame {
         glDeleteTextures(1, &texture);
     }
 };
+
+void draw(const Quad &q);
 
 #endif

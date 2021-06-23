@@ -38,6 +38,8 @@ void main () {
                 sin(2.0*PI*(k*x + j*y));
     } else if (type == 6) {
         val = a*cos(2.0*PI*(k*x + j*y));
+    } else if (type == 7) {
+        val = 0.0;
     }
     gl_FragColor = vec4(vec3(r*val, g*val, b*val) + prevVal.rgb, 1.0);
 }

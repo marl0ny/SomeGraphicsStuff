@@ -1,7 +1,20 @@
 /*
-TODO: Currently all the fft operations are done on the cpu instead
-of the gpu. Also figure out how to do it on the gpu and compare it 
-with the cpu inplementation.
+* Some things to mention:
+* 
+*  - Conditionals that depend on values that are computed
+*    at runtime should be avoided as things will not be properly
+*    handled. This is why in the code two different sets of
+*    odd and even values are both computed even though only one set
+*    will be used. Using a conditional to compute only a single set
+*    produced buggy behaviour.
+* 
+*  - The incoming fragTextCoord are the texture coordinates
+*    at the centre of the pixel and not at it's edge.
+*    For example, a pixel located at (5, 10) would give
+*    fragTextCoord a value (5.5, 10.5) when multiplied by
+*    the screen dimensions. This information is needed
+*    when calculating the proper phi1 and phi2 variable angles.
+* 
 */
 
 #version 150 core
@@ -11,60 +24,44 @@ varying highp vec2 fragTextCoord;
 uniform sampler2D tex;
 uniform float blockSize;
 uniform int isVertical;
-uniform float sign;
-uniform float invSize;
-float tau = 6.283185307179586;
+uniform float angleSign;
+uniform float size;
+uniform float scale;
+const float tau = 6.283185307179586;
+
+vec3 getOdd1(float x, float y) {
+    return (isVertical == 0)? texture2D(tex, vec2(x + blockSize/2.0, y)).rgb:
+                              texture2D(tex, vec2(x, y + blockSize/2.0)).rgb;
+}
+
+vec3 getEven2(float x, float y) {
+    return (isVertical == 0)? texture2D(tex, vec2(x - blockSize/2.0, y)).rgb:
+                              texture2D(tex, vec2(x, y - blockSize/2.0)).rgb;
+}
 
 void main() {
-    vec2 xy = fragTextCoord;
-    float eps = 1.0/512.0;
-    if (isVertical == 0) {
-        float x = xy.x;
-        float val = mod(x, blockSize);
-        if (val <= blockSize/2.0) {
-            vec3 even = texture2D(tex, xy).rgb;
-            vec3 odd = texture2D(tex, 
-                vec2(x + blockSize/2.0, xy.y)).rgb;
-            float phi = -sign*tau*(x)/(blockSize);
-            vec3 odd2 = vec3(
-                odd.r*cos(phi) - odd.g*sin(phi),
-                odd.r*sin(phi) + odd.g*cos(phi),
-                0.0);
-            gl_FragColor = vec4(invSize*(even + odd2), 1.0);
-        } else {
-            vec3 even = texture2D(tex, 
-                vec2(x - blockSize/2.0, xy.y)).rgb;
-            vec3 odd = texture2D(tex, xy).rgb;
-            float phi = -sign*tau*(x - blockSize/2.0)/(blockSize);
-            vec3 odd2 = vec3(
-                odd.r*cos(phi) - odd.g*sin(phi),
-                odd.r*sin(phi) + odd.g*cos(phi),
-                0.0);
-            gl_FragColor = vec4(invSize*(even - odd2), 1.0);
-        }
-    } else {
-        float y = xy.y;
-        float val = mod(y, blockSize);
-        if (val <= blockSize/2.0) {
-            vec3 even = texture2D(tex, xy).rgb;
-            vec3 odd = texture2D(tex, 
-                vec2(xy.x, y+blockSize/2.0)).rgb;
-            float phi = -sign*tau*(y)/blockSize;
-            vec3 odd2 = vec3(
-                odd.r*cos(phi) - odd.g*sin(phi),
-                odd.r*sin(phi) + odd.g*cos(phi),
-                0.0);
-            gl_FragColor = vec4(invSize*(even + odd2), 1.0);
-        } else {
-            vec3 even = texture2D(tex, 
-                vec2(xy.x, y-blockSize/2.0)).rgb;
-            vec3 odd = texture2D(tex, xy).rgb;
-            float phi = -sign*tau*(y - blockSize/2.0)/blockSize;
-            vec3 odd2 = vec3(
-                odd.r*cos(phi) - odd.g*sin(phi),
-                odd.r*sin(phi) + odd.g*cos(phi),
-                0.0);
-            gl_FragColor = vec4(invSize*(even - odd2), 1.0);
-        }
-    }
+    float x = fragTextCoord.x;
+    float y = fragTextCoord.y;
+    float val = (isVertical == 0)? mod(x, blockSize): mod(y, blockSize);
+    // even lower half
+    vec3 even1 = texture2D(tex, fragTextCoord).rgb;
+    vec3 odd1 = getOdd1(x, y);
+    float phi1 = angleSign*tau*(val - 0.5/size)/(blockSize);
+    vec3 expOdd1 = vec3(odd1.r*cos(phi1) - odd1.g*sin(phi1),
+                            odd1.r*sin(phi1) + odd1.g*cos(phi1),
+                            0.0);
+    vec3 out1 = scale*(even1 + expOdd1);
+    // odd upper half
+    vec3 even2 = getEven2(x, y);
+    vec3 odd2 = texture2D(tex, fragTextCoord).rgb;
+    float phi2 = angleSign*tau*((val - 0.5/size) - blockSize/2.0)/(blockSize);
+    vec3 expOdd2 = vec3(odd2.r*cos(phi2) - odd2.g*sin(phi2),
+                            odd2.r*sin(phi2) + odd2.g*cos(phi2),
+                            0.0);
+    vec3 out2 = scale*(even2 - expOdd2);
+    // TODO: is it better to use a conditional or to use the step
+    // function?
+    gl_FragColor = (val <= blockSize/2.0)? vec4(out1, 1.0): vec4(out2, 1.0); 
+    // gl_FragColor = step(0.0, blockSize/2.0 - val)*vec4(out1, 1.0) +
+    //                 step(0.0, val - blockSize/2.0)*vec4(out2, 1.0);
 }
