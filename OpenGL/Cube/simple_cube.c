@@ -1,4 +1,5 @@
-#include <GL/glew.h>
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h> 
@@ -76,12 +77,12 @@ int main() {
     glfwMakeContextCurrent(window);
 
     // Initialize GLEW
-    glewExperimental = GL_TRUE; // This is NECESSARY
+    /*glewExperimental = GL_TRUE; // This is NECESSARY
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "Error.\n");
         exit(1);
-    }
+    }*/
     
     // Vertex array object
     GLuint vao;

@@ -17,6 +17,8 @@ void main () {
     vec4 prevVal = texture(tex, fragTextCoord);
     float x = fragTextCoord.x - x0;
     float y = fragTextCoord.y - y0;
-    float val = a*(1/(sigma*sqrt(2*3.14159)))*exp(-0.5*(x*x + y*y)/(sigma*sigma));
-    fragColor = vec4(vec3(r*val, g*val, b*val) + prevVal.rgb, 1.0);
+    float val = a*(1.0/(sigma*sqrt(2.0*3.14159)))*exp(-0.5*(x*x + y*y)/(sigma*sigma));
+    vec4 col = vec4(vec3(r*val, g*val, b*val) + prevVal.rgb
+                     , 1.0);
+    fragColor = col;
 }

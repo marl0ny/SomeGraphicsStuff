@@ -10,27 +10,42 @@ GLFWwindow *init_window(int width, int height) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    GLFWwindow *window = glfwCreateWindow(width, height, "OpenGL", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(width/2, height/2, "Waves!", NULL, NULL);
+    if (!window) {
+        fprintf(stderr, "Unable to create glfw window.\n");
+        exit(1);
+    }
     glfwMakeContextCurrent(window);
     return window;
 }
 
 GLuint make_program(GLuint vs_ref, GLuint fs_ref) {
     GLuint program = glCreateProgram();
+    if (program == 0) {
+        fprintf(stderr, "Unable to create program.\n");
+    }
+    // std::cout << program << ", " << glGetError() << std::endl;
     glAttachShader(program, vs_ref);
     glAttachShader(program, fs_ref);
     glLinkProgram(program);
+    GLint status;
+    char buf[512];
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
+    glGetProgramInfoLog(program, 512, NULL, buf);
+    if (status != GL_TRUE) {
+        fprintf(stderr, "%s\n%s", "Failed to link program:", buf);
+    }
     glUseProgram(program);
     return program;
 }
 
-void init_glew() {
+/*void init_glew() {
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "Error.\n");
         exit(1);
     }
-}
+}*/
 
 void compile_shader(GLuint shader_ref, const char *shader_source) {
     char buf[512];
@@ -72,7 +87,34 @@ GLuint make_fragment_shader(const char *f_source) {
     return fs_ref;
 }
 
+/*
+* Given a filename, get its file contents.
+*/
+char *get_file_contents(const char *filename) {
+    FILE *f = fopen(filename, "r");
+    if (f == NULL) {
+        perror("fopen");
+        fclose(f);
+        return NULL;
+    }
+    fseek(f, 0, SEEK_END);
+    int file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *file_buff = (char *)malloc(file_size + 1);
+    if (file_buff == NULL) {
+        perror("malloc");
+        fclose(f);
+        return NULL;
+    }
+    fread(file_buff, file_size, 1, f);
+    file_buff[file_size] = '\0';
+    fclose(f);
+    return file_buff;
+}
+
+
 GLuint get_shader(const char *shader_loc, GLuint shader_type) {
+    /*
     std::ifstream shader_stream{std::string(shader_loc)};
     if (!shader_stream) {
         std::fprintf(stderr, "Unable to open %s.", shader_loc);
@@ -85,6 +127,14 @@ GLuint get_shader(const char *shader_loc, GLuint shader_type) {
     } else {
         return make_fragment_shader(shader_source.c_str());
     }
+    */
+    char *contents = get_file_contents(shader_loc);
+    if (shader_type == GL_VERTEX_SHADER) {
+        return make_vertex_shader(contents);
+    } else {
+        return make_fragment_shader(contents);
+    }
+    free(contents);
     return 0;
 }
 
@@ -181,7 +231,7 @@ void Quad::init_objects() {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
                                 GL_TEXTURE_2D, texture, 0);
     }
-    set_vertex_name(vertex_name);
+    set_vertex_name("position");
 }
 
 void Quad::bind() {
@@ -191,7 +241,7 @@ void Quad::bind() {
     }
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    set_vertex_name(vertex_name);
+    // set_vertex_name("position");
 }
 
 void Quad::bind(GLuint program) {
@@ -216,32 +266,30 @@ void Quad::set_program(GLuint program) {
     glUseProgram(program);
 }
 
- Quad Quad::make_frame(int width, int height, 
-                       const std::string &vertex_name) {
+ Quad Quad::make_frame(int width, int height) {
     Quad::total_frames += 1;
     Quad quad = Quad();
-    for (int i = 0; i < 15; i++) {
+    /*for (int i = 0; i < 15; i++) {
         quad.vertex_name[i] = vertex_name[i];
-    }
+    }*/
     quad.frame_number = Quad::total_frames - 1;
     quad.init_texture(width, height, GL_UNSIGNED_BYTE);
     quad.init_objects();
-    quad.set_vertex_name(vertex_name);
+    quad.set_vertex_name("position");
     unbind();
     return quad;
 }
 
-Quad Quad::make_float_frame(int width, int height, 
-                            const std::string &vertex_name) {
+Quad Quad::make_float_frame(int width, int height) {
     Quad::total_frames += 1;
     Quad quad = Quad();
-    for (int i = 0; i < 15; i++) {
+    /*for (int i = 0; i < 15; i++) {
         quad.vertex_name[i] = vertex_name[i];
-    }
+    }*/
     quad.frame_number = Quad::total_frames - 1;
     quad.init_texture(width, height, GL_FLOAT);
     quad.init_objects();
-    quad.set_vertex_name(vertex_name);
+    quad.set_vertex_name("position");
     unbind();
     return quad;
 }

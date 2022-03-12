@@ -7,8 +7,15 @@ FLAGS = -O0 -Wall -g
 
 
 # Put your own include and lib paths here:
-INCLUDE = 
-LIBS = -lm  -lGLESv2 -lGLEW -lglfw
+# INCLUDE = -I/opt/homebrew/include
+# LIBS = -L/opt/homebrew/lib -lm  -lGLESv2 -lGLEW -lglfw\
+#  -framework CoreVideo -framework OpenGL -framework IOKit\
+#   -framework Cocoa -framework Carbon
+
+INCLUDE = -I/opt/homebrew/include
+LIBS = -L/opt/homebrew/lib -lglfw\
+ -framework CoreVideo -framework OpenGL -framework IOKit\
+  -framework Cocoa -framework Carbon
 
 TARGETDIR = .
 # TARGETDIR = ${HOME}

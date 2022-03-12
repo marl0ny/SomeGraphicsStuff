@@ -1,10 +1,6 @@
+
 SHELL = /bin/bash
-
-COMPILE = /usr/bin/clang
 FLAGS = -O0 -Wall -g
-# COMPILE = /usr/bin/g++ 
-# FLAGS = -Og -Wall -g
-
 
 # Put your own include and lib paths here:
 # INCLUDE = -I/opt/homebrew/include
@@ -18,20 +14,18 @@ LIBS = -L/opt/homebrew/lib -lglfw\
   -framework Cocoa -framework Carbon
 
 TARGETDIR = .
-TARGET = ${TARGETDIR}/simple_cylinder
-SOURCES = simple_cylinder.c math_functions.c gl_wrappers.c vertex_array.c read_file.c
-OBJECTS = simple_cylinder.o math_functions.o gl_wrappers.o vertex_array.o read_file.o
-SHADERS = ./shaders/vertex_shader.vert ./shaders/fragment_shader.frag
+TARGET = ${TARGETDIR}/program
+SOURCES = gl_wrappers.c waves.c
+OBJECTS = gl_wrappers.o waves.o
+
 
 all: ${TARGET}
 
 ${TARGET}: ${OBJECTS}
-	echo ${TEST}
-	${COMPILE} ${FLAGS} -o $@ $^ ${LIBS}
+	clang ${FLAGS} -o $@ $^ ${LIBS}
 
 ${OBJECTS}: ${SOURCES}
-	${COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+	clang ${FLAGS} -c $^ ${INCLUDE}
 
 clean:
-	rm -f *.o *~ *.gch ${TARGET}
-
+	rm -f *.o ${TARGET}

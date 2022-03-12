@@ -1,5 +1,3 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h> 
 #include <math.h>
@@ -157,12 +155,12 @@ int main() {
     glfwMakeContextCurrent(window);
 
     // Initialize GLEW
-    glewExperimental = GL_TRUE;
+    /* glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "Error.\n");
         exit(1);
-    }
+    }*/
 
     int image_w = 0;
     int image_h = 0;

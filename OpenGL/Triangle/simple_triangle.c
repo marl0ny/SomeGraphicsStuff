@@ -1,4 +1,5 @@
-#include <GL/glew.h>
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h> 
@@ -140,12 +141,12 @@ int main() {
     GLFWwindow *window = glfwCreateWindow(600, 600, "OpenGL", NULL, NULL);
     glfwMakeContextCurrent(window);
 
-    glewExperimental = GL_TRUE; // This is NECESSARY
+    /*glewExperimental = GL_TRUE; // This is NECESSARY
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "Error.\n");
         exit(1);
-    }
+    }*/
     
     // Vertex array object
     GLuint vao;
@@ -203,10 +204,18 @@ int main() {
 
     // Create the shader program and attach the shaders.
     GLuint program = glCreateProgram();
+    if (program == 0) {
+        fprintf(stderr, "Unable to create program.\n");
+    }
     glAttachShader(program, vs_ref);
     glAttachShader(program, fs_ref);
-    glBindFragDataLocation(program, 0, "colour"); 
     glLinkProgram(program);
+    GLint program_status;
+    glGetProgramiv(program, GL_LINK_STATUS, &program_status);
+    glGetProgramInfoLog(program, 512, NULL, buf);
+    if (program_status != GL_TRUE) {
+        fprintf(stderr, "%s\n%s", "Failed to link program:", buf);
+    }
     glUseProgram(program);
 
     GLint pos_attrib = glGetAttribLocation(program, "position");
@@ -248,6 +257,7 @@ int main() {
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        // printf("%d\n", glGetError());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

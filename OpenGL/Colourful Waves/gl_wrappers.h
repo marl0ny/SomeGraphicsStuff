@@ -1,4 +1,5 @@
-#include <GL/glew.h>
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
 #include <map>
 #include <string>
@@ -11,7 +12,7 @@
 
 GLFWwindow *init_window(int width, int height);
 
-void init_glew();
+// void init_glew();
 
 GLuint make_texture(uint8_t *image, size_t image_w, size_t image_h);
 
@@ -40,7 +41,6 @@ class Quad: public Frame {
     GLuint ebo = 0;
     GLuint fbo = 0;
     GLuint texture = 0;
-    char vertex_name[16] = {'\0'};
     Quad();
     void init_texture(int width, int height, int texture_type);
     void init_objects();
@@ -51,10 +51,8 @@ class Quad: public Frame {
     void bind();
     void bind(GLuint program);
     int get_texture() const;
-    static Quad make_frame(int width, int height,
-        const std::string &vertex_name=std::string("position"));
-    static Quad make_float_frame(int width, int height,
-        const std::string &vertex_name=std::string("position"));
+    static Quad make_frame(int width, int height);
+    static Quad make_float_frame(int width, int height);
     void set_int_uniform(const char *name, int val);
     void set_int_uniform(const std::string &name, int val);
     void set_int_uniforms(const std::map<std::string, int> &uniforms);

@@ -1,12 +1,14 @@
 SHELL = /bin/bash
 
 COMPILE = /usr/bin/clang++
-FLAGS = -O0 -Wall -g -std=c++11
+FLAGS = -O2 -Wall -g -std=c++17
 # COMPILE = /usr/bin/g++ 
 # FLAGS = -Og -Wall -g
 
-INCLUDE = 
-LIBS = -lm -lGL -lGLEW -lglfw
+INCLUDE = -I/opt/homebrew/include
+LIBS = -L/opt/homebrew/lib -lglfw\
+ -framework CoreVideo -framework OpenGL -framework IOKit\
+  -framework Cocoa -framework Carbon
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/wave

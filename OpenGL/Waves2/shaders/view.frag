@@ -8,5 +8,5 @@ uniform sampler2D tex;
 
 void main() {
     highp vec4 col = texture(tex, fragTextCoord);
-    // fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    fragColor = col;
 }

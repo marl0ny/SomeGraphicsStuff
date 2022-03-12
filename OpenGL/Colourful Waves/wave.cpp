@@ -23,7 +23,7 @@ struct {
 int main() {
     int width = 720, height = 720;
     GLFWwindow *window = init_window(width, height);
-    init_glew();
+    // init_glew();
     GLuint vert_shader = get_shader("./shaders/vertices.vert", GL_VERTEX_SHADER);
     GLuint view_shader = get_shader("./shaders/view.frag", GL_FRAGMENT_SHADER);
     GLuint make_shader = get_shader("./shaders/make-wave.frag", GL_FRAGMENT_SHADER);
@@ -45,10 +45,18 @@ int main() {
         if (left_click.released) {
             for (int i = 0; i < 2; i++) {
                 draw_frame.bind(draw_program);
-                draw_frame.set_float_uniforms({
+                std::cout << left_click.y << std::endl;
+                /* draw_frame.set_float_uniforms({
                     {"r", 1.0*(k%3 == 0)}, {"g", 1.0*(k%3 == 1)}, {"b", 1.0*(k%3 == 2)},
                     {"sigma", 0.01}, {"x0", left_click.x}, {"y0", left_click.y}, {"a", 0.2}
-                });
+                });*/
+                draw_frame.set_float_uniform("r", 1.0*(k%3 == 0));
+                draw_frame.set_float_uniform("g", 1.0*(k%3 == 1));
+                draw_frame.set_float_uniform("b", 1.0*(k%3 == 2));
+                draw_frame.set_float_uniform("sigma", 0.01);
+                draw_frame.set_float_uniform("x0", left_click.x);
+                draw_frame.set_float_uniform("y0", left_click.y);
+                draw_frame.set_float_uniform("a", 0.2);
                 draw_frame.set_int_uniform("tex", quads[i]->get_value());
                 draw_frame.draw();
                 unbind();
@@ -59,9 +67,13 @@ int main() {
             }
         }
         quads[2]->bind(step_program);
-        quads[2]->set_float_uniforms({{"dx", 1.0/width}, {"dy", 1.0/height}});
-        quads[2]->set_int_uniforms({{"tex1", quads[0]->get_value()}, 
-                                    {"tex2", quads[1]->get_value()}});
+        quads[2]->set_float_uniform("dx", 1.0/width);
+        quads[2]->set_float_uniform("dy", 1.0/height);
+        // quads[2]->set_float_uniforms({{"dx", 1.0/width}, {"dy", 1.0/height}});
+        quads[2]->set_int_uniform("tex1", quads[0]->get_value());
+        quads[2]->set_int_uniform("tex2", quads[1]->get_value());
+        // quads[2]->set_int_uniforms({{"tex1", quads[0]->get_value()}, 
+        //                             {"tex2", quads[1]->get_value()}});
         quads[2]->draw();
         unbind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -75,6 +87,7 @@ int main() {
         quads[2] = tmp;
         glfwPollEvents();
         left_click.update(window);
+        std::cout << glGetError() << std::endl;
         glfwSwapBuffers(window);
     }
     glDeleteProgram(view_program);

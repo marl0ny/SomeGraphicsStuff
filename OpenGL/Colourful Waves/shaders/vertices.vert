@@ -1,7 +1,9 @@
 # version 330 core
 
+precision highp float;
+
 in vec3 position;
-out highp vec2 fragTextCoord;
+out vec2 fragTextCoord;
 
 void main () {
     gl_Position = vec4(position.xyz, 1.0);
