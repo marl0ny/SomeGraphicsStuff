@@ -6,19 +6,17 @@
 #define _GL_WRAPPERS
 
 
+typedef int frame_id;
+
 GLFWwindow *init_window(int width, int height);
 
 GLuint make_program(GLuint vs_ref, GLuint fs_ref);
 
-void compile_shader(GLuint shader_ref, const char *shader_source);
-
-GLuint make_vertex_shader(const char *v_source);
-
-GLuint make_fragment_shader(const char *f_source);
-
-char *get_file_contents(const char *filename);
-
 GLuint get_shader(const char *shader_loc, GLuint shader_type);
+
+GLuint get_vertex_shader(const char *shader_loc);
+
+GLuint get_fragment_shader(const char *shader_loc);
 
 GLuint get_tex();
 
@@ -27,6 +25,8 @@ GLuint make_texture(uint8_t *image, size_t image_w, size_t image_h);
 GLuint make_float_texture(float *image, size_t image_w, size_t image_h);
 
 void set_int_uniform(const char *name, int val);
+
+void set_sampler2D_uniform(const char *name, int val);
 
 void set_float_uniform(const char *name, float val);
 
@@ -37,11 +37,11 @@ void set_vec3_uniform(const char *name, float v0, float v1, float v2);
 void set_vec4_uniform(const char *name,
                       float v0, float v1, float v2, float v3);
 
-int new_ubyte_quad(int width, int height);
+frame_id new_ubyte_quad(int width, int height);
 
-int new_float_quad(int width, int height);
+frame_id new_float_quad(int width, int height);
 
-void bind_quad(int quad_id, GLuint program);
+void bind_quad(frame_id quad_id, GLuint program);
 
 void unbind();
 

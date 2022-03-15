@@ -3,6 +3,8 @@
 #include <stdio.h>
 
 
+#define quad_attribute_position "position"
+
 GLFWwindow *init_window(int width, int height) {
     if (glfwInit() != GL_TRUE) {
         fprintf(stderr, "Unable to create glfw window.\n");
@@ -13,8 +15,13 @@ GLFWwindow *init_window(int width, int height) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+#if defined(__APPLE__) // && defined(__arm__) 
     GLFWwindow *window = glfwCreateWindow(width/2, height/2, "Waves!", 
                                           NULL, NULL);
+#else
+    GLFWwindow *window = glfwCreateWindow(width, height, "Waves!", 
+                                          NULL, NULL);
+#endif
     if (!window) {
         fprintf(stderr, "Unable to create glfw window.\n");
         exit(1);
@@ -126,6 +133,14 @@ GLuint get_shader(const char *shader_loc, GLuint shader_type) {
     }
     free(contents);
     return 0;
+}
+
+GLuint get_vertex_shader(const char *shader_loc) {
+    return get_shader(shader_loc, GL_VERTEX_SHADER);
+}
+
+GLuint get_fragment_shader(const char *shader_loc) {
+    return get_shader(shader_loc, GL_FRAGMENT_SHADER);
 }
 
 GLuint get_tex() {
@@ -246,6 +261,10 @@ void set_int_uniform(const char *name, int val) {
     }
 }
 
+void set_sampler2D_uniform(const char *name, int val) {
+    set_int_uniform(name, val);
+}
+
 void set_float_uniform(const char *name, float val) {
     if (current_frame != NULL) { 
         GLuint program = current_frame->program;
@@ -279,7 +298,7 @@ void set_vec4_uniform(const char *name,
     }
 }
 
-int new_ubyte_quad(int width, int height) {
+frame_id new_ubyte_quad(int width, int height) {
     int quad_id = total_frames;
     total_frames += 1;
     current_frame = &frames[quad_id];
@@ -290,7 +309,7 @@ int new_ubyte_quad(int width, int height) {
     return quad_id;
 }
 
-int new_float_quad(int width, int height) {
+frame_id new_float_quad(int width, int height) {
     int quad_id = total_frames;
     total_frames += 1;
     current_frame = &frames[quad_id];
@@ -301,7 +320,7 @@ int new_float_quad(int width, int height) {
     return quad_id;
 }
 
-void bind_quad(int quad_id, GLuint program) {
+void bind_quad(frame_id quad_id, GLuint program) {
     if (current_frame != NULL) {
         return;
     }
@@ -315,9 +334,8 @@ void bind_quad(int quad_id, GLuint program) {
     if (current_frame_id != 0) {
         glBindFramebuffer(GL_FRAMEBUFFER, current_frame->fbo);
     }
-    // glActiveTexture(GL_TEXTURE0 + quad_id);
     GLint attrib = glGetAttribLocation(current_frame->program,
-                                       "position");
+                                       quad_attribute_position);
     glEnableVertexAttribArray(attrib);
     glVertexAttribPointer(attrib, 3, GL_FLOAT, GL_FALSE, 3*4, 0);
 }
@@ -344,6 +362,7 @@ void draw() {
 
 void get_texture_array(int x0, int y0, int width, int height, 
                        int texture_type, void *array) {
+    if (current_frame == NULL) return;
     glActiveTexture(GL_TEXTURE0 + current_frame_id);
     glBindTexture(GL_TEXTURE_2D, current_frame->texture);
     if (texture_type == GL_UNSIGNED_BYTE) {

@@ -3,15 +3,16 @@ SHELL = /bin/bash
 FLAGS = -O0 -Wall -g
 
 # Put your own include and lib paths here:
-# INCLUDE = -I/opt/homebrew/include
-# LIBS = -L/opt/homebrew/lib -lm  -lGLESv2 -lGLEW -lglfw\
-#  -framework CoreVideo -framework OpenGL -framework IOKit\
-#   -framework Cocoa -framework Carbon
+
+# INCLUDE = 
+# LIBS = -lm  -lGLESv2 -lGLEW -lglfw
+# COMPILE = clang
 
 INCLUDE = -I/opt/homebrew/include
 LIBS = -L/opt/homebrew/lib -lglfw\
  -framework CoreVideo -framework OpenGL -framework IOKit\
   -framework Cocoa -framework Carbon
+COMPILE = clang
 
 TARGETDIR = .
 TARGET = ${TARGETDIR}/program
@@ -22,10 +23,10 @@ OBJECTS = gl_wrappers.o waves.o
 all: ${TARGET}
 
 ${TARGET}: ${OBJECTS}
-	clang ${FLAGS} -o $@ $^ ${LIBS}
+	${COMPILE} ${FLAGS} -o $@ $^ ${LIBS}
 
 ${OBJECTS}: ${SOURCES}
-	clang ${FLAGS} -c $^ ${INCLUDE}
+	${COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 clean:
 	rm -f *.o ${TARGET}
