@@ -1,5 +1,6 @@
 *~
 *.gch
+*.DS_Store
 *.config
 *.creator
 *.files
