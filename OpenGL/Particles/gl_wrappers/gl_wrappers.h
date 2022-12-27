@@ -186,6 +186,7 @@ void get_quad_texture_array(int quad_id,
 void quad_substitute_array(int quad_id, int width, int height,
                            int texture_type, void *array);
 
+void swap_fbo(frame_id f1, frame_id f2);
 
 #endif
 

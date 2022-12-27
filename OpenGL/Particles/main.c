@@ -13,7 +13,7 @@ const int VIEW_HEIGHT = 1024;
 const int VIEW_WIDTH = 512;
 const int VIEW_HEIGHT = 512;
 #endif
-const int N_PARTICLES = 16384/4;
+const int N_PARTICLES = 16384;
 
 struct Vec4 init_pos_vel[N_PARTICLES];
 struct Vec4 init_masses[N_PARTICLES];
@@ -34,9 +34,10 @@ void reduce_texture2D_to_texture1D(int scale_program, frame_id init_quad,
 }
 
 struct TimestepArgs {
-    GLuint timestep_program, force_program, scale_program;
+    GLuint timestep_program;
+    GLuint force_program, force_for_program, scale_program;
     frame_id *sum_quads, *pos_vel;
-    frame_id masses, force_each;
+    frame_id masses, force_each, force_for_each;
     size_t len_sum_quads, init_size;
     float grav_const, dt;
 };
@@ -44,27 +45,43 @@ struct TimestepArgs {
 void timestep(struct TimestepArgs *args) {
     GLuint timestep_program = args->timestep_program;
     GLuint force_program = args->force_program;
+    GLuint force_for_program = args->force_for_program;
     GLuint scale_program = args->scale_program;
     frame_id *sum_quads = args->sum_quads;
     size_t len_sum_quads = args->len_sum_quads;
     size_t init_size = args->init_size;
     frame_id *pos_vel = args->pos_vel;
     frame_id masses = args->masses, force_each = args->force_each;
+    frame_id force_for_each = args->force_for_each;
     float grav_const = args->grav_const, dt = args->dt;
-    glViewport(0, 0, init_size, init_size);
-    bind_quad(force_each, force_program);
-    set_sampler2D_uniform("massTex", masses);
-    set_sampler2D_uniform("posVelTex", pos_vel[1]);
-    set_float_uniform("G", grav_const);
-    draw_unbind_quad();
-    reduce_texture2D_to_texture1D(scale_program, force_each,
-                                  sum_quads, init_size);
+    if (force_for_each <= 0) {
+        glViewport(0, 0, init_size, init_size);
+        bind_quad(force_each, force_program);
+        set_sampler2D_uniform("massTex", masses);
+        set_sampler2D_uniform("posVelTex", pos_vel[1]);
+        set_float_uniform("G", grav_const);
+        draw_unbind_quad();
+        reduce_texture2D_to_texture1D(scale_program, force_each,
+                                      sum_quads, init_size);
+    } else {
+        glViewport(0, 0, 1, init_size);
+        bind_quad(force_for_each, force_for_program);
+        set_sampler2D_uniform("massTex", masses);
+        set_sampler2D_uniform("posVelTex", pos_vel[1]);
+        set_float_uniform("G", grav_const);
+        set_float_uniform("nParticles", (float)init_size);
+        draw_unbind_quad();
+    }
     glViewport(0, 0, 1, init_size);
     bind_quad(pos_vel[2], timestep_program);
     set_sampler2D_uniform("massTex", masses);
     set_sampler2D_uniform("posVelTex0", pos_vel[0]);
     set_sampler2D_uniform("posVelTex1", pos_vel[1]);
-    set_sampler2D_uniform("forceTex", sum_quads[len_sum_quads-1]);
+    if (force_for_each <= 0) {
+        set_sampler2D_uniform("forceTex", sum_quads[len_sum_quads-1]);
+    } else {
+        set_sampler2D_uniform("forceTex", force_for_each);
+    }
     set_float_uniform("dt", dt);
     set_int_uniform("method", 0);
     draw_unbind_quad();
@@ -86,6 +103,7 @@ int main() {
     frame_id copy_program = make_quad_program("./shaders/copy.frag");
     frame_id scale_program = make_quad_program("./shaders/scale.frag");
     frame_id force_program = make_quad_program("./shaders/force.frag");
+    frame_id force_for_program = make_quad_program("./shaders/force-for.frag");
     frame_id timestep_program = make_quad_program("./shaders/timestep.frag");
     frame_id particles_view_program
         = make_program("./shaders/particle-vert.vert",
@@ -102,6 +120,7 @@ int main() {
 
     // Visualization frame
     frame_id view_quad = new_quad(NULL);
+    frame_id quad2 = new_quad(&texture_params);
 
     // Start making frames involved in simulation
     texture_params.width = N_PARTICLES;
@@ -117,6 +136,7 @@ int main() {
     frame_id mass_quad = new_quad(&texture_params);
     bind_quad(mass_quad, zero_program);
     draw_unbind_quad();
+    frame_id force_for_quad = new_quad(&texture_params);
     frame_id pos_vel_quads[3];
     for (int i = 0; i < 3; i++) {
         pos_vel_quads[i] = new_quad(&texture_params);
@@ -182,7 +202,7 @@ int main() {
     }
     quad_substitute_array(mass_quad, 1, N_PARTICLES, GL_FLOAT, init_masses);
 
-    get_quad_texture_array(pos_vel_quads[0], 0, 0, 1, 
+    get_quad_texture_array(pos_vel_quads[0], 0, 0, 1,
                            N_PARTICLES, GL_FLOAT, init_pos_vel);
 
 
@@ -193,9 +213,12 @@ int main() {
         struct TimestepArgs args = {
             .timestep_program=timestep_program,
             .force_program=force_program,
+            .force_for_program=force_for_program,
             .scale_program=scale_program,
             .sum_quads=sum_quads, .pos_vel=pos_vel_quads,
             .masses=mass_quad, .force_each=force_quad,
+            .force_for_each=force_for_quad,
+            // .force_for_each=-1,
             .len_sum_quads=sum_quads_len, .init_size=N_PARTICLES,
             .grav_const=grav_const, .dt=(k == 0)? 0.5*dt: dt,
         };
@@ -203,7 +226,7 @@ int main() {
             timestep(&args);
             roll3(pos_vel_quads);
         }
-        get_quad_texture_array(pos_vel_quads[1], 0, 0, 1, 
+        get_quad_texture_array(pos_vel_quads[1], 0, 0, 1,
                            N_PARTICLES, GL_FLOAT, init_pos_vel);
         glViewport(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
 
@@ -219,19 +242,16 @@ int main() {
         set_sampler2D_uniform("tex", particles_view);
         draw_unbind_quad();
 
-        bind_general_2d_frame(particles_view,
-                              particles_view_program);
-        set_vertex_attributes(vertex_params, 1);
-        set_sampler2D_uniform("tex", pos_vel_quads[0]);
-        set_vec4_uniform("colour", 0.0, 0.0, 0.0, 1.0);
-        glDrawArrays(GL_POINTS, 0, N_PARTICLES);
-        unbind();
+        swap_fbo(particles_view, quad2);
+        bind_quad(quad2, zero_program);
+        draw_unbind_quad();
+        swap_fbo(particles_view, quad2);
 
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
 
-    get_quad_texture_array(pos_vel_quads[0], 0, 0, 1, 
+    get_quad_texture_array(pos_vel_quads[0], 0, 0, 1,
                            N_PARTICLES, GL_FLOAT, init_pos_vel);
 
     glfwDestroyWindow(window);

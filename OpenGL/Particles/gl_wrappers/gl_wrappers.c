@@ -82,6 +82,12 @@ GLFWwindow *init_window(int width, int height) {
     return window;
 }
 
+void swap_fbo(frame_id f1, frame_id f2) {
+    frame_id tmp = s_frames[f1].fbo;
+    s_frames[f1].fbo = s_frames[f2].fbo;
+    s_frames[f2].fbo = tmp; 
+}
+
 void compile_shader(GLuint shader_ref, const char *shader_source) {
     char buf[512];
     const char version_number_placeholder[] = "#VERSION_NUMBER_PLACEHOLDER";
