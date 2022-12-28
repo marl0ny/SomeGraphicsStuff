@@ -1,6 +1,6 @@
-#  Exercises with GL
+# Miscellaneous Graphics Programs
 
-Some basic programs that I made to learn 3D rendering with OpenGL and WebGL (still a work in progress). Instructions on how to use the programs our found [here](./INSTRUCTIONS.md). These programs were made by using the following resources:
+Small projects that I made to learn graphics rendering on the GPU through various graphics APIs. Instructions on how to use the programs are found [here](./INSTRUCTIONS.md). These programs were made by using the following resources:
 
 - **[Modern OpenGL Guide](https://raw.githubusercontent.com/Overv/Open.GL/master/ebook/Modern%20OpenGL%20Guide.pdf)** by Alexander Overvoorde. Contains a quick overview of the various OpenGL interfaces.
 - **[Learn OpenGL](https://learnopengl.com/)** by Joey de Vries. This gives a more thorough tutorial to OpenGL.
@@ -11,4 +11,6 @@ Some basic programs that I made to learn 3D rendering with OpenGL and WebGL (sti
 - The textures are retrieved from the images found [here](https://renderman.pixar.com/pixar-one-twenty-eight) and converted to bmp files. These were made by Pixar and published under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - An image of the earth is retrieved from [here](https://visibleearth.nasa.gov/images/73776/august-blue-marble-next-generation-w-topography-and-bathymetry), which was made by NASA.
 - The [Noto Sans Font](https://fonts.google.com/specimen/Noto+Sans#standard-styles) by Google are converted to bmp and json format using [FontBuilder](https://github.com/andryblack/fontbuilder) by [andryblack](https://github.com/andryblack/)
+- [This series of Youtube videos](https://www.youtube.com/watch?v=PcA-VAybgIQ&list=PLEXt1-oJUa4BVgjZt9tK2MhV_DW7PVDsg&index=1) by the channel [2etime](https://www.youtube.com/@2etime) was helpful in learning the Metal Shading language
 
+More resources are listed in each of the individual project's subdirectories.
