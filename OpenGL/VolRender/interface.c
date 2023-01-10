@@ -1,0 +1,444 @@
+#include "interface.h"
+#include <GLES3/gl3.h>
+#include <math.h>
+#include "interface.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "gl_wrappers/gl_wrappers.h"
+
+
+struct Programs {
+    GLuint copy, zero, scale, colour;
+    GLuint points_density;
+    GLuint points_colour;
+    GLuint init_gaussian;
+    GLuint init_boundary;
+    GLuint gradient;
+    GLuint gaussian_blur;
+};
+
+struct SimParams {
+    int texel_width, texel_height;
+    int stack_w, stack_h;
+    int view_width, view_height;
+    struct DVec4 rotation;
+    float scale;
+    struct Vec3 translate;
+};
+
+struct Frames {
+    frame_id main_view;
+    frame_id sub_view1, sub_view2, sub_view3;
+    frame_id draw;
+    frame_id gradient;
+    frame_id boundary_mask;
+};
+
+
+static struct Programs s_programs = {};
+static struct SimParams s_sim_params = {};
+static struct Frames s_frames = {};
+
+static int s_sizeof_vertices = 0;
+static int s_sizeof_elements = 0;
+
+void init_programs(struct Programs *programs) {
+    programs->zero = make_quad_program("./shaders/zero.frag");
+    programs->copy = make_quad_program("./shaders/copy.frag");
+    programs->scale = make_quad_program("./shaders/scale.frag");
+    programs->colour = make_quad_program("./shaders/colour.frag");
+    programs->points_density = make_program("./shaders/points-density.vert",
+                                            "./shaders/pixel.frag");
+    programs->points_colour = make_program("./shaders/points-density.vert",
+                                            "./shaders/colour.frag");
+    programs->init_boundary
+        = make_quad_program("./shaders/init-boundary.frag");
+    programs->init_gaussian
+        = make_quad_program("./shaders/init-gaussian.frag");
+    programs->gradient
+        = make_quad_program("./shaders/gradient.frag");
+    programs->gaussian_blur
+        = make_quad_program("./shaders/gaussian-blur.frag");
+}
+
+void init_sim_params(struct SimParams *params) {
+    params->texel_width = 64;
+    params->texel_height = 64;
+    params->stack_w = 8;
+    params->stack_h = 8;
+    #ifdef __APPLE__
+    params->view_width = 1024;
+    params->view_height = 1024;
+    #else
+    params->view_width = 512;
+    params->view_height = 512;
+    #endif
+    params->rotation.x = 0.0;
+    params->rotation.y = 0.0;
+    params->rotation.z = 0.0;
+    params->rotation.w = 1.0;
+    params->scale = 1.0;
+    params->translate.x = -0.5;
+    params->translate.y = -0.5;
+    params->translate.z = -0.5;
+
+}
+
+/*
+ * part_w is the width of a single slice in number of units, etc.
+ */
+/*struct IVec3 to_3d_indices(struct IVec2 v, int part_w, int part_h) {
+    struct IVec3 xyz = {
+        .x = v.ind[0] % part_w,
+        .y = v.ind[1] % part_h,
+        .z = v.ind[1]/part_h + v.ind[0]/part_w;
+    };
+    return xyz;
+    }*/
+
+struct TextureDimensions {
+    int width_3d, height_3d, length_3d;
+    int width_2d, height_2d;
+};
+
+struct IVec2 to_2d_indices(int i, int j, int k,
+                           const struct TextureDimensions *d) {
+    int k_per_row = d->width_2d/d->width_3d;
+    int i_offset = (k % k_per_row)*d->width_3d;
+    int j_offset = (k / k_per_row)*d->height_3d;
+    struct IVec2 st = {.i = i_offset + i, .j = j_offset + j};
+    return st;
+}
+
+int to_1d_index(int i, int j, int k, const struct TextureDimensions *d) {
+    struct IVec2 st = to_2d_indices(i, j, k, d);
+    return st.i + st.j*d->width_2d;
+}
+
+
+static const int Z_ORIENTATION = 0;
+static const int X_ORIENTATION = 1;
+static const int Y_ORIENTATION = 2;
+int single_face(int *elements, int k, int orientation,
+                const struct TextureDimensions *d) {
+    int inc = 1;
+    int j = 0;
+    int elem_index = 0;
+    int horizontal_iter = d->height_3d - 1;
+    int vertical_iter = d->width_3d - 2;
+    if (orientation == Y_ORIENTATION) {
+        horizontal_iter = d->length_3d - 1;
+        vertical_iter = d->width_3d - 2;
+    } else if (orientation == X_ORIENTATION) {
+        horizontal_iter = d->width_3d - 1;
+        vertical_iter = d->height_3d - 2;
+    }
+    for (int i = 0; j < horizontal_iter; i += inc) {
+        switch(orientation) {
+            case Z_ORIENTATION:
+                elements[elem_index++] = to_1d_index(i, j, k, d);
+                elements[elem_index++] = to_1d_index(i+1, j, k, d);
+                elements[elem_index++] = to_1d_index(i+1, j+1, k, d);
+                elements[elem_index++] = to_1d_index(i+1, j+1, k, d);
+                elements[elem_index++] = to_1d_index(i, j, k, d);
+                elements[elem_index++] = to_1d_index(i, j+1, k, d);
+                break;
+            case Y_ORIENTATION:
+                elements[elem_index++] = to_1d_index(i, k, j, d);
+                elements[elem_index++] = to_1d_index(i+1, k, j, d);
+                elements[elem_index++] = to_1d_index(i+1, k, j+1, d);
+                elements[elem_index++] = to_1d_index(i+1, k, j+1, d);
+                elements[elem_index++] = to_1d_index(i, k, j, d);
+                elements[elem_index++] = to_1d_index(i, k, j+1,  d);
+                break;
+            case X_ORIENTATION:
+                elements[elem_index++] = to_1d_index(k, i, j, d);
+                elements[elem_index++] = to_1d_index(k, i+1, j, d);
+                elements[elem_index++] = to_1d_index(k, i+1, j+1, d);
+                elements[elem_index++] = to_1d_index(k, i+1, j+1, d);
+                elements[elem_index++] = to_1d_index(k, i, j, d);
+                elements[elem_index++] = to_1d_index(k, i, j+1, d);
+                break;
+        }
+        if (i == 0) {
+            if (inc == -1) {
+                inc = 0;
+                j++;
+            } else if (inc == 0) {
+                inc = 1;
+            }
+        } else if (i == vertical_iter) {
+            if (inc == 1) {
+                inc = 0;
+                j++;
+            } else if (inc == 0) {
+                inc = -1;
+            }
+        }
+    }
+    return elem_index;
+}
+
+int *new_elements(int *ptr_sizeof_elements,
+                  const struct TextureDimensions *d) {
+    *ptr_sizeof_elements = sizeof(int)*
+        (6*(d->width_3d-1)*(d->height_3d-1)*d->length_3d
+         + 3*d->length_3d)*3;
+    int *elements = malloc(*ptr_sizeof_elements);
+    int elem_index = 0;
+    if (elements == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+    for (int k = 0;  k < d->length_3d; k++) {
+        elem_index += single_face(elements + elem_index, k, Z_ORIENTATION, d);
+        int index = elements[elem_index - 1];
+        elements[elem_index++] = index;
+        elements[elem_index++] = index;
+        elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->length_3d, d);
+    }
+    for (int k = 0;  k < d->height_3d; k++) {
+            elem_index += single_face(elements + elem_index, k, Y_ORIENTATION, d);
+            int index = elements[elem_index - 1];
+            elements[elem_index++] = index;
+            elements[elem_index++] = index;
+            elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->height_3d, d);
+    }
+    for (int k = 0;  k < d->width_3d; k++) {
+            elem_index += single_face(elements + elem_index, k, X_ORIENTATION, d);
+            int index = elements[elem_index - 1];
+            elements[elem_index++] = index;
+            elements[elem_index++] = index;
+            elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->width_3d, d);
+    }
+    for (int k = 0; k < (*ptr_sizeof_elements)/sizeof(int); k++) {
+        if (elements[k] >= d->width_2d*d->height_2d ||
+            elements[k] < 0)
+            printf("%d\n", elem_index);
+    }
+    return elements;
+}
+
+void init_frames(struct Frames *frames, const struct SimParams *params) {
+    frames->main_view = new_quad(NULL);
+    struct TextureParams tex_params = {
+        .type=GL_FLOAT,
+        .width=params->stack_w*params->texel_width,
+        .height=params->stack_h*params->texel_height,
+        .generate_mipmap=1, .wrap_s=GL_REPEAT, .wrap_t=GL_REPEAT,
+        .min_filter=GL_NEAREST, .mag_filter=GL_NEAREST
+    };
+    frames->draw = new_quad(&tex_params);
+    frames->gradient = new_quad(&tex_params);
+    int square_width = params->texel_width;
+    int square_height = params->texel_height;
+    int dist_width = params->stack_w*square_width;
+    int dist_height = params->stack_h*square_height;
+    s_sizeof_vertices = 4*sizeof(float)*dist_width*dist_height;
+    struct Vec4 *vertices = malloc(s_sizeof_vertices);
+    if (vertices == NULL) {
+        perror("malloc");
+        return;
+    }
+    int count = 0;
+    /*for (int i = 0; i < params->stack_w; i++) {
+        for (int j = 0; j < params->stack_h; j++) {
+            for (int n = 0; n < square_width; n++) {
+                for (int m = 0; m < square_height; m++) {
+                    int x_ind = i*square_width + n;
+                    int y_ind = j*square_height + m;
+                    vertices[count].x = ((float)x_ind + 0.5)/dist_width;
+                    vertices[count].y = ((float)y_ind + 0.5)/dist_height;
+                    vertices[count].z = 0.0;
+                    vertices[count++].w = 1.0;
+                }
+            }
+        }
+    }*/
+    for (int i = 0; i < dist_height; i++) {
+        for (int j = 0; j < dist_width; j++) {
+            vertices[j*dist_width + i].x = ((float)i + 0.5)/dist_width;
+            vertices[j*dist_width + i].y = ((float)j + 0.5)/dist_height;
+            vertices[j*dist_width + i].z = 0.0;
+            vertices[j*dist_width + i].w = 1.0;
+        }
+    }
+    struct TextureDimensions tex_dimensions = {
+        .width_2d=dist_width, .height_2d=dist_height,
+        .width_3d=dist_width/params->stack_w,
+        .height_3d=dist_height/params->stack_h,
+        .length_3d=params->stack_w*params->stack_h,
+    };
+    int *elements = new_elements(&s_sizeof_elements, &tex_dimensions);
+    if (elements == NULL) {
+        fprintf(stderr, "Error");
+        return;
+    }
+    frames->boundary_mask = new_quad(&tex_params);
+    // tex_params.type = GL_UNSIGNED_BYTE;
+    frames->sub_view1 = new_frame(&tex_params, (float *)vertices,
+                                  s_sizeof_vertices,
+                                  elements, s_sizeof_elements);
+    frames->sub_view2 = new_quad(&tex_params);
+    frames->sub_view3 = new_quad(&tex_params);
+    tex_params.type = GL_FLOAT;
+}
+
+
+void init() {
+    init_programs(&s_programs);
+    init_sim_params(&s_sim_params);
+    init_frames(&s_frames, &s_sim_params);
+    glViewport(0, 0,
+               s_sim_params.texel_width*s_sim_params.stack_w,
+               s_sim_params.texel_height*s_sim_params.stack_h);
+    bind_quad(s_frames.draw, s_programs.init_gaussian);
+    set_int_uniform("wStack", s_sim_params.stack_w);
+    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_vec3_uniform("r0", 0.5, 0.5, 0.5);
+    set_vec3_uniform("colour", 0.5, 0.5, 1.0);
+    set_vec3_uniform("sigma", 0.2, 0.25, 0.3);
+    draw_unbind_quad();
+    bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
+    set_vec3_uniform("dr", 1.0, 1.0, 1.0);
+    set_int_uniform("wStack", s_sim_params.stack_w);
+    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_vec3_uniform("dimensions",
+                     s_sim_params.texel_width,
+                     s_sim_params.texel_height,
+                     s_sim_params.stack_h*s_sim_params.stack_w);
+    draw_unbind_quad();
+    bind_quad(s_frames.gradient, s_programs.gradient);
+    set_sampler2D_uniform("tex", s_frames.draw);
+    set_sampler2D_uniform("boundaryMaskTex", s_frames.boundary_mask);
+    set_int_uniform("index", 2);
+    set_int_uniform("wStack", s_sim_params.stack_w);
+    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_vec3_uniform("dr", 1.0, 1.0, 1.0);
+    set_vec3_uniform("dimensions",
+                     s_sim_params.texel_width,
+                     s_sim_params.texel_height,
+                     s_sim_params.stack_h*s_sim_params.stack_w);
+    draw_unbind_quad();
+}
+
+static struct DVec3 normalize(struct DVec3 r) {
+    double norm = sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
+    struct DVec3 v = {.x=r.x/norm, .y=r.y/norm, .z=r.z/norm};
+    return v;
+}
+
+double length(struct DVec3 r) {
+    return sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
+}
+
+static struct DVec4 quaternion_multiply(struct DVec4 q1, struct DVec4 q2) {
+    struct DVec4 q3 = {
+        .w = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z,
+        .x = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y,
+        .y = q1.w*q2.y + q1.y*q2.w + q1.z*q2.x - q1.x*q2.z,
+        .z = q1.w*q2.z + q1.z*q2.w + q1.x*q2.y - q1.y*q2.x,
+    };
+    return q3;
+}
+
+static struct DVec3 cross_product(struct DVec3 r1, struct DVec3 r2) {
+    struct DVec3 r3 = {
+        .x = r1.y*r2.z - r1.z*r2.y,
+        .y = - r1.x*r2.z + r1.z*r2.x,
+        .z = r1.x*r2.y - r1.y*r2.x,
+    };
+    return r3;
+}
+
+static struct DVec4
+rotation_axis_to_quaternion(double angle, struct DVec3 axis) {
+    double norm = sqrt(axis.x*axis.x + axis.y*axis.y + axis.z*axis.z);
+    for (int i = 0; i < 3; i++) {
+        axis.ind[i] = axis.ind[i]/norm;
+    }
+    double c = cos(angle/2.0);
+    double s = sin(angle/2.0);
+    struct DVec4 res = {.x=s*axis.x, .y=s*axis.y, .z=s*axis.z, .w=c};
+    return res;
+}
+
+
+void render(const struct RenderParams *render_params) {
+    glViewport(0, 0,
+               s_sim_params.texel_width*s_sim_params.stack_w,
+               s_sim_params.texel_height*s_sim_params.stack_h);
+    if (render_params->user_use &&
+        (render_params->user_dx != 0.0 || render_params->user_dy != 0.0)) {
+        double angle = 4.0*sqrt(
+            render_params->user_dx*render_params->user_dx
+             + render_params->user_dy*render_params->user_dy);
+        struct DVec3 to_camera = {.x=0.0, .y=0.0, .z=1.0};
+        struct DVec3 vel = {.x=render_params->user_dx,
+                            .y=render_params->user_dy,
+                            .z=0.0};
+        struct DVec3 unorm_axis = cross_product(vel, to_camera);
+        struct DVec3 axis = normalize(unorm_axis);
+        if (length(axis) > (1.0 - 1e-10)
+             && length(axis) < (1.0 + 1e-10)) {
+            struct DVec4 q_axis = rotation_axis_to_quaternion(angle, axis);
+            struct DVec4 tmp = quaternion_multiply(
+                s_sim_params.rotation, q_axis);
+            s_sim_params.rotation.x = tmp.x;
+            s_sim_params.rotation.y = tmp.y;
+            s_sim_params.rotation.z = tmp.z;
+            s_sim_params.rotation.w = tmp.w;
+        }
+
+    }
+    s_sim_params.scale = (float)render_params->user_scroll;
+    glEnable(GL_DEPTH_TEST);
+    // glAlphaFunc(GL_GREATER, 0);
+    // glDepthFunc(GL_LESS);
+    bind_frame(s_frames.sub_view1, s_programs.points_density);
+    struct VertexParam vertex_param[2] = {
+        {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
+         .stride=4*sizeof(float), .offset=0},
+    };
+    set_vertex_attributes(vertex_param, 1);
+    set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
+                     s_sim_params.rotation.ind[1],
+                     s_sim_params.rotation.ind[2],
+                     s_sim_params.rotation.ind[3]);
+    set_vec3_uniform("translate", s_sim_params.translate.x,
+                     s_sim_params.translate.y,
+                     s_sim_params.translate.z);
+    set_float_uniform("scale", s_sim_params.scale);
+    // set_int_uniform("texelWidth", s_sim_params.texel_width);
+    // set_int_uniform("texelHeight", s_sim_params.texel_height);
+    set_int_uniform("wStack", s_sim_params.stack_w);
+    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_float_uniform("gradScale", 10.0);
+    set_sampler2D_uniform("gradTex", s_frames.gradient);
+    set_sampler2D_uniform("tex", s_frames.draw);
+    // glDrawArrays(GL_POINTS, 0, s_sizeof_vertices);
+    glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
+    unbind();
+    glDisable(GL_DEPTH_TEST);
+    // 
+    bind_quad(s_frames.sub_view2, s_programs.gaussian_blur);
+    set_sampler2D_uniform("tex", s_frames.sub_view1);
+    set_int_uniform("width", s_sim_params.texel_width*s_sim_params.stack_w);
+    set_int_uniform("height", s_sim_params.texel_height*s_sim_params.stack_h);
+    set_int_uniform("isVertical", 1);
+    draw_unbind_quad();
+    // 
+    bind_quad(s_frames.sub_view3, s_programs.gaussian_blur);
+    set_sampler2D_uniform("tex", s_frames.sub_view2);
+    set_int_uniform("width", s_sim_params.texel_width*s_sim_params.stack_w);
+    set_int_uniform("height", s_sim_params.texel_height*s_sim_params.stack_h);
+    set_int_uniform("isVertical", 0);
+    draw_unbind_quad();
+    // 
+    glViewport(0, 0,
+               s_sim_params.view_width,
+              s_sim_params.view_height);
+    bind_quad(s_frames.main_view, s_programs.copy);
+    set_sampler2D_uniform("tex", s_frames.sub_view3);
+    draw_unbind_quad();
+}
