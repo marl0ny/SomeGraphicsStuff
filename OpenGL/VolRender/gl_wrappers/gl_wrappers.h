@@ -183,6 +183,10 @@ void set_vec3_uniform(const char *name, float v0, float v1, float v2);
 void set_vec4_uniform(const char *name,
                       float v0, float v1, float v2, float v3);
 
+void set_ivec2_uniform(const char *name, int v0, int v1);
+
+void set_ivec3_uniform(const char *name, int v0, int v1, int v2);
+
 void print_user_defined_uniforms();
 
 void unbind();

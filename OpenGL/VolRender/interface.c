@@ -17,10 +17,14 @@ struct Programs {
     GLuint gaussian_blur;
 };
 
+struct TextureDimensions {
+    int width_3d, height_3d, length_3d;
+    int width_2d, height_2d;
+};
+
 struct SimParams {
-    int texel_width, texel_height;
-    int stack_w, stack_h;
     int view_width, view_height;
+    struct TextureDimensions texture_dimensions;
     struct DVec4 rotation;
     float scale;
     struct Vec3 translate;
@@ -62,10 +66,6 @@ void init_programs(struct Programs *programs) {
 }
 
 void init_sim_params(struct SimParams *params) {
-    params->texel_width = 64;
-    params->texel_height = 64;
-    params->stack_w = 8;
-    params->stack_h = 8;
     #ifdef __APPLE__
     params->view_width = 1024;
     params->view_height = 1024;
@@ -81,25 +81,15 @@ void init_sim_params(struct SimParams *params) {
     params->translate.x = -0.5;
     params->translate.y = -0.5;
     params->translate.z = -0.5;
-
+    params->texture_dimensions.width_2d = 512;
+    params->texture_dimensions.height_2d = 512;
+    params->texture_dimensions.width_3d = 64;
+    params->texture_dimensions.height_3d = 64;
+    params->texture_dimensions.length_3d = 64;
+    s_sizeof_vertices = (4*sizeof(float)*
+                         params->texture_dimensions.width_2d*
+                         params->texture_dimensions.height_2d);
 }
-
-/*
- * part_w is the width of a single slice in number of units, etc.
- */
-/*struct IVec3 to_3d_indices(struct IVec2 v, int part_w, int part_h) {
-    struct IVec3 xyz = {
-        .x = v.ind[0] % part_w,
-        .y = v.ind[1] % part_h,
-        .z = v.ind[1]/part_h + v.ind[0]/part_w;
-    };
-    return xyz;
-    }*/
-
-struct TextureDimensions {
-    int width_3d, height_3d, length_3d;
-    int width_2d, height_2d;
-};
 
 struct IVec2 to_2d_indices(int i, int j, int k,
                            const struct TextureDimensions *d) {
@@ -198,14 +188,16 @@ int *new_elements(int *ptr_sizeof_elements,
         elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->length_3d, d);
     }
     for (int k = 0;  k < d->height_3d; k++) {
-            elem_index += single_face(elements + elem_index, k, Y_ORIENTATION, d);
+            elem_index
+                += single_face(elements + elem_index, k, Y_ORIENTATION, d);
             int index = elements[elem_index - 1];
             elements[elem_index++] = index;
             elements[elem_index++] = index;
             elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->height_3d, d);
     }
     for (int k = 0;  k < d->width_3d; k++) {
-            elem_index += single_face(elements + elem_index, k, X_ORIENTATION, d);
+            elem_index
+                += single_face(elements + elem_index, k, X_ORIENTATION, d);
             int index = elements[elem_index - 1];
             elements[elem_index++] = index;
             elements[elem_index++] = index;
@@ -219,57 +211,35 @@ int *new_elements(int *ptr_sizeof_elements,
     return elements;
 }
 
-void init_frames(struct Frames *frames, const struct SimParams *params) {
+void init_frames(struct Frames *frames, struct SimParams *params) {
     frames->main_view = new_quad(NULL);
     struct TextureParams tex_params = {
         .type=GL_FLOAT,
-        .width=params->stack_w*params->texel_width,
-        .height=params->stack_h*params->texel_height,
-        .generate_mipmap=1, .wrap_s=GL_REPEAT, .wrap_t=GL_REPEAT,
-        .min_filter=GL_NEAREST, .mag_filter=GL_NEAREST
+        .width=params->texture_dimensions.width_2d,
+        .height=params->texture_dimensions.height_2d,
+        .generate_mipmap=1, .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
+        .min_filter=GL_LINEAR_MIPMAP_LINEAR, .mag_filter=GL_LINEAR_MIPMAP_LINEAR
     };
     frames->draw = new_quad(&tex_params);
     frames->gradient = new_quad(&tex_params);
-    int square_width = params->texel_width;
-    int square_height = params->texel_height;
-    int dist_width = params->stack_w*square_width;
-    int dist_height = params->stack_h*square_height;
-    s_sizeof_vertices = 4*sizeof(float)*dist_width*dist_height;
     struct Vec4 *vertices = malloc(s_sizeof_vertices);
     if (vertices == NULL) {
         perror("malloc");
         return;
     }
     int count = 0;
-    /*for (int i = 0; i < params->stack_w; i++) {
-        for (int j = 0; j < params->stack_h; j++) {
-            for (int n = 0; n < square_width; n++) {
-                for (int m = 0; m < square_height; m++) {
-                    int x_ind = i*square_width + n;
-                    int y_ind = j*square_height + m;
-                    vertices[count].x = ((float)x_ind + 0.5)/dist_width;
-                    vertices[count].y = ((float)y_ind + 0.5)/dist_height;
-                    vertices[count].z = 0.0;
-                    vertices[count++].w = 1.0;
-                }
-            }
-        }
-    }*/
-    for (int i = 0; i < dist_height; i++) {
-        for (int j = 0; j < dist_width; j++) {
-            vertices[j*dist_width + i].x = ((float)i + 0.5)/dist_width;
-            vertices[j*dist_width + i].y = ((float)j + 0.5)/dist_height;
-            vertices[j*dist_width + i].z = 0.0;
-            vertices[j*dist_width + i].w = 1.0;
+    for (int i = 0; i < params->texture_dimensions.width_2d; i++) {
+        for (int j = 0; j < params->texture_dimensions.height_2d; j++) {
+            int w = params->texture_dimensions.width_2d;
+            int h = params->texture_dimensions.height_2d;
+            vertices[j*w + i].x = ((float)i + 0.5)/(float)w;
+            vertices[j*w + i].y = ((float)j + 0.5)/(float)h;
+            vertices[j*w + i].z = 0.0;
+            vertices[j*w + i].w = 1.0;
         }
     }
-    struct TextureDimensions tex_dimensions = {
-        .width_2d=dist_width, .height_2d=dist_height,
-        .width_3d=dist_width/params->stack_w,
-        .height_3d=dist_height/params->stack_h,
-        .length_3d=params->stack_w*params->stack_h,
-    };
-    int *elements = new_elements(&s_sizeof_elements, &tex_dimensions);
+    int *elements = new_elements(&s_sizeof_elements,
+                                 &params->texture_dimensions);
     if (elements == NULL) {
         fprintf(stderr, "Error");
         return;
@@ -290,35 +260,50 @@ void init() {
     init_sim_params(&s_sim_params);
     init_frames(&s_frames, &s_sim_params);
     glViewport(0, 0,
-               s_sim_params.texel_width*s_sim_params.stack_w,
-               s_sim_params.texel_height*s_sim_params.stack_h);
+               s_sim_params.texture_dimensions.width_2d,
+               s_sim_params.texture_dimensions.height_2d);
     bind_quad(s_frames.draw, s_programs.init_gaussian);
-    set_int_uniform("wStack", s_sim_params.stack_w);
-    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("r0", 0.5, 0.5, 0.5);
     set_vec3_uniform("colour", 0.5, 0.5, 1.0);
-    set_vec3_uniform("sigma", 0.2, 0.25, 0.3);
+    set_vec3_uniform("sigma", 0.2, 0.25, 0.1);
     draw_unbind_quad();
     bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
+    set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("dr", 1.0, 1.0, 1.0);
-    set_int_uniform("wStack", s_sim_params.stack_w);
-    set_int_uniform("hStack", s_sim_params.stack_h);
-    set_vec3_uniform("dimensions",
-                     s_sim_params.texel_width,
-                     s_sim_params.texel_height,
-                     s_sim_params.stack_h*s_sim_params.stack_w);
+    set_vec3_uniform("dimensions3D",
+                     s_sim_params.texture_dimensions.width_3d,
+                     s_sim_params.texture_dimensions.height_3d,
+                     s_sim_params.texture_dimensions.length_3d);
     draw_unbind_quad();
     bind_quad(s_frames.gradient, s_programs.gradient);
     set_sampler2D_uniform("tex", s_frames.draw);
     set_sampler2D_uniform("boundaryMaskTex", s_frames.boundary_mask);
     set_int_uniform("index", 2);
-    set_int_uniform("wStack", s_sim_params.stack_w);
-    set_int_uniform("hStack", s_sim_params.stack_h);
+    set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("dr", 1.0, 1.0, 1.0);
-    set_vec3_uniform("dimensions",
-                     s_sim_params.texel_width,
-                     s_sim_params.texel_height,
-                     s_sim_params.stack_h*s_sim_params.stack_w);
+    set_vec3_uniform("dimensions3D", 
+                     s_sim_params.texture_dimensions.width_3d,
+                     s_sim_params.texture_dimensions.height_3d,
+                     s_sim_params.texture_dimensions.length_3d);
     draw_unbind_quad();
 }
 
@@ -365,9 +350,9 @@ rotation_axis_to_quaternion(double angle, struct DVec3 axis) {
 
 
 void render(const struct RenderParams *render_params) {
-    glViewport(0, 0,
-               s_sim_params.texel_width*s_sim_params.stack_w,
-               s_sim_params.texel_height*s_sim_params.stack_h);
+    glViewport(0, 0, 
+               s_sim_params.texture_dimensions.width_2d,
+               s_sim_params.texture_dimensions.height_2d);
     if (render_params->user_use &&
         (render_params->user_dx != 0.0 || render_params->user_dy != 0.0)) {
         double angle = 4.0*sqrt(
@@ -409,11 +394,14 @@ void render(const struct RenderParams *render_params) {
                      s_sim_params.translate.y,
                      s_sim_params.translate.z);
     set_float_uniform("scale", s_sim_params.scale);
-    // set_int_uniform("texelWidth", s_sim_params.texel_width);
-    // set_int_uniform("texelHeight", s_sim_params.texel_height);
-    set_int_uniform("wStack", s_sim_params.stack_w);
-    set_int_uniform("hStack", s_sim_params.stack_h);
-    set_float_uniform("gradScale", 10.0);
+     set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
+    set_float_uniform("gradScale", 500.0);
     set_sampler2D_uniform("gradTex", s_frames.gradient);
     set_sampler2D_uniform("tex", s_frames.draw);
     // glDrawArrays(GL_POINTS, 0, s_sizeof_vertices);
@@ -423,15 +411,15 @@ void render(const struct RenderParams *render_params) {
     // 
     bind_quad(s_frames.sub_view2, s_programs.gaussian_blur);
     set_sampler2D_uniform("tex", s_frames.sub_view1);
-    set_int_uniform("width", s_sim_params.texel_width*s_sim_params.stack_w);
-    set_int_uniform("height", s_sim_params.texel_height*s_sim_params.stack_h);
+    set_int_uniform("width", s_sim_params.texture_dimensions.width_2d);
+    set_int_uniform("height", s_sim_params.texture_dimensions.height_2d);
     set_int_uniform("isVertical", 1);
     draw_unbind_quad();
     // 
     bind_quad(s_frames.sub_view3, s_programs.gaussian_blur);
     set_sampler2D_uniform("tex", s_frames.sub_view2);
-    set_int_uniform("width", s_sim_params.texel_width*s_sim_params.stack_w);
-    set_int_uniform("height", s_sim_params.texel_height*s_sim_params.stack_h);
+    set_int_uniform("width", s_sim_params.texture_dimensions.width_2d);
+    set_int_uniform("height", s_sim_params.texture_dimensions.height_2d);
     set_int_uniform("isVertical", 0);
     draw_unbind_quad();
     // 
@@ -439,6 +427,6 @@ void render(const struct RenderParams *render_params) {
                s_sim_params.view_width,
               s_sim_params.view_height);
     bind_quad(s_frames.main_view, s_programs.copy);
-    set_sampler2D_uniform("tex", s_frames.sub_view3);
+    set_sampler2D_uniform("tex", s_frames.sub_view1);
     draw_unbind_quad();
 }

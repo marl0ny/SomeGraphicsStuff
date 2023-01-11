@@ -19,9 +19,8 @@ uniform float gradScale;
 uniform sampler2D tex;
 uniform sampler2D gradTex;
 
-uniform int wStack; // Number of xy texture blocks along the vertical
-uniform int hStack; // Similar to wStack but along the horizontal
-
+uniform ivec3 texelDimensions3D;
+uniform ivec2 texelDimensions2D;
 
 
 vec4 quaternionMultiply(vec4 q1, vec4 q2) {
@@ -53,28 +52,35 @@ vec4 project(vec4 x) {
 }
 
 vec2 to2DTextureCoordinates(vec3 position) {
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
+    int length3D = texelDimensions3D[2];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
     float u = position.x;
     float v = position.y;
     float w = position.z;
-    float wRatio = 1.0/float(wStack);
-    float hRatio = 1.0/float(hStack);
-    int texelLength = wStack*hStack;
-    float wIndex = w*float(texelLength) - 0.5;
-    vec2 wPosition = vec2(mod(wIndex/float(wStack),
-                              float(wStack))/float(wStack),
-                          floor(wIndex/float(wStack))/float(hStack));
+    float wRatio = 1.0/wStack;
+    float hRatio = 1.0/hStack;
+    float wIndex = w*float(length3D) - 0.5;
+    vec2 wPosition = vec2(mod(wIndex ,wStack)/wStack,
+                          floor(wIndex/wStack)/hStack);
     return wPosition + vec2(u*wRatio, v*hRatio);
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
-    float texelLength = float(wStack*hStack);
-    float wIndex = floor(uv[1]*float(hStack))*float(wStack)
-                    + floor(uv[0]*float(wStack));
-    return vec3(
-        mod(uv[0]*float(wStack), 1.0),
-        mod(uv[1]*float(hStack), 1.0),
-        (wIndex + 0.5)/texelLength
-    );
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
+    int length3D = texelDimensions3D[2];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float wIndex = floor(uv[1]*hStack)*wStack + floor(uv[0]*wStack);
+    return vec3(mod(uv[0]*wStack, 1.0), mod(uv[1]*hStack, 1.0),
+                (wIndex + 0.5)/float(length3D));
 }
 
 vec3 complexToColour(float re, float im) {
@@ -116,7 +122,8 @@ void main() {
                            rotation);
     vec3 grad = gradScale*texture2D(gradTex, uv).xyz;
     float f = 10.0;
-    vec4 col = vec4(complexToColour(cos(2.0*pi*f*initPos.z), sin(2.0*pi*f*initPos.z)), 1.0);
+    vec4 col = vec4(complexToColour(cos(2.0*pi*f*initPos.z),
+                                    sin(2.0*pi*f*initPos.z)), 1.0);
     COLOUR = max(dot(grad, normalize(grad)), 0.0)*texture2D(tex, uv)*col;
     COLOUR.a = texture2D(tex, uv).r;
     gl_Position = project(position);

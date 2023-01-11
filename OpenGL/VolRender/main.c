@@ -55,7 +55,12 @@ int main() {
 #endif
     GLFWwindow *window = init_window(pixel_width, pixel_height);
     init();
-    // getchar();
+    /*int c = getchar();
+    if (c == 'q') {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return 0;
+        }*/
     struct RenderParams render_params = {};
     glfwSetScrollCallback(window, scroll_callback);
     for (int k = 0; !glfwWindowShouldClose(window); k++) {

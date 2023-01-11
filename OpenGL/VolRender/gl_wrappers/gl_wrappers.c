@@ -602,6 +602,30 @@ void set_vec4_uniform(const char *name,
     s_err_msg_counter++;
 }
 
+void set_ivec2_uniform(const char *name, int v0, int v1) {
+    if (s_current_frame != NULL) {
+        GLuint program = s_current_frame->program;
+        GLuint loc = glGetUniformLocation(program, name);
+        check_uniform_name_is_valid(name, loc);
+        glUniform2i(loc, v0, v1);
+        return;
+    }
+    if (s_err_msg_counter < 32) fprintf(stderr, ERR_NO_FRAME_ACTIVE);
+    s_err_msg_counter++;
+}
+
+void set_ivec3_uniform(const char *name, int v0, int v1, int v2) {
+    if (s_current_frame != NULL) {
+        GLuint program = s_current_frame->program;
+        GLuint loc = glGetUniformLocation(program, name);
+        check_uniform_name_is_valid(name, loc);
+        glUniform3i(loc, v0, v1, v2);
+        return;
+    }
+    if (s_err_msg_counter < 32) fprintf(stderr, ERR_NO_FRAME_ACTIVE);
+    s_err_msg_counter++;
+}
+
 void print_user_defined_uniforms() {
     if (s_current_frame == NULL) {
         fprintf(stderr, ERR_NO_FRAME_ACTIVE);
