@@ -15,6 +15,7 @@ struct Programs {
     GLuint init_boundary;
     GLuint gradient;
     GLuint gaussian_blur;
+    GLuint sample_vol;
 };
 
 struct TextureDimensions {
@@ -26,6 +27,7 @@ struct SimParams {
     int view_width, view_height;
     struct TextureDimensions texture_dimensions;
     struct DVec4 rotation;
+    struct DVec4 rotation2;
     float scale;
     struct Vec3 translate;
 };
@@ -63,6 +65,8 @@ void init_programs(struct Programs *programs) {
         = make_quad_program("./shaders/gradient.frag");
     programs->gaussian_blur
         = make_quad_program("./shaders/gaussian-blur.frag");
+    programs->sample_vol = make_program("./shaders/sample-vol.vert",
+                                        "./shaders/sample-vol.frag");
 }
 
 void init_sim_params(struct SimParams *params) {
@@ -77,6 +81,10 @@ void init_sim_params(struct SimParams *params) {
     params->rotation.y = 0.0;
     params->rotation.z = 0.0;
     params->rotation.w = 1.0;
+    params->rotation2.x = 0.0;
+    params->rotation2.y = 0.0;
+    params->rotation2.z = 0.0;
+    params->rotation2.w = 1.0;
     params->scale = 1.0;
     params->translate.x = -0.5;
     params->translate.y = -0.5;
@@ -173,7 +181,7 @@ int *new_elements(int *ptr_sizeof_elements,
                   const struct TextureDimensions *d) {
     *ptr_sizeof_elements = sizeof(int)*
         (6*(d->width_3d-1)*(d->height_3d-1)*d->length_3d
-         + 3*d->length_3d)*3;
+         + 3*d->length_3d); //*3;
     int *elements = malloc(*ptr_sizeof_elements);
     int elem_index = 0;
     if (elements == NULL) {
@@ -187,7 +195,7 @@ int *new_elements(int *ptr_sizeof_elements,
         elements[elem_index++] = index;
         elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->length_3d, d);
     }
-    for (int k = 0;  k < d->height_3d; k++) {
+    /*for (int k = 0;  k < d->height_3d; k++) {
             elem_index
                 += single_face(elements + elem_index, k, Y_ORIENTATION, d);
             int index = elements[elem_index - 1];
@@ -207,7 +215,7 @@ int *new_elements(int *ptr_sizeof_elements,
         if (elements[k] >= d->width_2d*d->height_2d ||
             elements[k] < 0)
             printf("%d\n", elem_index);
-    }
+            }*/
     return elements;
 }
 
@@ -218,7 +226,7 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         .width=params->texture_dimensions.width_2d,
         .height=params->texture_dimensions.height_2d,
         .generate_mipmap=1, .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
-        .min_filter=GL_LINEAR_MIPMAP_LINEAR, .mag_filter=GL_LINEAR_MIPMAP_LINEAR
+        .min_filter=GL_LINEAR, .mag_filter=GL_LINEAR
     };
     frames->draw = new_quad(&tex_params);
     frames->gradient = new_quad(&tex_params);
@@ -272,7 +280,7 @@ void init() {
                       s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("r0", 0.5, 0.5, 0.5);
     set_vec3_uniform("colour", 0.5, 0.5, 1.0);
-    set_vec3_uniform("sigma", 0.2, 0.25, 0.1);
+    set_vec3_uniform("sigma", 0.1, 0.15, 0.05);
     draw_unbind_quad();
     bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
     set_ivec2_uniform("texelDimensions2D",
@@ -366,21 +374,32 @@ void render(const struct RenderParams *render_params) {
         struct DVec3 axis = normalize(unorm_axis);
         if (length(axis) > (1.0 - 1e-10)
              && length(axis) < (1.0 + 1e-10)) {
-            struct DVec4 q_axis = rotation_axis_to_quaternion(angle, axis);
-            struct DVec4 tmp = quaternion_multiply(
-                s_sim_params.rotation, q_axis);
-            s_sim_params.rotation.x = tmp.x;
-            s_sim_params.rotation.y = tmp.y;
-            s_sim_params.rotation.z = tmp.z;
-            s_sim_params.rotation.w = tmp.w;
+            struct DVec4 q_axis
+                     = rotation_axis_to_quaternion(angle, axis);
+            if (render_params->mode0 == 1) {
+                struct DVec4 tmp
+                    = quaternion_multiply(s_sim_params.rotation, q_axis);
+                s_sim_params.rotation.x = tmp.x;
+                s_sim_params.rotation.y = tmp.y;
+                s_sim_params.rotation.z = tmp.z;
+                s_sim_params.rotation.w = tmp.w;
+            } else if (render_params->mode0 == -1) {
+                struct DVec4 tmp
+                    = quaternion_multiply(s_sim_params.rotation2, q_axis);
+                s_sim_params.rotation2.x = tmp.x;
+                s_sim_params.rotation2.y = tmp.y;
+                s_sim_params.rotation2.z = tmp.z;
+                s_sim_params.rotation2.w = tmp.w;
+            }
         }
 
     }
     s_sim_params.scale = (float)render_params->user_scroll;
     glEnable(GL_DEPTH_TEST);
+
     // glAlphaFunc(GL_GREATER, 0);
     // glDepthFunc(GL_LESS);
-    bind_frame(s_frames.sub_view1, s_programs.points_density);
+    /*bind_frame(s_frames.sub_view1, s_programs.points_density);
     struct VertexParam vertex_param[2] = {
         {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
          .stride=4*sizeof(float), .offset=0},
@@ -406,7 +425,38 @@ void render(const struct RenderParams *render_params) {
     set_sampler2D_uniform("tex", s_frames.draw);
     // glDrawArrays(GL_POINTS, 0, s_sizeof_vertices);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
+    unbind();*/
+
+    bind_frame(s_frames.sub_view1, s_programs.sample_vol);
+    struct VertexParam vertex_param[2] = {
+        {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
+         .stride=4*sizeof(float), .offset=0},
+    };
+    set_vertex_attributes(vertex_param, 1);
+    set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
+                     s_sim_params.rotation.ind[1],
+                     s_sim_params.rotation.ind[2],
+                     s_sim_params.rotation.ind[3]);
+    set_vec4_uniform("debugRotation", s_sim_params.rotation2.ind[0],
+                     s_sim_params.rotation2.ind[1],
+                     s_sim_params.rotation2.ind[2],
+                     s_sim_params.rotation2.ind[3]);
+    // set_vec3_uniform("translate", s_sim_params.translate.x,
+    //                  s_sim_params.translate.y,
+    //                 s_sim_params.translate.z);
+    set_float_uniform("scale", s_sim_params.scale);
+     set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
+    set_sampler2D_uniform("tex", s_frames.gradient);
+    // glDrawArrays(GL_LINES, 0, s_sizeof_vertices);
+    glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
     unbind();
+
     glDisable(GL_DEPTH_TEST);
     // 
     bind_quad(s_frames.sub_view2, s_programs.gaussian_blur);

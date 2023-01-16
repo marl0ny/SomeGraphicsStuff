@@ -122,8 +122,8 @@ void main() {
                            rotation);
     vec3 grad = gradScale*texture2D(gradTex, uv).xyz;
     float f = 10.0;
-    vec4 col = vec4(complexToColour(cos(2.0*pi*f*(initPos.x + initPos.y)),
-                                    sin(2.0*pi*f*(initPos.x + initPos.y))), 1.0);
+    vec4 col = vec4(complexToColour(cos(2.0*pi*f*initPos.z),
+                                    sin(2.0*pi*f*initPos.z)), 1.0);
     COLOUR = max(dot(grad, normalize(grad)), 0.0)*texture2D(tex, uv)*col;
     COLOUR.a = texture2D(tex, uv).r;
     gl_Position = project(position);

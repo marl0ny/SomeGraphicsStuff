@@ -45,44 +45,32 @@ void scroll_callback(GLFWwindow *window, double x, double y) {
     s_scroll += (2.0*y)/25.0;
 }
 
+
 int main() {
-#ifdef __APPLE__
+    #ifdef __APPLE__
     int pixel_width = 1024;
     int pixel_height = 1024;
-#else
+    #else
     int pixel_width = 512;
     int pixel_height = 512;
-#endif
+    #endif
     GLFWwindow *window = init_window(pixel_width, pixel_height);
     init();
-    /*int c = getchar();
-    if (c == 'q') {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return 0;
-        }*/
     struct RenderParams render_params = {};
-    render_params.mode0 = 1;
     glfwSetScrollCallback(window, scroll_callback);
     for (int k = 0; !glfwWindowShouldClose(window); k++) {
         if (left_click.pressed) {
             render_params.user_use = 1;
-            render_params.user_x = left_click.x;
-            render_params.user_y = left_click.y;
-            render_params.user_dx = -left_click.dx;
-            render_params.user_dy = -left_click.dy;
+            render_params.x = left_click.x;
+            render_params.y = left_click.y;
+            render_params.dx = -left_click.dx;
+            render_params.dy = -left_click.dy;
         } else {
             render_params.user_use = 0;
         }
-        render_params.user_scroll = s_scroll;
+        render_params.scroll = s_scroll;
         render(&render_params);
         glfwPollEvents();
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-            render_params.mode0 = -1;
-        }
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            render_params.mode0 = 1;
-        }
         click_update(&left_click, window);
         glfwSwapBuffers(window);
     }
