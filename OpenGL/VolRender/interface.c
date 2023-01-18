@@ -395,7 +395,11 @@ void render(const struct RenderParams *render_params) {
 
     }
     s_sim_params.scale = (float)render_params->user_scroll;
+
     glEnable(GL_DEPTH_TEST);
+    // glDepthFunc(GL_EQUAL);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // glAlphaFunc(GL_GREATER, 0);
     // glDepthFunc(GL_LESS);
@@ -452,11 +456,12 @@ void render(const struct RenderParams *render_params) {
                       s_sim_params.texture_dimensions.width_3d,
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
-    set_sampler2D_uniform("tex", s_frames.gradient);
+    set_sampler2D_uniform("tex", s_frames.draw);
     // glDrawArrays(GL_LINES, 0, s_sizeof_vertices);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
     unbind();
 
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     // 
     bind_quad(s_frames.sub_view2, s_programs.gaussian_blur);

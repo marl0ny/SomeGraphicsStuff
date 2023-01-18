@@ -15,6 +15,11 @@ uniform sampler2D tex;
 
 uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
+uniform int orientation;
+
+const int ORIENTATION_0 = 0;
+const int ORIENTATION_1 = 1;
+const int ORIENTATION_2 = 2;
 
 
 vec2 to2DTextureCoordinates(vec3 position) {
@@ -49,46 +54,12 @@ vec3 to3DTextureCoordinates(vec2 uv) {
                 (wIndex + 0.5)/float(length3D));
 }
 
-vec3 revBitSort2(vec3 uvw) {
-    vec3 uvw2 = vec3(0.0, 0.0, 0.0);
-    int indexU = int(floor(uvw[0]*float(texelDimensions3D[0])));
-    int indexV = int(floor(uvw[1]*float(texelDimensions3D[1])));
-    int indexW = int(floor(uvw[2]*float(texelDimensions3D[2])));
-    // u
-    int rev = int(0), i = indexU;
-    for (int asc = 1,
-         des = texelDimensions3D[0]/2; des > 0; des /= 2, asc *= 2) {
-        if (i/des > 0) {
-            rev += asc;
-            i -= des;
-        }
-    }
-    uvw2[0] = (float(rev) + 0.5)/float(texelDimensions3D[0]);
-    // v
-    rev = 0, i = indexV;
-    for (int asc = 1,
-         des = texelDimensions3D[1]/2; des > 0; des /= 2, asc *= 2) {
-        if (i/des > 0) {
-            rev += asc;
-            i -= des;
-        }
-    }
-    uvw2[1] = (float(rev) + 0.5)/float(texelDimensions3D[1]);
-    // w
-    rev = 0, i = indexW;
-    for (int asc = 1,
-         des = texelDimensions3D[2]/2; des > 0; des /= 2, asc *= 2) {
-        if (i/des > 0) {
-            rev += asc;
-            i -= des;
-        }
-    }
-    uvw2[2] = (float(rev) + 0.5)/float(texelDimensions3D[2]);
-    return uvw2;
-}
-
-
 void main() {
     vec3 uvw = to3DTextureCoordinates(UV);
-    fragColor = texture2D(tex, to2DTextureCoordinates(revBitSort2(uvw)));
+    if (uvw[orientation] < 0.5) {
+        uvw[orientation] += 0.5;
+    } else {
+        uvw[orientation] -= 0.5;
+    }
+    fragColor = texture2D(tex, to2DTextureCoordinates(uvw));
 }

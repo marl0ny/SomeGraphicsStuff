@@ -5,7 +5,7 @@
 #include <math.h>
 
 #include "gl_wrappers/gl_wrappers.h"
-#include "interface.h"
+#include "init_render.h"
 
 
 struct Click {
@@ -40,7 +40,7 @@ void click_update(struct Click *click, GLFWwindow *window) {
     }
 }
 
-static double s_scroll = 1.0;
+static double s_scroll = 0.1;
 void scroll_callback(GLFWwindow *window, double x, double y) {
     s_scroll += (2.0*y)/25.0;
 }
@@ -58,6 +58,11 @@ int main() {
     init();
     struct RenderParams render_params = {};
     glfwSetScrollCallback(window, scroll_callback);
+    render_params.move_x = 50;
+    render_params.move_y = 50;
+    render_params.move_z = 50;
+    render_params.inc_mode1 = 0;
+    render_params.inc_mode2 = 100;
     for (int k = 0; !glfwWindowShouldClose(window); k++) {
         if (left_click.pressed) {
             render_params.user_use = 1;
@@ -71,6 +76,48 @@ int main() {
         render_params.scroll = s_scroll;
         render(&render_params);
         glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS) {
+            render_params.view_mode = 0;
+        }
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+            render_params.view_mode = 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+            render_params.view_mode = 2;
+        }
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            render_params.move_y += 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            render_params.move_y -= 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            render_params.move_x -= 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            render_params.move_x += 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            render_params.move_z += 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            render_params.move_z -= 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+            render_params.inc_mode1 += 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+            render_params.inc_mode1 -= 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+            render_params.inc_mode2 += 10;
+        }
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+            render_params.inc_mode2 -= 10;
+        }
+        render_params.move_x %= 100;
+        render_params.move_y %= 100;
+        render_params.move_z %= 100;
         click_update(&left_click, window);
         glfwSwapBuffers(window);
     }

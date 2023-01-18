@@ -13,10 +13,12 @@ varying highp vec2 UV;
 uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
 
+uniform float amplitude;
 uniform vec3 r0;
-uniform vec3 colour;
 uniform vec3 sigma;
+uniform vec3 direction;
 
+const float PI = 3.141592653589793;
 
 vec3 to3DTextureCoordinates(vec2 uv) {
     int width2D = texelDimensions2D[0];
@@ -37,6 +39,8 @@ void main() {
     float gaussian = exp(-0.5*pow((uvw[0] - r0[0])/sigma[0], 2.0)
                          -0.5*pow((uvw[1] - r0[1])/sigma[1], 2.0)
                          -0.5*pow((uvw[2] - r0[2])/sigma[2], 2.0));
-    fragColor = vec4(gaussian*colour, 1.0);
+    vec2 phase = vec2(cos(2.0*PI*dot(direction, uvw)),
+                      sin(2.0*PI*dot(direction, uvw)));
+    fragColor = vec4(amplitude*gaussian*phase, 0.0, 1.0);
 
 }

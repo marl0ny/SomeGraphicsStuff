@@ -16,8 +16,8 @@ endif
 
 
 TARGET = ${PWD}/program
-SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c interface.c main.c
-OBJECTS = gl_wrappers.o interface.o main.o
+SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c fft_gl.c init_render.c main.c
+OBJECTS = gl_wrappers.o fft_gl.o init_render.o main.o
 
 
 all: ${TARGET}
