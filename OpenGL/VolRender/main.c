@@ -55,14 +55,15 @@ int main() {
 #endif
     GLFWwindow *window = init_window(pixel_width, pixel_height);
     init();
-    /*int c = getchar();
-    if (c == 'q') {
+    // int c = getchar();
+   /*if (c == 'q') {
         glfwDestroyWindow(window);
         glfwTerminate();
         return 0;
         }*/
     struct RenderParams render_params = {};
     render_params.mode0 = 1;
+    render_params.mode1 = 3;
     glfwSetScrollCallback(window, scroll_callback);
     for (int k = 0; !glfwWindowShouldClose(window); k++) {
         if (left_click.pressed) {
@@ -82,6 +83,15 @@ int main() {
         }
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             render_params.mode0 = 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+            render_params.mode1 = 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+            render_params.mode1 = 2;
+        }
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+            render_params.mode1 = 3;
         }
         click_update(&left_click, window);
         glfwSwapBuffers(window);

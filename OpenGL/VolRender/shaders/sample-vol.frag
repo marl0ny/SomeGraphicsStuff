@@ -30,7 +30,7 @@ vec2 to2DTextureCoordinates(vec3 position) {
     float wRatio = 1.0/wStack;
     float hRatio = 1.0/hStack;
     float wIndex = w*float(length3D) - 0.5;
-    vec2 wPosition = vec2(mod(wIndex ,wStack)/wStack,
+    vec2 wPosition = vec2(mod(wIndex, wStack)/wStack,
                           floor(wIndex/wStack)/hStack);
     return wPosition + vec2(u*wRatio, v*hRatio);
 }
@@ -39,14 +39,16 @@ vec2 to2DTextureCoordinates(vec3 position) {
 vec4 blI(vec2 r, float x0, float y0, float x1, float y1,
          vec4 w00, vec4 w10, vec4 w01, vec4 w11) {
     float dx = x1 - x0, dy = y1 - y0;
-    return mix(mix(w00, w10, (r.x - x0)/dx),
-               mix(w01, w11, (r.x - x0)/dx), (r.y - y0)/dy);
-
+    float ax = (dx == 0.0)? 0.0: (r.x - x0)/dx;
+    float ay = (dy == 0.0)? 0.0: (r.y - y0)/dy;
+    return mix(mix(w00, w10, ax), mix(w01, w11, ax), ay);
 }
-
 
 void main() {
     vec3 r = POSITION;
+    if (r.x < 0.0 || r.x >= 1.0 ||
+        r.y < 0.0 || r.y >= 1.0 ||
+        r.z < 0.0 || r.z >= 1.0) discard;
     float texelWidth = float(texelDimensions3D[0]);
     float texelHeight = float(texelDimensions3D[1]);
     float texelLength = float(texelDimensions3D[2]);
@@ -74,9 +76,6 @@ void main() {
     vec4 f111 = texture2D(tex, to2DTextureCoordinates(r111));
     vec4 f0 = blI(r.xy, x0, y0, x1, y1, f000, f100, f010, f110);
     vec4 f1 = blI(r.xy, x0, y0, x1, y1, f001, f101, f011, f111);
-    vec4 f = mix(f0, f1, (r.z - z0)/(z1 - z0));
-    if (f.r < 0.01)
-         discard;
-    else
-        fragColor = 10.0*abs(f);
+    float dz = z1 - z0;
+    fragColor = mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }

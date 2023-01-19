@@ -4,14 +4,15 @@ precision highp float;
 
 #if __VERSION__ >= 300
 in vec4 uvIndex;
-out vec3 POSITION;
+out vec2 UV;
 #define texture2D texture
 #else
 attribute vec4 uvIndex;
-attribute vec3 POSITION;
+attribute vec2 UV;
 #endif
 
-uniform vec4 rotation;
+uniform vec4 debugRotation;
+uniform float scale;
 
 uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
@@ -38,6 +39,15 @@ vec4 rotate(vec4 x, vec4 r) {
     return x2; 
 }
 
+vec4 project(vec4 x) {
+    vec4 y;
+    y[0] = x[0]*5.0/(x[2] + 5.0);
+    y[1] = x[1]*5.0/(x[2] + 5.0);
+    y[2] = x[2];
+    y[3] = 1.0;
+    return y;
+}
+
 
 vec3 to3DTextureCoordinates(vec2 uv) {
     int width2D = texelDimensions2D[0];
@@ -54,10 +64,8 @@ vec3 to3DTextureCoordinates(vec2 uv) {
 
 
 void main() {
-    vec2 uv = uvIndex.xy;
-    vec4 viewPos = vec4(to3DTextureCoordinates(uv), 1.0)
+    UV = uvIndex.xy;
+    vec4 viewPos = vec4(to3DTextureCoordinates(UV), 1.0)
                    - vec4(0.5, 0.5, 0.5, 0.0);
-    POSITION = (rotate(viewPos, quaternionConjugate(rotation))
-                        + vec4(0.5, 0.5, 0.5, 0.0)).xyz;
-    gl_Position = 2.0*(vec4(uv, 0.0, 0.5) - vec4(0.5, 0.5, 0.0 ,0.0));
+    gl_Position = project(2.0*scale*rotate(viewPos, debugRotation));
 }

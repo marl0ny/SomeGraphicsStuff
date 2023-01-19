@@ -16,6 +16,7 @@ struct Programs {
     GLuint gradient;
     GLuint gaussian_blur;
     GLuint sample_vol;
+    GLuint show_vol;
 };
 
 struct TextureDimensions {
@@ -63,10 +64,12 @@ void init_programs(struct Programs *programs) {
         = make_quad_program("./shaders/init-gaussian.frag");
     programs->gradient
         = make_quad_program("./shaders/gradient.frag");
-    programs->gaussian_blur
-        = make_quad_program("./shaders/gaussian-blur.frag");
     programs->sample_vol = make_program("./shaders/sample-vol.vert",
                                         "./shaders/sample-vol.frag");
+    programs->gaussian_blur
+        = make_quad_program("./shaders/gaussian-blur.frag");
+    programs->show_vol = make_program("./shaders/show-vol.vert",
+                                      "./shaders/show-vol.frag");
 }
 
 void init_sim_params(struct SimParams *params) {
@@ -188,12 +191,12 @@ int *new_elements(int *ptr_sizeof_elements,
         perror("malloc");
         return NULL;
     }
-    for (int k = 0;  k < d->length_3d; k++) {
+    for (int k = d->length_3d - 1;  k >= 0; k--) {
         elem_index += single_face(elements + elem_index, k, Z_ORIENTATION, d);
         int index = elements[elem_index - 1];
         elements[elem_index++] = index;
         elements[elem_index++] = index;
-        elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->length_3d, d);
+        elements[elem_index++] = to_1d_index(0, 0, (k-1)%d->length_3d, d);
     }
     /*for (int k = 0;  k < d->height_3d; k++) {
             elem_index
@@ -225,7 +228,8 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         .type=GL_FLOAT,
         .width=params->texture_dimensions.width_2d,
         .height=params->texture_dimensions.height_2d,
-        .generate_mipmap=1, .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
+        .generate_mipmap=1,
+        .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
         .min_filter=GL_LINEAR, .mag_filter=GL_LINEAR
     };
     frames->draw = new_quad(&tex_params);
@@ -254,11 +258,20 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
     }
     frames->boundary_mask = new_quad(&tex_params);
     // tex_params.type = GL_UNSIGNED_BYTE;
+    tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
     frames->sub_view1 = new_frame(&tex_params, (float *)vertices,
                                   s_sizeof_vertices,
                                   elements, s_sizeof_elements);
-    frames->sub_view2 = new_quad(&tex_params);
-    frames->sub_view3 = new_quad(&tex_params);
+    frames->sub_view2 = new_frame(&tex_params, (float *)vertices,
+                                  s_sizeof_vertices,
+                                  elements, s_sizeof_elements);
+    tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
+    tex_params.type = GL_UNSIGNED_BYTE;
+    frames->sub_view3 = new_frame(&tex_params, (float *)vertices,
+                                  s_sizeof_vertices,
+                                  elements, s_sizeof_elements);
     tex_params.type = GL_FLOAT;
 }
 
@@ -280,7 +293,7 @@ void init() {
                       s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("r0", 0.5, 0.5, 0.5);
     set_vec3_uniform("colour", 0.5, 0.5, 1.0);
-    set_vec3_uniform("sigma", 0.1, 0.15, 0.05);
+    set_vec3_uniform("sigma", 0.07, 0.07, 0.1);
     draw_unbind_quad();
     bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
     set_ivec2_uniform("texelDimensions2D",
@@ -396,27 +409,18 @@ void render(const struct RenderParams *render_params) {
     }
     s_sim_params.scale = (float)render_params->user_scroll;
 
-    glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_EQUAL);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // glAlphaFunc(GL_GREATER, 0);
-    // glDepthFunc(GL_LESS);
-    /*bind_frame(s_frames.sub_view1, s_programs.points_density);
-    struct VertexParam vertex_param[2] = {
+    struct VertexParam vertex_params[2] = {
         {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
          .stride=4*sizeof(float), .offset=0},
     };
-    set_vertex_attributes(vertex_param, 1);
+
+    bind_frame(s_frames.sub_view1, s_programs.sample_vol);
+    set_vertex_attributes(vertex_params, 1);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
                      s_sim_params.rotation.ind[2],
                      s_sim_params.rotation.ind[3]);
-    set_vec3_uniform("translate", s_sim_params.translate.x,
-                     s_sim_params.translate.y,
-                     s_sim_params.translate.z);
-    set_float_uniform("scale", s_sim_params.scale);
      set_ivec2_uniform("texelDimensions2D",
                       s_sim_params.texture_dimensions.width_2d,
                       s_sim_params.texture_dimensions.height_2d);
@@ -424,19 +428,33 @@ void render(const struct RenderParams *render_params) {
                       s_sim_params.texture_dimensions.width_3d,
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
-    set_float_uniform("gradScale", 500.0);
-    set_sampler2D_uniform("gradTex", s_frames.gradient);
     set_sampler2D_uniform("tex", s_frames.draw);
-    // glDrawArrays(GL_POINTS, 0, s_sizeof_vertices);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
-    unbind();*/
+    unbind();
 
-    bind_frame(s_frames.sub_view1, s_programs.sample_vol);
-    struct VertexParam vertex_param[2] = {
-        {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
-         .stride=4*sizeof(float), .offset=0},
-    };
-    set_vertex_attributes(vertex_param, 1);
+    bind_frame(s_frames.sub_view2, s_programs.sample_vol);
+    set_vertex_attributes(vertex_params, 1);
+    set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
+                     s_sim_params.rotation.ind[1],
+                     s_sim_params.rotation.ind[2],
+                     s_sim_params.rotation.ind[3]);
+    set_ivec2_uniform("texelDimensions2D",
+                      s_sim_params.texture_dimensions.width_2d,
+                      s_sim_params.texture_dimensions.height_2d);
+    set_ivec3_uniform("texelDimensions3D",
+                      s_sim_params.texture_dimensions.width_3d,
+                      s_sim_params.texture_dimensions.height_3d,
+                      s_sim_params.texture_dimensions.length_3d);
+    set_sampler2D_uniform("tex", s_frames.gradient);
+    glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
+    unbind();
+
+    // glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    bind_frame(s_frames.sub_view3, s_programs.show_vol);
+    set_vertex_attributes(vertex_params, 1);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
                      s_sim_params.rotation.ind[2],
@@ -445,43 +463,34 @@ void render(const struct RenderParams *render_params) {
                      s_sim_params.rotation2.ind[1],
                      s_sim_params.rotation2.ind[2],
                      s_sim_params.rotation2.ind[3]);
-    // set_vec3_uniform("translate", s_sim_params.translate.x,
-    //                  s_sim_params.translate.y,
-    //                 s_sim_params.translate.z);
     set_float_uniform("scale", s_sim_params.scale);
-     set_ivec2_uniform("texelDimensions2D",
+    set_ivec2_uniform("texelDimensions2D",
                       s_sim_params.texture_dimensions.width_2d,
                       s_sim_params.texture_dimensions.height_2d);
     set_ivec3_uniform("texelDimensions3D",
                       s_sim_params.texture_dimensions.width_3d,
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
-    set_sampler2D_uniform("tex", s_frames.draw);
-    // glDrawArrays(GL_LINES, 0, s_sizeof_vertices);
+    set_sampler2D_uniform("gradientTex", s_frames.sub_view2);
+    set_sampler2D_uniform("densityTex", s_frames.sub_view1);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
     unbind();
 
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-    // 
-    bind_quad(s_frames.sub_view2, s_programs.gaussian_blur);
-    set_sampler2D_uniform("tex", s_frames.sub_view1);
-    set_int_uniform("width", s_sim_params.texture_dimensions.width_2d);
-    set_int_uniform("height", s_sim_params.texture_dimensions.height_2d);
-    set_int_uniform("isVertical", 1);
-    draw_unbind_quad();
-    // 
-    bind_quad(s_frames.sub_view3, s_programs.gaussian_blur);
-    set_sampler2D_uniform("tex", s_frames.sub_view2);
-    set_int_uniform("width", s_sim_params.texture_dimensions.width_2d);
-    set_int_uniform("height", s_sim_params.texture_dimensions.height_2d);
-    set_int_uniform("isVertical", 0);
-    draw_unbind_quad();
-    // 
+    glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_STENCIL_BUFFER_BIT);
+    // glDisable(GL_DEPTH_TEST);
+
+
     glViewport(0, 0,
                s_sim_params.view_width,
               s_sim_params.view_height);
     bind_quad(s_frames.main_view, s_programs.copy);
-    set_sampler2D_uniform("tex", s_frames.sub_view1);
+    if (render_params->mode1 == 1)
+        set_sampler2D_uniform("tex", s_frames.sub_view1);
+    else if (render_params->mode1 == 2)
+        set_sampler2D_uniform("tex", s_frames.sub_view2);
+    else if (render_params->mode1 == 3)
+        set_sampler2D_uniform("tex", s_frames.sub_view3);
     draw_unbind_quad();
 }
