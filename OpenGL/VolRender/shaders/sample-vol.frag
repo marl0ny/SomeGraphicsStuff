@@ -46,6 +46,8 @@ vec4 blI(vec2 r, float x0, float y0, float x1, float y1,
 
 void main() {
     vec3 r = POSITION;
+    // This check needs to be done to avoid a repeating effect
+    // caused by sampling beyond the initial boundary.
     if (r.x < 0.0 || r.x >= 1.0 ||
         r.y < 0.0 || r.y >= 1.0 ||
         r.z < 0.0 || r.z >= 1.0) discard;
@@ -76,6 +78,11 @@ void main() {
     vec4 f111 = texture2D(tex, to2DTextureCoordinates(r111));
     vec4 f0 = blI(r.xy, x0, y0, x1, y1, f000, f100, f010, f110);
     vec4 f1 = blI(r.xy, x0, y0, x1, y1, f001, f101, f011, f111);
+    // Originally I made a mistake with the interpolation
+    // where I neglected to consider the edge case of sampling a point at
+    // at z0 (or x0 or y0) which resulted in a zero denominator in
+    // certain calculations. This created a black checkered-like effect
+    // in the final render.
     float dz = z1 - z0;
     fragColor = mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }

@@ -27,6 +27,7 @@ struct TextureDimensions {
 struct SimParams {
     int view_width, view_height;
     struct TextureDimensions texture_dimensions;
+    struct TextureDimensions render_texture_dimensions;
     struct DVec4 rotation;
     struct DVec4 rotation2;
     float scale;
@@ -97,9 +98,14 @@ void init_sim_params(struct SimParams *params) {
     params->texture_dimensions.width_3d = 64;
     params->texture_dimensions.height_3d = 64;
     params->texture_dimensions.length_3d = 64;
+    params->render_texture_dimensions.width_2d = 1024;
+    params->render_texture_dimensions.height_2d = 1024;
+    params->render_texture_dimensions.width_3d = 64;
+    params->render_texture_dimensions.height_3d = 64;
+    params->render_texture_dimensions.length_3d = 256;
     s_sizeof_vertices = (4*sizeof(float)*
-                         params->texture_dimensions.width_2d*
-                         params->texture_dimensions.height_2d);
+                         params->render_texture_dimensions.width_2d*
+                         params->render_texture_dimensions.height_2d);
 }
 
 struct IVec2 to_2d_indices(int i, int j, int k,
@@ -184,7 +190,7 @@ int *new_elements(int *ptr_sizeof_elements,
                   const struct TextureDimensions *d) {
     *ptr_sizeof_elements = sizeof(int)*
         (6*(d->width_3d-1)*(d->height_3d-1)*d->length_3d
-         + 3*d->length_3d); //*3;
+         + 3*d->length_3d);
     int *elements = malloc(*ptr_sizeof_elements);
     int elem_index = 0;
     if (elements == NULL) {
@@ -198,27 +204,6 @@ int *new_elements(int *ptr_sizeof_elements,
         elements[elem_index++] = index;
         elements[elem_index++] = to_1d_index(0, 0, (k-1)%d->length_3d, d);
     }
-    /*for (int k = 0;  k < d->height_3d; k++) {
-            elem_index
-                += single_face(elements + elem_index, k, Y_ORIENTATION, d);
-            int index = elements[elem_index - 1];
-            elements[elem_index++] = index;
-            elements[elem_index++] = index;
-            elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->height_3d, d);
-    }
-    for (int k = 0;  k < d->width_3d; k++) {
-            elem_index
-                += single_face(elements + elem_index, k, X_ORIENTATION, d);
-            int index = elements[elem_index - 1];
-            elements[elem_index++] = index;
-            elements[elem_index++] = index;
-            elements[elem_index++] = to_1d_index(0, 0, (k+1)%d->width_3d, d);
-    }
-    for (int k = 0; k < (*ptr_sizeof_elements)/sizeof(int); k++) {
-        if (elements[k] >= d->width_2d*d->height_2d ||
-            elements[k] < 0)
-            printf("%d\n", elem_index);
-            }*/
     return elements;
 }
 
@@ -232,18 +217,22 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
         .min_filter=GL_LINEAR, .mag_filter=GL_LINEAR
     };
+    // Initialize all the quad frames.
     frames->draw = new_quad(&tex_params);
     frames->gradient = new_quad(&tex_params);
+    frames->boundary_mask = new_quad(&tex_params);
+    // Construct the non quad frames.
     struct Vec4 *vertices = malloc(s_sizeof_vertices);
     if (vertices == NULL) {
         perror("malloc");
         return;
     }
     int count = 0;
-    for (int i = 0; i < params->texture_dimensions.width_2d; i++) {
-        for (int j = 0; j < params->texture_dimensions.height_2d; j++) {
-            int w = params->texture_dimensions.width_2d;
-            int h = params->texture_dimensions.height_2d;
+    for (int i = 0; i < params->render_texture_dimensions.width_2d; i++) {
+        for (int j = 0; 
+             j < params->render_texture_dimensions.height_2d; j++) {
+            int w = params->render_texture_dimensions.width_2d;
+            int h = params->render_texture_dimensions.height_2d;
             vertices[j*w + i].x = ((float)i + 0.5)/(float)w;
             vertices[j*w + i].y = ((float)j + 0.5)/(float)h;
             vertices[j*w + i].z = 0.0;
@@ -251,15 +240,16 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         }
     }
     int *elements = new_elements(&s_sizeof_elements,
-                                 &params->texture_dimensions);
+                                 &params->render_texture_dimensions);
     if (elements == NULL) {
         fprintf(stderr, "Error");
         return;
     }
-    frames->boundary_mask = new_quad(&tex_params);
     // tex_params.type = GL_UNSIGNED_BYTE;
     tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
     tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
+    tex_params.width = params->render_texture_dimensions.width_2d;
+    tex_params.height = params->render_texture_dimensions.height_2d;
     frames->sub_view1 = new_frame(&tex_params, (float *)vertices,
                                   s_sizeof_vertices,
                                   elements, s_sizeof_elements);
@@ -293,7 +283,7 @@ void init() {
                       s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("r0", 0.5, 0.5, 0.5);
     set_vec3_uniform("colour", 0.5, 0.5, 1.0);
-    set_vec3_uniform("sigma", 0.07, 0.07, 0.1);
+    set_vec3_uniform("sigma", 0.05, 0.1, 0.07);
     draw_unbind_quad();
     bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
     set_ivec2_uniform("texelDimensions2D",
@@ -371,9 +361,6 @@ rotation_axis_to_quaternion(double angle, struct DVec3 axis) {
 
 
 void render(const struct RenderParams *render_params) {
-    glViewport(0, 0, 
-               s_sim_params.texture_dimensions.width_2d,
-               s_sim_params.texture_dimensions.height_2d);
     if (render_params->user_use &&
         (render_params->user_dx != 0.0 || render_params->user_dy != 0.0)) {
         double angle = 4.0*sqrt(
@@ -409,7 +396,10 @@ void render(const struct RenderParams *render_params) {
     }
     s_sim_params.scale = (float)render_params->user_scroll;
 
-
+    glViewport(0, 0, 
+               s_sim_params.render_texture_dimensions.width_2d,
+               s_sim_params.render_texture_dimensions.height_2d);
+    
     struct VertexParam vertex_params[2] = {
         {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
          .stride=4*sizeof(float), .offset=0},
@@ -417,11 +407,19 @@ void render(const struct RenderParams *render_params) {
 
     bind_frame(s_frames.sub_view1, s_programs.sample_vol);
     set_vertex_attributes(vertex_params, 1);
+    set_float_uniform("scale", 1.0/s_sim_params.scale);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
                      s_sim_params.rotation.ind[2],
                      s_sim_params.rotation.ind[3]);
-     set_ivec2_uniform("texelDimensions2D",
+    set_ivec2_uniform("renderTexelDimensions2D",
+                      s_sim_params.render_texture_dimensions.width_2d,
+                      s_sim_params.render_texture_dimensions.height_2d);
+    set_ivec3_uniform("renderTexelDimensions3D",
+                      s_sim_params.render_texture_dimensions.width_3d,
+                      s_sim_params.render_texture_dimensions.height_3d,
+                      s_sim_params.render_texture_dimensions.length_3d);
+    set_ivec2_uniform("texelDimensions2D",
                       s_sim_params.texture_dimensions.width_2d,
                       s_sim_params.texture_dimensions.height_2d);
     set_ivec3_uniform("texelDimensions3D",
@@ -434,10 +432,18 @@ void render(const struct RenderParams *render_params) {
 
     bind_frame(s_frames.sub_view2, s_programs.sample_vol);
     set_vertex_attributes(vertex_params, 1);
+    set_float_uniform("scale", 1.0/s_sim_params.scale);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
                      s_sim_params.rotation.ind[2],
                      s_sim_params.rotation.ind[3]);
+    set_ivec2_uniform("renderTexelDimensions2D",
+                      s_sim_params.render_texture_dimensions.width_2d,
+                      s_sim_params.render_texture_dimensions.height_2d);
+    set_ivec3_uniform("renderTexelDimensions3D",
+                      s_sim_params.render_texture_dimensions.width_3d,
+                      s_sim_params.render_texture_dimensions.height_3d,
+                      s_sim_params.render_texture_dimensions.length_3d);
     set_ivec2_uniform("texelDimensions2D",
                       s_sim_params.texture_dimensions.width_2d,
                       s_sim_params.texture_dimensions.height_2d);
@@ -463,14 +469,15 @@ void render(const struct RenderParams *render_params) {
                      s_sim_params.rotation2.ind[1],
                      s_sim_params.rotation2.ind[2],
                      s_sim_params.rotation2.ind[3]);
-    set_float_uniform("scale", s_sim_params.scale);
+    set_float_uniform("scale", 1.0);
+    // set_float_uniform("scale", s_sim_params.scale);
     set_ivec2_uniform("texelDimensions2D",
-                      s_sim_params.texture_dimensions.width_2d,
-                      s_sim_params.texture_dimensions.height_2d);
+                      s_sim_params.render_texture_dimensions.width_2d,
+                      s_sim_params.render_texture_dimensions.height_2d);
     set_ivec3_uniform("texelDimensions3D",
-                      s_sim_params.texture_dimensions.width_3d,
-                      s_sim_params.texture_dimensions.height_3d,
-                      s_sim_params.texture_dimensions.length_3d);
+                      s_sim_params.render_texture_dimensions.width_3d,
+                      s_sim_params.render_texture_dimensions.height_3d,
+                      s_sim_params.render_texture_dimensions.length_3d);
     set_sampler2D_uniform("gradientTex", s_frames.sub_view2);
     set_sampler2D_uniform("densityTex", s_frames.sub_view1);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);

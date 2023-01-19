@@ -37,6 +37,52 @@ vec4 rotate(vec4 x, vec4 r) {
     return x2; 
 }
 
+/* uniform ivec3 texelDimensions3D;
+uniform ivec2 texelDimensions2D;
+
+vec3 to3DTextureCoordinates(vec2 uv) {
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
+    int length3D = texelDimensions3D[2];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float wIndex = floor(uv[1]*hStack)*wStack + floor(uv[0]*wStack);
+    return vec3(mod(uv[0]*wStack, 1.0), mod(uv[1]*hStack, 1.0),
+                (wIndex + 0.5)/float(length3D));
+}
+
+vec3 complexToColour(float re, float im) {
+    float pi = 3.141592653589793;
+    float argVal = atan(im, re);
+    float maxCol = 1.0;
+    float minCol = 50.0/255.0;
+    float colRange = maxCol - minCol;
+    if (argVal <= pi/3.0 && argVal >= 0.0) {
+        return vec3(maxCol,
+                    minCol + colRange*argVal/(pi/3.0), minCol);
+    } else if (argVal > pi/3.0 && argVal <= 2.0*pi/3.0){
+        return vec3(maxCol - colRange*(argVal - pi/3.0)/(pi/3.0),
+                    maxCol, minCol);
+    } else if (argVal > 2.0*pi/3.0 && argVal <= pi){
+        return vec3(minCol, maxCol,
+                    minCol + colRange*(argVal - 2.0*pi/3.0)/(pi/3.0));
+    } else if (argVal < 0.0 && argVal > -pi/3.0){
+        return vec3(maxCol, minCol,
+                    minCol - colRange*argVal/(pi/3.0));
+    } else if (argVal <= -pi/3.0 && argVal > -2.0*pi/3.0){
+        return vec3(maxCol + (colRange*(argVal + pi/3.0)/(pi/3.0)),
+                    minCol, maxCol);
+    } else if (argVal <= -2.0*pi/3.0 && argVal >= -pi){
+        return vec3(minCol,
+                    minCol - (colRange*(argVal + 2.0*pi/3.0)/(pi/3.0)), maxCol);
+    }
+    else {
+        return vec3(minCol, maxCol, maxCol);
+    }
+}*/
+
 void main() {
     vec3 normal = rotate(vec4(0.0, 0.0, 1.0, 1.0),
                          quaternionConjugate(rotation)).xyz;
@@ -49,4 +95,9 @@ void main() {
     // fragColor = 4.0*pix;
     float a = dot(normal, normalize(grad));
     fragColor = vec4(normalize(grad) , sqrt(abs(a)));
+    /* vec3 uvw = rotate(vec4(to3DTextureCoordinates(UV), 1.0),
+                      quaternionConjugate(rotation)).xyz;
+    float phi = 2.0*3.14159*(31.0*uvw[0] + 31.0*uvw[1] + 5.0*uvw[2]);
+    vec2 z = vec2(cos(phi), sin(phi));
+    fragColor = vec4(normalize(complexToColour(z[0], z[1])) , sqrt(abs(a)));*/
 }

@@ -11,10 +11,11 @@ attribute vec4 uvIndex;
 attribute vec3 POSITION;
 #endif
 
+uniform float scale;
 uniform vec4 rotation;
 
-uniform ivec3 texelDimensions3D;
-uniform ivec2 texelDimensions2D;
+uniform ivec3 renderTexelDimensions3D;
+uniform ivec2 renderTexelDimensions2D;
 
 
 vec4 quaternionMultiply(vec4 q1, vec4 q2) {
@@ -40,11 +41,11 @@ vec4 rotate(vec4 x, vec4 r) {
 
 
 vec3 to3DTextureCoordinates(vec2 uv) {
-    int width2D = texelDimensions2D[0];
-    int height2D = texelDimensions2D[1];
-    int width3D = texelDimensions3D[0];
-    int height3D = texelDimensions3D[1];
-    int length3D = texelDimensions3D[2];
+    int width2D = renderTexelDimensions2D[0];
+    int height2D = renderTexelDimensions2D[1];
+    int width3D = renderTexelDimensions3D[0];
+    int height3D = renderTexelDimensions3D[1];
+    int length3D = renderTexelDimensions3D[2];
     float wStack = float(width2D)/float(width3D);
     float hStack = float(height2D)/float(height3D);
     float wIndex = floor(uv[1]*hStack)*wStack + floor(uv[0]*wStack);
@@ -57,7 +58,7 @@ void main() {
     vec2 uv = uvIndex.xy;
     vec4 viewPos = vec4(to3DTextureCoordinates(uv), 1.0)
                    - vec4(0.5, 0.5, 0.5, 0.0);
-    POSITION = (rotate(viewPos, quaternionConjugate(rotation))
-                        + vec4(0.5, 0.5, 0.5, 0.0)).xyz;
+    POSITION = (scale*rotate(viewPos, quaternionConjugate(rotation))
+                             + vec4(0.5, 0.5, 0.5, 0.0)).xyz;
     gl_Position = 2.0*(vec4(uv, 0.0, 0.5) - vec4(0.5, 0.5, 0.0 ,0.0));
 }
