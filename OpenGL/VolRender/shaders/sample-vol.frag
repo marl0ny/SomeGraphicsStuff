@@ -44,22 +44,22 @@ vec4 blI(vec2 r, float x0, float y0, float x1, float y1,
     return mix(mix(w00, w10, ax), mix(w01, w11, ax), ay);
 }
 
-void main() {
-    vec3 r = POSITION;
-    // This check needs to be done to avoid a repeating effect
-    // caused by sampling beyond the initial boundary.
-    if (r.x < 0.0 || r.x >= 1.0 ||
-        r.y < 0.0 || r.y >= 1.0 ||
-        r.z < 0.0 || r.z >= 1.0) discard;
-    float texelWidth = float(texelDimensions3D[0]);
-    float texelHeight = float(texelDimensions3D[1]);
-    float texelLength = float(texelDimensions3D[2]);
-    float x0 = (floor(r.x*texelWidth - 0.5) + 0.5)/texelWidth;
-    float y0 = (floor(r.y*texelHeight - 0.5) + 0.5)/texelHeight;
-    float z0 = (floor(r.z*texelLength - 0.5) + 0.5)/texelLength;
-    float x1 = (ceil(r.x*texelWidth - 0.5) + 0.5)/texelWidth;
-    float y1 = (ceil(r.y*texelHeight - 0.5) + 0.5)/texelHeight;
-    float z1 = (ceil(r.z*texelLength - 0.5) + 0.5)/texelLength;
+/*
+Currently this assumes that the texture being sampled from
+is smaller for all dimensions than the texture being
+rendered to.
+*/
+vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
+    vec3 r = position;
+    float width3D = float(texelDimensions3D[0]);
+    float height3D = float(texelDimensions3D[1]);
+    float length3D = float(texelDimensions3D[2]);
+    float x0 = (floor(r.x*width3D - 0.5) + 0.5)/width3D;
+    float y0 = (floor(r.y*height3D - 0.5) + 0.5)/height3D;
+    float z0 = (floor(r.z*length3D - 0.5) + 0.5)/length3D;
+    float x1 = (ceil(r.x*width3D - 0.5) + 0.5)/width3D;
+    float y1 = (ceil(r.y*height3D - 0.5) + 0.5)/height3D;
+    float z1 = (ceil(r.z*length3D - 0.5) + 0.5)/length3D;
     vec3 r000 = vec3(x0, y0, z0);
     vec3 r100 = vec3(x1, y0, z0);
     vec3 r010 = vec3(x0, y1, z0);
@@ -80,9 +80,19 @@ void main() {
     vec4 f1 = blI(r.xy, x0, y0, x1, y1, f001, f101, f011, f111);
     // Originally I made a mistake with the interpolation
     // where I neglected to consider the edge case of sampling a point at
-    // at z0 (or x0 or y0) which resulted in a zero denominator in
-    // certain calculations. This created a black checkered-like effect
-    // in the final render.
+    // at z0 (or x0 or y0) which resulted in a zero denominator for
+    // some calculations. This created black spots in the final render.
     float dz = z1 - z0;
-    fragColor = mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
+    return mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
+}
+
+
+void main() {
+    vec3 r = POSITION;
+    // This check needs to be done to avoid a repeating effect
+    // caused by sampling beyond the initial boundary.
+    if (r.x < 0.0 || r.x >= 1.0 ||
+        r.y < 0.0 || r.y >= 1.0 ||
+        r.z < 0.0 || r.z >= 1.0) discard;
+    fragColor = sample2DTextureAs3D(tex, r);
 }

@@ -17,8 +17,6 @@ struct TextureParams {
     /* Type of texture. */
     int type; // Either GL_FLOAT, GL_INT, etc.
 
-    // int number_of_channels;
-
     /* Dimensions of texture. */
     int width, height;
 

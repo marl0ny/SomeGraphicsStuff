@@ -103,6 +103,11 @@ void init_sim_params(struct SimParams *params) {
     params->render_texture_dimensions.width_3d = 64;
     params->render_texture_dimensions.height_3d = 64;
     params->render_texture_dimensions.length_3d = 256;
+    /* params->render_texture_dimensions.width_2d = 2048;
+    params->render_texture_dimensions.height_2d = 2048;
+    params->render_texture_dimensions.width_3d = 128;
+    params->render_texture_dimensions.height_3d = 128;
+    params->render_texture_dimensions.length_3d = 256;*/
     s_sizeof_vertices = (4*sizeof(float)*
                          params->render_texture_dimensions.width_2d*
                          params->render_texture_dimensions.height_2d);
@@ -245,11 +250,13 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         fprintf(stderr, "Error");
         return;
     }
-    // tex_params.type = GL_UNSIGNED_BYTE;
+    tex_params.type = GL_HALF_FLOAT;
     tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
     tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
-    tex_params.width = params->render_texture_dimensions.width_2d;
-    tex_params.height = params->render_texture_dimensions.height_2d;
+    // tex_params.width = params->render_texture_dimensions.width_2d;
+    // tex_params.height = params->render_texture_dimensions.height_2d;
+    tex_params.width = params->view_width;
+    tex_params.height = params->view_height;
     frames->sub_view1 = new_frame(&tex_params, (float *)vertices,
                                   s_sizeof_vertices,
                                   elements, s_sizeof_elements);
@@ -302,7 +309,7 @@ void init() {
     bind_quad(s_frames.gradient, s_programs.gradient);
     set_sampler2D_uniform("tex", s_frames.draw);
     set_sampler2D_uniform("boundaryMaskTex", s_frames.boundary_mask);
-    set_int_uniform("index", 2);
+    set_int_uniform("index", 3);
     set_ivec2_uniform("texelDimensions2D",
                       s_sim_params.texture_dimensions.width_2d,
                       s_sim_params.texture_dimensions.height_2d);
@@ -455,7 +462,7 @@ void render(const struct RenderParams *render_params) {
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
     unbind();
 
-    // glEnable(GL_DEPTH_TEST);
+   // glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

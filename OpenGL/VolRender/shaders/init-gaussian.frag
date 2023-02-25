@@ -31,12 +31,44 @@ vec3 to3DTextureCoordinates(vec2 uv) {
                 (wIndex + 0.5)/length3D);
 }
 
+vec3 complexToColour(float re, float im) {
+    float pi = 3.141592653589793;
+    float argVal = atan(im, re);
+    float maxCol = 1.0;
+    float minCol = 50.0/255.0;
+    float colRange = maxCol - minCol;
+    if (argVal <= pi/3.0 && argVal >= 0.0) {
+        return vec3(maxCol,
+                    minCol + colRange*argVal/(pi/3.0), minCol);
+    } else if (argVal > pi/3.0 && argVal <= 2.0*pi/3.0){
+        return vec3(maxCol - colRange*(argVal - pi/3.0)/(pi/3.0),
+                    maxCol, minCol);
+    } else if (argVal > 2.0*pi/3.0 && argVal <= pi){
+        return vec3(minCol, maxCol,
+                    minCol + colRange*(argVal - 2.0*pi/3.0)/(pi/3.0));
+    } else if (argVal < 0.0 && argVal > -pi/3.0){
+        return vec3(maxCol, minCol,
+                    minCol - colRange*argVal/(pi/3.0));
+    } else if (argVal <= -pi/3.0 && argVal > -2.0*pi/3.0){
+        return vec3(maxCol + (colRange*(argVal + pi/3.0)/(pi/3.0)),
+                    minCol, maxCol);
+    } else if (argVal <= -2.0*pi/3.0 && argVal >= -pi){
+        return vec3(minCol,
+                    minCol - (colRange*(argVal + 2.0*pi/3.0)/(pi/3.0)), maxCol);
+    }
+    else {
+        return vec3(minCol, maxCol, maxCol);
+    }
+}
+
 
 void main() {
     vec3 uvw = to3DTextureCoordinates(UV);
     float gaussian = exp(-0.5*pow((uvw[0] - r0[0])/sigma[0], 2.0)
                          -0.5*pow((uvw[1] - r0[1])/sigma[1], 2.0)
                          -0.5*pow((uvw[2] - r0[2])/sigma[2], 2.0));
-    fragColor = vec4(gaussian*colour, 1.0);
-
+    float phi = 2.0*3.14159*(10.0*uvw[0] + 10.0*uvw[1] + 0.0*uvw[2]);
+    vec2 complexVal = vec2(cos(phi), sin(phi));
+    fragColor = vec4(gaussian*complexToColour(complexVal.r, complexVal.g),
+                     gaussian);
 }

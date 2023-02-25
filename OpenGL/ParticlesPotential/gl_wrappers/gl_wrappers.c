@@ -314,7 +314,7 @@ void quad_init_texture(const struct TextureParams *params) {
     s_current_frame->texture = texture;
     if (params->type == GL_UNSIGNED_BYTE) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,
-                     params->width, params->height, 0, GL_RGBA,
+                     params->width, params->height, 0, GL_RGB,
                      GL_UNSIGNED_BYTE, NULL);
         if (params->generate_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, params->wrap_s);
@@ -323,14 +323,6 @@ void quad_init_texture(const struct TextureParams *params) {
                         params->min_filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
                         params->mag_filter);
-    } else if (params->type == GL_HALF_FLOAT) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                     params->width, params->height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, params->wrap_s);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, params->wrap_t);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                        params->min_filter);
     } else if (params->type == GL_FLOAT) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
                      params->width, params->height, 0, GL_RGBA,
@@ -394,20 +386,7 @@ int new_frame(const struct TextureParams *texture_params,
     s_current_frame->texture = texture;
     if (texture_params->type == GL_UNSIGNED_BYTE) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,
-                     texture_params->width, texture_params->height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, NULL);
-        if (texture_params->generate_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                        texture_params->wrap_s);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                        texture_params->wrap_t);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                        texture_params->min_filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                        texture_params->mag_filter);
-    } else if (texture_params->type == GL_HALF_FLOAT) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                     texture_params->width, texture_params->height, 0, GL_RGBA,
+                     texture_params->width, texture_params->height, 0, GL_RGB,
                      GL_UNSIGNED_BYTE, NULL);
         if (texture_params->generate_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,

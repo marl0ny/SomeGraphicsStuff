@@ -75,7 +75,7 @@ vec4 centredXDiff4thOrder(sampler2D tex) {
     vec4 l1 = bl1*texture2D(tex, UV + dl1);
     vec4 r1 = br1*texture2D(tex, UV + dr1);
     vec4 r2 = br2*texture2D(tex, UV + dr2);
-    return bc*(l2/12.0 - l1/3.0 + r1/3.0 - r2/12.0)/dr[0];
+    return bc*(l2/12.0 - 2.0*l1/3.0 + 2.0*r1/3.0 - r2/12.0)/dr[0];
 }
 
 vec4 centredYDiff4thOrder(sampler2D tex) {
@@ -98,7 +98,7 @@ vec4 centredYDiff4thOrder(sampler2D tex) {
     vec4 d1 = bd1*texture2D(tex, UV + dd1);
     vec4 u1 = bu1*texture2D(tex, UV + du1);
     vec4 u2 = bu2*texture2D(tex, UV + du2);
-    return bc*(d2/12.0 - d1/3.0 + u1/3.0 - u2/12.0)/dr[1];
+    return bc*(d2/12.0 - 2.0*d1/3.0 + 2.0*u1/3.0 - u2/12.0)/dr[1];
 }
 
 vec4 centredZDiff4thOrder(sampler2D tex) {
@@ -121,7 +121,7 @@ vec4 centredZDiff4thOrder(sampler2D tex) {
     vec4 f1 = texture2D(tex, to2DTextureCoordinates(vec3(x, y, zf1)));
     vec4 b1 = texture2D(tex, to2DTextureCoordinates(vec3(x, y, zb1)));
     vec4 b2 = texture2D(tex, to2DTextureCoordinates(vec3(x, y, zb2)));
-    return bc*(b2/12.0 - b1/3.0 + f1/3.0 - f2/12.0)/dr[2];
+    return bc*(b2/12.0 - 2.0*b1/3.0 + 2.0*f1/3.0 - f2/12.0)/dr[2];
 }
 
 void main() {

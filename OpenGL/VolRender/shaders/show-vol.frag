@@ -15,6 +15,9 @@ uniform vec4 rotation;
 uniform sampler2D gradientTex;
 uniform sampler2D densityTex;
 
+uniform ivec3 texelDimensions3D;
+uniform ivec2 texelDimensions2D;
+
 
 vec4 quaternionMultiply(vec4 q1, vec4 q2) {
     vec4 q3;
@@ -37,9 +40,6 @@ vec4 rotate(vec4 x, vec4 r) {
     return x2; 
 }
 
-/* uniform ivec3 texelDimensions3D;
-uniform ivec2 texelDimensions2D;
-
 vec3 to3DTextureCoordinates(vec2 uv) {
     int width2D = texelDimensions2D[0];
     int height2D = texelDimensions2D[1];
@@ -53,51 +53,53 @@ vec3 to3DTextureCoordinates(vec2 uv) {
                 (wIndex + 0.5)/float(length3D));
 }
 
-vec3 complexToColour(float re, float im) {
-    float pi = 3.141592653589793;
-    float argVal = atan(im, re);
-    float maxCol = 1.0;
-    float minCol = 50.0/255.0;
-    float colRange = maxCol - minCol;
-    if (argVal <= pi/3.0 && argVal >= 0.0) {
-        return vec3(maxCol,
-                    minCol + colRange*argVal/(pi/3.0), minCol);
-    } else if (argVal > pi/3.0 && argVal <= 2.0*pi/3.0){
-        return vec3(maxCol - colRange*(argVal - pi/3.0)/(pi/3.0),
-                    maxCol, minCol);
-    } else if (argVal > 2.0*pi/3.0 && argVal <= pi){
-        return vec3(minCol, maxCol,
-                    minCol + colRange*(argVal - 2.0*pi/3.0)/(pi/3.0));
-    } else if (argVal < 0.0 && argVal > -pi/3.0){
-        return vec3(maxCol, minCol,
-                    minCol - colRange*argVal/(pi/3.0));
-    } else if (argVal <= -pi/3.0 && argVal > -2.0*pi/3.0){
-        return vec3(maxCol + (colRange*(argVal + pi/3.0)/(pi/3.0)),
-                    minCol, maxCol);
-    } else if (argVal <= -2.0*pi/3.0 && argVal >= -pi){
-        return vec3(minCol,
-                    minCol - (colRange*(argVal + 2.0*pi/3.0)/(pi/3.0)), maxCol);
-    }
-    else {
-        return vec3(minCol, maxCol, maxCol);
-    }
-}*/
+vec2 to2DTextureCoordinates(vec3 position) {
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
+    int length3D = texelDimensions3D[2];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float u = position.x;
+    float v = position.y;
+    float w = position.z;
+    float wRatio = 1.0/wStack;
+    float hRatio = 1.0/hStack;
+    float wIndex = w*float(length3D) - 0.5;
+    vec2 wPosition = vec2(mod(wIndex, wStack)/wStack,
+                          floor(wIndex/wStack)/hStack);
+    return wPosition + vec2(u*wRatio, v*hRatio);
+}
 
 void main() {
+    vec3 r = to3DTextureCoordinates(UV);
     vec3 normal = rotate(vec4(0.0, 0.0, 1.0, 1.0),
                          quaternionConjugate(rotation)).xyz;
     vec3 grad = texture2D(gradientTex, UV).xyz;
     vec4 density = texture2D(densityTex, UV);
     vec4 pix = density;
-    pix.a = pix.b;
+    float dx = 1.0/float(texelDimensions3D[0]);
+    float dy = 1.0/float(texelDimensions3D[1]);
+    float dz = 1.0/float(texelDimensions3D[2]);
+    vec2 zF = to2DTextureCoordinates(vec3(r.x, r.y, r.z + dz));
+    vec2 zB = to2DTextureCoordinates(vec3(r.x, r.y, r.z - dz));
+    vec2 xF = to2DTextureCoordinates(vec3(r.x + dx, r.y, r.z));
+    vec2 xB = to2DTextureCoordinates(vec3(r.x - dx, r.y, r.z));
+    vec2 yF = to2DTextureCoordinates(vec3(r.x, r.y + dy, r.z));
+    vec2 yB = to2DTextureCoordinates(vec3(r.x, r.y - dy, r.z));
+    /* density = (texture2D(densityTex, zF)
+                 + texture2D(densityTex, zB)
+                + texture2D(densityTex, xF)
+                + texture2D(densityTex, xB)
+                + texture2D(densityTex, yF)
+                + texture2D(densityTex, yB)
+                + density)/5.0;*/
+    // pix.a = pix.b;
     // lf (length(grad) < 0.0000001) discard;
     if (pix.a < 0.01) discard;
     // fragColor = 4.0*pix;
     float a = dot(normal, normalize(grad));
-    fragColor = vec4(normalize(grad) , sqrt(abs(a)));
-    /* vec3 uvw = rotate(vec4(to3DTextureCoordinates(UV), 1.0),
-                      quaternionConjugate(rotation)).xyz;
-    float phi = 2.0*3.14159*(31.0*uvw[0] + 31.0*uvw[1] + 5.0*uvw[2]);
-    vec2 z = vec2(cos(phi), sin(phi));
-    fragColor = vec4(normalize(complexToColour(z[0], z[1])) , sqrt(abs(a)));*/
+    if (a < 0.0) discard;
+    fragColor = vec4(0.1 + a*normalize(density.rgb) , a);
 }
