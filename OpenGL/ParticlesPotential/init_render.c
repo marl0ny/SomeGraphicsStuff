@@ -151,7 +151,7 @@ void init_particle_positions(Frames *frames, Programs *programs,
     struct Vec4 *pos_vel = malloc(particles_count*
                                   sizeof(struct Vec4));
     for (int i = 0; i < particles_count; i++) {
-        float r = 0.7*(float)rand()/(float)RAND_MAX;
+        float r = 0.4*(float)rand()/(float)RAND_MAX;
         float tau = 2.0*3.14159;
         float theta = tau*(float)rand()/(float)RAND_MAX;
         pos_vel[i].ind[0] = r*cos(theta);
@@ -481,19 +481,23 @@ void render(struct RenderParams *render_params) {
     set_sampler2D_uniform("fieldTex", s_frames.gradient_potential);
     draw_unbind_quad();
     timestep();
+    if (s_sim_params.number_of_steps != 0)
+        swap3(&s_frames.particles[0], &s_frames.particles[1], 
+              &s_frames.particles[2]);
+    s_sim_params.number_of_steps++;
 
     glViewport(0, 0, view_width, view_height);
 
     bind_frame(s_frames.particles_view, s_programs.view_particles);
     set_vertex_attributes(vertex_params, 1);
-    set_sampler2D_uniform("tex", particles1);
+    set_sampler2D_uniform("tex", s_frames.particles[0]);
     glDrawArrays(GL_POINTS, 0, s_sim_params.particles_count);
     unbind();
 
     bind_frame(s_frames.particle_vectors_view,
                s_programs.view_particle_vectors);
     set_vertex_attributes(vertex_params, 1);
-    set_sampler2D_uniform("posVelTex", particles1);
+    set_sampler2D_uniform("posVelTex", s_frames.particles[0]);
     set_sampler2D_uniform("vecTex", 
                           particles1);
     // set_float_uniform("vecScale", 0.1*0.001);
@@ -506,10 +510,4 @@ void render(struct RenderParams *render_params) {
     set_float_uniform("scale", 1.0);
     set_sampler2D_uniform("tex", s_frames.particle_vectors_view);
     draw_unbind_quad();
-
-    if (s_sim_params.number_of_steps != 0)
-        swap3(&s_frames.particles[0], &s_frames.particles[1], 
-              &s_frames.particles[2]);
-
-    s_sim_params.number_of_steps++;
 }

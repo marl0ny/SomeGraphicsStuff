@@ -74,10 +74,11 @@ vec2 to2DTextureCoordinates(vec3 position) {
 
 void main() {
     vec3 r = to3DTextureCoordinates(UV);
+    vec2 uv2 = to2DTextureCoordinates(r);
     vec3 normal = rotate(vec4(0.0, 0.0, 1.0, 1.0),
                          quaternionConjugate(rotation)).xyz;
-    vec3 grad = texture2D(gradientTex, UV).xyz;
-    vec4 density = texture2D(densityTex, UV);
+    vec3 grad = texture2D(gradientTex, uv2).xyz;
+    vec4 density = texture2D(densityTex, uv2);
     vec4 pix = density;
     float dx = 1.0/float(texelDimensions3D[0]);
     float dy = 1.0/float(texelDimensions3D[1]);
@@ -100,6 +101,6 @@ void main() {
     if (pix.a < 0.01) discard;
     // fragColor = 4.0*pix;
     float a = dot(normal, normalize(grad));
-    if (a < 0.0) discard;
-    fragColor = vec4(0.1 + a*normalize(density.rgb) , a);
+    if (a <= 0.0) discard;
+    fragColor = vec4(a*normalize(density.rgb) , a);
 }

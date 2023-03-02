@@ -331,6 +331,8 @@ void quad_init_texture(const struct TextureParams *params) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, params->wrap_t);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                         params->min_filter);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                        params->mag_filter);
     } else if (params->type == GL_FLOAT) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F,
                      params->width, params->height, 0, GL_RGBA,
@@ -393,7 +395,7 @@ int new_frame(const struct TextureParams *texture_params,
     glBindTexture(GL_TEXTURE_2D, texture);
     s_current_frame->texture = texture;
     if (texture_params->type == GL_UNSIGNED_BYTE) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
                      texture_params->width, texture_params->height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, NULL);
         if (texture_params->generate_mipmap) glGenerateMipmap(GL_TEXTURE_2D);
@@ -459,7 +461,7 @@ int new_frame(const struct TextureParams *texture_params,
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
                               texture_params->width, texture_params->height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  GL_RENDERBUFFER, *rbo_ptr);
+        GL_RENDERBUFFER, *rbo_ptr);
 
     }
     unbind();

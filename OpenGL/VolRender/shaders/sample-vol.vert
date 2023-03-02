@@ -58,7 +58,13 @@ void main() {
     vec2 uv = uvIndex.xy;
     vec4 viewPos = vec4(to3DTextureCoordinates(uv), 1.0)
                    - vec4(0.5, 0.5, 0.5, 0.0);
+    // 3D coordinates used in the fragment shader when sampling from the
+    // 3D texture. If no scaling or rotation is done, then
+    // 0 <= POSITION.x < 1, etc.
     POSITION = (scale*rotate(viewPos, quaternionConjugate(rotation))
                              + vec4(0.5, 0.5, 0.5, 0.0)).xyz;
+    // Write to the frame buffer as a 2D texture. Scale things so that
+    // it covers the entire frame buffer i.e.
+    // -1.0 < x < 1.0 etc.
     gl_Position = 2.0*(vec4(uv, 0.0, 0.5) - vec4(0.5, 0.5, 0.0 ,0.0));
 }

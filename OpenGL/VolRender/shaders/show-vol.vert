@@ -3,8 +3,8 @@
 precision highp float;
 
 #if __VERSION__ >= 300
-in vec4 uvIndex;
-out vec2 UV;
+in highp vec4 uvIndex;
+out highp vec2 UV;
 #define texture2D texture
 #else
 attribute vec4 uvIndex;

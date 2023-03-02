@@ -64,11 +64,17 @@ vec3 complexToColour(float re, float im) {
 
 void main() {
     vec3 uvw = to3DTextureCoordinates(UV);
-    float gaussian = exp(-0.5*pow((uvw[0] - r0[0])/sigma[0], 2.0)
-                         -0.5*pow((uvw[1] - r0[1])/sigma[1], 2.0)
-                         -0.5*pow((uvw[2] - r0[2])/sigma[2], 2.0));
-    float phi = 2.0*3.14159*(10.0*uvw[0] + 10.0*uvw[1] + 0.0*uvw[2]);
+    float gaussian1 = exp(-0.5*pow((uvw[0] - r0[0])/sigma[0], 2.0)
+                          -0.5*pow((uvw[1] - r0[1])/sigma[1], 2.0)
+                          -0.5*pow((uvw[2] - r0[2])/sigma[2], 2.0));
+    float gaussian2 = exp(-pow((uvw[0] - 4.0*r0[0]/5.0)/sigma[0], 2.0)
+                          -pow((uvw[1] - r0[1])/sigma[1], 2.0)
+                          -pow((uvw[2] - r0[2]/2.0)/sigma[2], 2.0));
+    // float phi = 2.0*3.14159*(2.0*uvw[0] + 10.0*uvw[1] + - 3.0*uvw[2]);
+    float phi = 2.0*3.14159*(6.0*uvw[0]);
+    // float phi = 3.14159/2.0;
     vec2 complexVal = vec2(cos(phi), sin(phi));
-    fragColor = vec4(gaussian*complexToColour(complexVal.r, complexVal.g),
-                     gaussian);
+    fragColor = vec4((gaussian1 + gaussian2)
+                     *complexToColour(complexVal.r, complexVal.g),
+                     gaussian1 + gaussian2);
 }

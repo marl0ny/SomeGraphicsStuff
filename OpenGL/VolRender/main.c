@@ -93,6 +93,12 @@ int main() {
         if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
             render_params.mode1 = 3;
         }
+        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+            render_params.mode1 = 4;
+        }
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+            render_params.mode1 = 5;
+        }
         click_update(&left_click, window);
         glfwSwapBuffers(window);
     }

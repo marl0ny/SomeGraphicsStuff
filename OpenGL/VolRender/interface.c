@@ -16,6 +16,7 @@ struct Programs {
     GLuint gradient;
     GLuint gaussian_blur;
     GLuint sample_vol;
+    GLuint sample_vol2;
     GLuint show_vol;
 };
 
@@ -37,8 +38,11 @@ struct SimParams {
 struct Frames {
     frame_id main_view;
     frame_id sub_view1, sub_view2, sub_view3;
+    frame_id sub_view4, sub_view5;
     frame_id draw;
     frame_id gradient;
+    frame_id draw_lowered_prec;
+    frame_id gradient_lowered_prec;
     frame_id boundary_mask;
 };
 
@@ -71,6 +75,7 @@ void init_programs(struct Programs *programs) {
         = make_quad_program("./shaders/gaussian-blur.frag");
     programs->show_vol = make_program("./shaders/show-vol.vert",
                                       "./shaders/show-vol.frag");
+    programs->sample_vol2 = make_quad_program("./shaders/sample-vol2.frag");
 }
 
 void init_sim_params(struct SimParams *params) {
@@ -103,7 +108,7 @@ void init_sim_params(struct SimParams *params) {
     params->render_texture_dimensions.width_3d = 64;
     params->render_texture_dimensions.height_3d = 64;
     params->render_texture_dimensions.length_3d = 256;
-    /* params->render_texture_dimensions.width_2d = 2048;
+    /*params->render_texture_dimensions.width_2d = 2048;
     params->render_texture_dimensions.height_2d = 2048;
     params->render_texture_dimensions.width_3d = 128;
     params->render_texture_dimensions.height_3d = 128;
@@ -222,10 +227,27 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
         .min_filter=GL_LINEAR, .mag_filter=GL_LINEAR
     };
+    glViewport(0, 0,
+               params->texture_dimensions.width_2d,
+               params->texture_dimensions.height_2d);
     // Initialize all the quad frames.
     frames->draw = new_quad(&tex_params);
     frames->gradient = new_quad(&tex_params);
     frames->boundary_mask = new_quad(&tex_params);
+    tex_params.type = GL_HALF_FLOAT;
+    frames->draw_lowered_prec = new_quad(&tex_params);
+    frames->gradient_lowered_prec = new_quad(&tex_params);
+    glViewport(0, 0,
+               params->render_texture_dimensions.width_2d,
+               params->render_texture_dimensions.height_2d);
+    // tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    // tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
+    tex_params.type = GL_HALF_FLOAT;
+    tex_params.width = params->render_texture_dimensions.width_2d;
+    tex_params.height = params->render_texture_dimensions.height_2d;
+    frames->sub_view4 = new_quad(&tex_params);
+    frames->sub_view5 = new_quad(&tex_params);
+    tex_params.type = GL_HALF_FLOAT;
     // Construct the non quad frames.
     struct Vec4 *vertices = malloc(s_sizeof_vertices);
     if (vertices == NULL) {
@@ -233,8 +255,11 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         return;
     }
     int count = 0;
+    // TODO: is it really necessary to have the same number of vertices
+    // as the number of texel units, where every texel unit needs a corresponding
+    // vertices? Can a single quad be used for everthing?
     for (int i = 0; i < params->render_texture_dimensions.width_2d; i++) {
-        for (int j = 0; 
+        for (int j = 0;
              j < params->render_texture_dimensions.height_2d; j++) {
             int w = params->render_texture_dimensions.width_2d;
             int h = params->render_texture_dimensions.height_2d;
@@ -250,13 +275,13 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
         fprintf(stderr, "Error");
         return;
     }
-    tex_params.type = GL_HALF_FLOAT;
     tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
     tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
-    // tex_params.width = params->render_texture_dimensions.width_2d;
-    // tex_params.height = params->render_texture_dimensions.height_2d;
-    tex_params.width = params->view_width;
-    tex_params.height = params->view_height;
+    tex_params.width = params->render_texture_dimensions.width_2d;
+    tex_params.height = params->render_texture_dimensions.height_2d;
+    // tex_params.type = GL_UNSIGNED_BYTE;
+    // tex_params.width = params->view_width;
+    // tex_params.height = params->view_height;
     frames->sub_view1 = new_frame(&tex_params, (float *)vertices,
                                   s_sizeof_vertices,
                                   elements, s_sizeof_elements);
@@ -266,10 +291,14 @@ void init_frames(struct Frames *frames, struct SimParams *params) {
     tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
     tex_params.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
     tex_params.type = GL_UNSIGNED_BYTE;
+    tex_params.width = params->view_width;
+    tex_params.height = params->view_height;
     frames->sub_view3 = new_frame(&tex_params, (float *)vertices,
                                   s_sizeof_vertices,
                                   elements, s_sizeof_elements);
     tex_params.type = GL_FLOAT;
+    free(vertices);
+    free(elements);
 }
 
 
@@ -290,7 +319,7 @@ void init() {
                       s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("r0", 0.5, 0.5, 0.5);
     set_vec3_uniform("colour", 0.5, 0.5, 1.0);
-    set_vec3_uniform("sigma", 0.05, 0.1, 0.07);
+    set_vec3_uniform("sigma", 0.1, 0.1, 0.07);
     draw_unbind_quad();
     bind_quad(s_frames.boundary_mask, s_programs.init_boundary);
     set_ivec2_uniform("texelDimensions2D",
@@ -318,10 +347,17 @@ void init() {
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
     set_vec3_uniform("dr", 1.0, 1.0, 1.0);
-    set_vec3_uniform("dimensions3D", 
+    set_vec3_uniform("dimensions3D",
                      s_sim_params.texture_dimensions.width_3d,
                      s_sim_params.texture_dimensions.height_3d,
                      s_sim_params.texture_dimensions.length_3d);
+    draw_unbind_quad();
+
+    bind_quad(s_frames.draw_lowered_prec, s_programs.copy);
+    set_sampler2D_uniform("tex", s_frames.draw);
+    draw_unbind_quad();
+    bind_quad(s_frames.gradient_lowered_prec, s_programs.copy);
+    set_sampler2D_uniform("tex", s_frames.gradient);
     draw_unbind_quad();
 }
 
@@ -403,17 +439,18 @@ void render(const struct RenderParams *render_params) {
     }
     s_sim_params.scale = (float)render_params->user_scroll;
 
-    glViewport(0, 0, 
+    glViewport(0, 0,
                s_sim_params.render_texture_dimensions.width_2d,
                s_sim_params.render_texture_dimensions.height_2d);
-    
+
     struct VertexParam vertex_params[2] = {
         {.name="uvIndex", .size=4, .type=GL_FLOAT, .normalized=GL_FALSE,
          .stride=4*sizeof(float), .offset=0},
     };
 
-    bind_frame(s_frames.sub_view1, s_programs.sample_vol);
-    set_vertex_attributes(vertex_params, 1);
+    // bind_frame(s_frames.sub_view1, s_programs.sample_vol);
+    // set_vertex_attributes(vertex_params, 1);
+    bind_quad(s_frames.sub_view4, s_programs.sample_vol2);
     set_float_uniform("scale", 1.0/s_sim_params.scale);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
@@ -433,12 +470,14 @@ void render(const struct RenderParams *render_params) {
                       s_sim_params.texture_dimensions.width_3d,
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
-    set_sampler2D_uniform("tex", s_frames.draw);
-    glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
-    unbind();
+    set_sampler2D_uniform("tex", s_frames.draw_lowered_prec);
+    // glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
+    // unbind();
+    draw_unbind_quad();
 
-    bind_frame(s_frames.sub_view2, s_programs.sample_vol);
-    set_vertex_attributes(vertex_params, 1);
+    // bind_frame(s_frames.sub_view2, s_programs.sample_vol);
+    // set_vertex_attributes(vertex_params, 1);
+    bind_quad(s_frames.sub_view5, s_programs.sample_vol2);
     set_float_uniform("scale", 1.0/s_sim_params.scale);
     set_vec4_uniform("rotation", s_sim_params.rotation.ind[0],
                      s_sim_params.rotation.ind[1],
@@ -458,13 +497,20 @@ void render(const struct RenderParams *render_params) {
                       s_sim_params.texture_dimensions.width_3d,
                       s_sim_params.texture_dimensions.height_3d,
                       s_sim_params.texture_dimensions.length_3d);
-    set_sampler2D_uniform("tex", s_frames.gradient);
-    glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
-    unbind();
+    set_sampler2D_uniform("tex", s_frames.gradient_lowered_prec);
+    // glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
+    // unbind();
+    draw_unbind_quad();
 
-   // glEnable(GL_DEPTH_TEST);
+    glViewport(0, 0,
+               s_sim_params.view_width,
+               s_sim_params.view_height);
+
+    // Render the final volume
+    // glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
 
     bind_frame(s_frames.sub_view3, s_programs.show_vol);
     set_vertex_attributes(vertex_params, 1);
@@ -485,8 +531,10 @@ void render(const struct RenderParams *render_params) {
                       s_sim_params.render_texture_dimensions.width_3d,
                       s_sim_params.render_texture_dimensions.height_3d,
                       s_sim_params.render_texture_dimensions.length_3d);
-    set_sampler2D_uniform("gradientTex", s_frames.sub_view2);
-    set_sampler2D_uniform("densityTex", s_frames.sub_view1);
+    // set_sampler2D_uniform("gradientTex", s_frames.sub_view2);
+    // set_sampler2D_uniform("densityTex", s_frames.sub_view1);
+    set_sampler2D_uniform("gradientTex", s_frames.sub_view5);
+    set_sampler2D_uniform("densityTex", s_frames.sub_view4);
     glDrawElements(GL_TRIANGLES, s_sizeof_elements, GL_UNSIGNED_INT, 0);
     unbind();
 
@@ -494,11 +542,7 @@ void render(const struct RenderParams *render_params) {
     // glClear(GL_DEPTH_BUFFER_BIT);
     glClear(GL_STENCIL_BUFFER_BIT);
     // glDisable(GL_DEPTH_TEST);
-
-
-    glViewport(0, 0,
-               s_sim_params.view_width,
-              s_sim_params.view_height);
+    
     bind_quad(s_frames.main_view, s_programs.copy);
     if (render_params->mode1 == 1)
         set_sampler2D_uniform("tex", s_frames.sub_view1);
@@ -506,5 +550,9 @@ void render(const struct RenderParams *render_params) {
         set_sampler2D_uniform("tex", s_frames.sub_view2);
     else if (render_params->mode1 == 3)
         set_sampler2D_uniform("tex", s_frames.sub_view3);
+    else if (render_params->mode1 == 4)
+        set_sampler2D_uniform("tex", s_frames.sub_view4);
+    else if (render_params->mode1 == 5)
+        set_sampler2D_uniform("tex", s_frames.sub_view5);
     draw_unbind_quad();
 }

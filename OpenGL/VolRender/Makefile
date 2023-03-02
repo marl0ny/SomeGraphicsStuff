@@ -1,17 +1,25 @@
-MACOSX_HOMEBREW = yes
-
 SHELL = /bin/bash
 FLAGS = -O0 -Wall -g
+# COMPILE = gcc
 COMPILE = clang
 
-ifdef MACOSX_HOMEBREW
-INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers -I/opt/homebrew/include
-LIBS = -ldl -L/opt/homebrew/lib -lglfw\
-       -framework CoreVideo -framework OpenGL -framework IOKit\
-       -framework Cocoa -framework Carbon
-else
+# For Linux the prerequisite installs are OpenGL with GLEW and GLFW.
+ifeq ($(shell uname), Linux)
 INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers
 LIBS = -lm -lGL -lGLEW -lglfw
+endif
+
+# For MacOS you must first install the relavent OpenGL and GLFW libraries.
+# If you installed the libraries through Homebrew you will probably first
+# need to know the location of the Homebrew developement files, which varies
+# from installation to installation, and then edit the INCLUDE and LIBS
+# variables accordingly.
+ifeq ($(shell uname),Darwin)
+INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers -I/opt/homebrew/include\
+					 -I/usr/local/include
+LIBS = -ldl -L/opt/homebrew/lib -L/usr/local/include -lglfw\
+       -framework CoreVideo -framework OpenGL -framework IOKit\
+       -framework Cocoa -framework Carbon
 endif
 
 
