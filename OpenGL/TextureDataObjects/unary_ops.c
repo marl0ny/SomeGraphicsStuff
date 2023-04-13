@@ -7,9 +7,13 @@ static struct {
     int is_initialized;
     GLuint copy, zero, scale;
     GLuint swizzle;
+    GLuint roll;
+    GLuint conj;
     GLuint functions;
+    GLuint gradient;
     GLuint laplacian;
     GLuint bilinear;
+    GLuint float_substitute;
 } s_unary_ops_programs = {0, };
 
 void init_unary_ops_programs() {
@@ -20,12 +24,20 @@ void init_unary_ops_programs() {
              = make_quad_program("./shaders/scale.frag");
         s_unary_ops_programs.functions
             = make_quad_program("./shaders/funcs.frag");
+        s_unary_ops_programs.gradient
+            = make_quad_program("./shaders/gradient.frag");
         s_unary_ops_programs.laplacian
             = make_quad_program("./shaders/laplacian.frag");
         s_unary_ops_programs.bilinear
             = make_quad_program("./shaders/bilinear.frag");
         s_unary_ops_programs.swizzle
             = make_quad_program("./shaders/swizzle.frag");
+        s_unary_ops_programs.conj
+            = make_quad_program("./shaders/conj.frag");
+        s_unary_ops_programs.roll
+            = make_quad_program("./shaders/roll.frag");
+        s_unary_ops_programs.float_substitute
+            = make_quad_program("./shaders/float-substitute.frag");
         s_unary_ops_programs.is_initialized = TRUE;
     }
 }
@@ -70,6 +82,34 @@ void tex_laplacian2D(frame_id dst, frame_id src,
     draw_unbind_quad();
 }
 
+void tex_ddx(frame_id dst, frame_id src,
+             const struct Grad2DParams *params) {
+    bind_quad(dst, s_unary_ops_programs.gradient);
+    set_float_uniform("width", (float)params->width);
+    set_float_uniform("height", (float)params->height);
+    set_float_uniform("dx", (float)params->dx);
+    set_float_uniform("dy", (float)params->dy);
+    set_int_uniform("index", 0);
+    set_int_uniform("staggeredMode", params->staggered);
+    set_int_uniform("orderOfAccuracy", params->order_of_accuracy);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
+void tex_ddy(frame_id dst, frame_id src,
+             const struct Grad2DParams *params) {
+    bind_quad(dst, s_unary_ops_programs.gradient);
+    set_float_uniform("width", (float)params->width);
+    set_float_uniform("height", (float)params->height);
+    set_float_uniform("dx", (float)params->dx);
+    set_float_uniform("dy", (float)params->dy);
+    set_int_uniform("index", 1);
+    set_int_uniform("staggeredMode", params->staggered);
+    set_int_uniform("orderOfAccuracy", params->order_of_accuracy);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
 void tex_swizzle(frame_id dst, frame_id src, int c0, int c1, int c2, int c3) {
     bind_quad(dst, s_unary_ops_programs.swizzle);
     set_sampler2D_uniform("tex", src);
@@ -80,9 +120,16 @@ void tex_swizzle(frame_id dst, frame_id src, int c0, int c1, int c2, int c3) {
     draw_unbind_quad();
 }
 
+void tex_roll(frame_id dst, frame_id src, const struct Vec2 *translate_uv) {
+    bind_quad(dst, s_unary_ops_programs.roll);
+    set_sampler2D_uniform("tex", src);
+    set_vec2_uniform("translateUV", translate_uv->x, translate_uv->y);
+    draw_unbind_quad();
+}
+
 enum {
-    R_COS=0, R_SIN=1, R_EXP=2, R_LOG=3, R_TAN=4,
-    C_COS=64, C_SIN=65, C_EXP=66
+    R_COS=0, R_SIN=1, R_EXP=2, R_LOG=3, R_TAN=4, R_SQRT=5,
+    C_COS=64, C_SIN=65, C_EXP=66, C_SQRT=67,
 };
 
 void tex_cos(frame_id dst, frame_id src) {
@@ -120,6 +167,19 @@ void tex_tan(frame_id dst, frame_id src) {
     draw_unbind_quad();
 }
 
+void tex_sqrt(frame_id dst, frame_id src) {
+    bind_quad(dst, s_unary_ops_programs.functions);
+    set_int_uniform("whichFunction", R_SQRT);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
+void tex_conj(frame_id dst, frame_id src) {
+    bind_quad(dst, s_unary_ops_programs.conj);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
 void tex_complex_cos(frame_id dst, frame_id src) {
     bind_quad(dst, s_unary_ops_programs.functions);
     set_int_uniform("whichFunction", C_COS);
@@ -138,6 +198,22 @@ void tex_complex_exp(frame_id dst, frame_id src) {
     bind_quad(dst, s_unary_ops_programs.functions);
     set_int_uniform("whichFunction", C_EXP);
     set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
+void tex_complex_sqrt(frame_id dst, frame_id src) {
+    bind_quad(dst, s_unary_ops_programs.functions);
+    set_int_uniform("whichFunction", C_SQRT);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
+void tex_substitute_float(frame_id dst, frame_id src,
+                          float old_val, float new_val) {
+    bind_quad(dst, s_unary_ops_programs.float_substitute);
+    set_sampler2D_uniform("tex", src);
+    set_float_uniform("oldVal", old_val);
+    set_float_uniform("newVal", new_val);
     draw_unbind_quad();
 }
 

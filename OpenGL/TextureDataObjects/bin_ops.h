@@ -40,6 +40,14 @@ void tex_tex_div_float(frame_id dst, frame_id x, float y);
 
 void tex_float_div_tex(frame_id dst, float x, frame_id y);
 
+void tex_tex_complex_add_float(frame_id dst, frame_id x, float y);
+
+void tex_float_complex_add_tex(frame_id dst, float x, frame_id y);
+
+void tex_tex_complex_sub_float(frame_id dst, frame_id x, float y);
+
+void tex_float_complex_sub_tex(frame_id dst, float x, frame_id y);
+
 void tex_tex_complex_mul_float(frame_id dst, frame_id x, float y);
 
 void tex_float_complex_mul_tex(frame_id dst, float x, frame_id y);
@@ -47,6 +55,14 @@ void tex_float_complex_mul_tex(frame_id dst, float x, frame_id y);
 void tex_tex_complex_div_float(frame_id dst, frame_id x, float y);
 
 void tex_float_complex_div_tex(frame_id dst, float x, frame_id y);
+
+void tex_float_min_tex(frame_id dst, float x, frame_id y);
+
+void tex_tex_min_float(frame_id dst, frame_id x, float y);
+
+void tex_float_max_tex(frame_id dst, float x, frame_id y);
+
+void tex_tex_max_float(frame_id dst, frame_id x, float y);
 
 // tex = tex op vec2
 void tex_tex_add_vec2(frame_id dst, frame_id x, const struct Vec2 *y);
@@ -123,6 +139,10 @@ void tex_vec4_complex_mul_tex(frame_id dst, const struct Vec4 *x, frame_id y);
 void tex_tex_complex_div_vec4(frame_id dst, frame_id x, const struct Vec4 *y);
 
 void tex_vec4_complex_div_tex(frame_id dst, const struct Vec4 *x, frame_id y);
+
+void tex_swizzle2(frame_id dst,
+                  frame_id src1, int c0, int c1, int c2, int c3,
+                  frame_id src2, int d0, int d1, int d2, int d3);
 
 #ifdef __cplusplus
 }

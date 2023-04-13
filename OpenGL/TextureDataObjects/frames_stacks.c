@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_FRAMES 20
+#define MAX_FRAMES 30
 
 struct FramesStack {
     frame_id frames[MAX_FRAMES];

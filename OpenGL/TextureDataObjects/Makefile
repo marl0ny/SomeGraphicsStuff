@@ -1,5 +1,5 @@
 SHELL = /bin/bash
-FLAGS = -O0 -Wall -g
+FLAGS = -O2 -Wall -g
 # FLAGS = -O2 -Wall
 C_COMPILE = gcc
 CPP_COMPILE = clang++ -std=c++17
@@ -27,18 +27,23 @@ endif
 
 TARGET = ${PWD}/program
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
-             unary_ops.c
-C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o
-CPP_SOURCES = texture_data.cpp draw_texture_data.cpp main.cpp
-CPP_OBJECTS = texture_data.o draw_texture_data.o main.o
+             unary_ops.c fft.c
+C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o fft.o
+CPP_SOURCES_DEP = texture_data.cpp draw_texture_data.cpp
+CPP_OBJECTS_DEP = texture_data.o draw_texture_data.o
+CPP_SOURCES_MAIN = main.cpp
+CPP_OBJECTS_MAIN = main.o
 
 
 all: ${TARGET}
 
-${TARGET}: ${C_OBJECTS} ${CPP_OBJECTS}
+${TARGET}: ${C_OBJECTS} ${CPP_OBJECTS_DEP} ${CPP_OBJECTS_MAIN}
 	${CPP_COMPILE} ${FLAGS} -o $@ $^ ${LIBS}
 
-${CPP_OBJECTS}: ${CPP_SOURCES}
+${CPP_OBJECTS_MAIN}: ${CPP_SOURCES_MAIN}
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+${CPP_OBJECTS_DEP}: ${CPP_SOURCES_DEP}
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 ${C_OBJECTS}: ${C_SOURCES}

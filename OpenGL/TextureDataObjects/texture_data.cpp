@@ -1,6 +1,7 @@
 #include "bin_ops.h"
 #include "unary_ops.h"
 #include "frames_stacks.h"
+#include "fft.h"
 #include <GLES3/gl3.h>
 #include <cmath>
 #include <complex>
@@ -11,6 +12,30 @@
 // #include <vector>
 #include <GLFW/glfw3.h>
 #include "texture_data.hpp"
+ 
+
+static bool is_scalar_type(GLuint type) {
+    return (type == FLOAT || type == HALF_FLOAT || type == SHORT ||
+            type == USHORT || type == INT || type == UINT || type == BYTE ||
+            type == UBYTE);
+}
+
+static int size_of_type(GLuint type) {
+    switch(type) {
+        case FLOAT: case HALF_FLOAT: case SHORT: case USHORT:
+        case INT: case UINT:
+        case BYTE: case UBYTE:
+        return 1;
+        case FLOAT2: case HALF_FLOAT2: case COMPLEX: case SHORT2: case USHORT2:
+        case INT2: case UINT2: case BYTE2: case UBYTE2:
+        return 2;
+        case FLOAT3: case HALF_FLOAT3: case SHORT3: case USHORT3:
+        case INT3: case UINT3: case BYTE3: case UBYTE3:
+        return 3;
+
+    }
+    return 4;
+}
 
 
 static int type_to_format(GLuint format) {
@@ -84,17 +109,72 @@ static int type_to_format(GLuint format) {
     return -1;
 }
 
+static void modify_viewport_if_mismatch(int x, int y, int width, int height) {
+    int data[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, data);
+    if (data[0] != x && data[1] != y &&
+        data[2] != width && data[3] != height) {
+        glViewport(x, y, width, height);
+        std::fprintf(stdout,
+                     "Viewport does not match dimensions "
+                     "of Texture2DData object. "
+                     "Changing viewport values x, y, width, and height "
+                     "from %d, %d, %d, %d to %d, %d, %d, %d.\n",
+                     data[0], data[1], data[2], data[3],
+                     x, y, width, height);
+     }
+}
+
 Texture2DData::Texture2DData(int type, frame_id frame,
                              const struct TextureParams &tex_params) {
+    modify_viewport_if_mismatch(0, 0, tex_params.width, tex_params.height);
     this->type = type;
     this->frame = frame;
     this->tex_params = tex_params;
+}
+
+Texture2DData::Texture2DData(struct Vec2 *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = FLOAT2;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, width, height, GL_FLOAT, data);
+}
+
+
+Texture2DData::Texture2DData(float *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = FLOAT;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, width, height, GL_FLOAT, data);
 }
 
 Texture2DData::Texture2DData(int type, int width, int height,
                   bool generate_mipmap,
                   GLuint wrap_s, GLuint wrap_t,
                   GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
     this->type = type;
     this->tex_params = {
         .format=type_to_format(type),
@@ -107,6 +187,7 @@ Texture2DData::Texture2DData(int type, int width, int height,
 }
 
 Texture2DData::Texture2DData(const Texture2DData &x) {
+    modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
     this->type = x.type;
     this->tex_params = {
         .format=x.tex_params.format,
@@ -121,12 +202,14 @@ Texture2DData::Texture2DData(const Texture2DData &x) {
 }
 
 Texture2DData& Texture2DData::operator=(const Texture2DData &x) {
+    modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
     std::cout << "copy assignment called." << std::endl;
     tex_copy(this->frame, x.frame);
     return *this;
 }
 
 Texture2DData::Texture2DData(Texture2DData &&x) {
+    modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
     // Constructor so frame should be uninitialized.
     this->frame = x.frame;
     this->type = x.type;
@@ -142,6 +225,7 @@ Texture2DData::Texture2DData(Texture2DData &&x) {
 }
 
 Texture2DData& Texture2DData::operator=(Texture2DData &&x) {
+    modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
     deactivate_frame(&this->tex_params, this->frame);
     this->frame = x.frame;
     this->type = x.type;
@@ -157,20 +241,20 @@ Texture2DData& Texture2DData::operator=(Texture2DData &&x) {
     return *this;
 }
 
-void Texture2DData::paste_to_quad(frame_id quad) {
+void Texture2DData::paste_to_quad(frame_id quad) const {
     tex_copy(quad, this->frame);
 }
 
-void Texture2DData::set_as_sampler2D_uniform(const char *name) {
+void Texture2DData::set_as_sampler2D_uniform(const char *name) const {
     set_sampler2D_uniform(name, this->frame);
 }
 
-void Texture2DData::debug_print_state() {
+void Texture2DData::debug_print_state() const {
     std::cout << "type_id: " << type << "\n";
     std::cout << "frame_id: " << frame << "\n";
 }
 
-Texture2DData Texture2DData::cast_to(int type, Channel c0) {
+Texture2DData Texture2DData::cast_to(int type, Channel c0) const {
     struct TextureParams tex_params {
         .format = type_to_format(type),
         .width = this->tex_params.width, .height = this->tex_params.height,
@@ -184,7 +268,7 @@ Texture2DData Texture2DData::cast_to(int type, Channel c0) {
     return Texture2DData(type, new_frame, tex_params);
 }
 
-Texture2DData Texture2DData::cast_to(int type, Channel c0, Channel c1) {
+Texture2DData Texture2DData::cast_to(int type, Channel c0, Channel c1) const {
     struct TextureParams tex_params {
         .format = type_to_format(type),
         .width = this->tex_params.width, .height = this->tex_params.height,
@@ -199,7 +283,8 @@ Texture2DData Texture2DData::cast_to(int type, Channel c0, Channel c1) {
 }
 
 Texture2DData Texture2DData::cast_to(int type,
-                                     Channel c0, Channel c1, Channel c2) {
+                                     Channel c0, Channel c1, Channel c2
+                                    ) const {
     struct TextureParams tex_params {
         .format = type_to_format(type),
         .width = this->tex_params.width, .height = this->tex_params.height,
@@ -215,7 +300,7 @@ Texture2DData Texture2DData::cast_to(int type,
 
 Texture2DData Texture2DData::cast_to(int type,
                                      Channel c0, Channel c1,
-                                     Channel c2, Channel c3) {
+                                     Channel c2, Channel c3) const {
     struct TextureParams tex_params {
         .format = type_to_format(type),
         .width = this->tex_params.width, .height = this->tex_params.height,
@@ -404,25 +489,37 @@ Texture2DData operator/(std::complex<double> z, const Texture2DData &x) {
 
 Texture2DData operator+(const Texture2DData &x, double y) {
     frame_id new_frame = activate_frame(&x.tex_params);
-    tex_tex_add_float(new_frame, x.frame, (float)y);
+    if (x.type == COMPLEX || x.type == COMPLEX2)
+        tex_tex_complex_add_float(new_frame, x.frame, (float)y);
+    else
+        tex_tex_add_float(new_frame, x.frame, (float)y);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
 Texture2DData operator+(double y, const Texture2DData &x) {
     frame_id new_frame = activate_frame(&x.tex_params);
-    tex_float_add_tex(new_frame, (float)y, x.frame);
+    if (x.type == COMPLEX || x.type == COMPLEX2)
+        tex_float_complex_add_tex(new_frame, (float)y, x.frame);
+    else
+        tex_float_add_tex(new_frame, (float)y, x.frame);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
 Texture2DData operator-(const Texture2DData &x, double y) {
     frame_id new_frame = activate_frame(&x.tex_params);
-    tex_tex_sub_float(new_frame, x.frame, (float)y);
+    if (x.type == COMPLEX || x.type == COMPLEX2)
+        tex_tex_complex_sub_float(new_frame, x.frame, (float)y);
+    else
+        tex_tex_sub_float(new_frame, x.frame, (float)y);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
 Texture2DData operator-(double y, const Texture2DData &x) {
     frame_id new_frame = activate_frame(&x.tex_params);
-    tex_float_sub_tex(new_frame, (float)y, x.frame);
+    if (x.type == COMPLEX || x.type == COMPLEX2)
+        tex_float_complex_sub_tex(new_frame, (float)y, x.frame);
+    else
+        tex_float_sub_tex(new_frame, (float)y, x.frame);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
@@ -466,17 +563,27 @@ Texture2DData operator/(const Texture2DData &x, const Texture2DData &y) {
     frame_id new_frame = activate_frame(&x.tex_params);
     check_if_types_match(x.type, y.type);
     if (x.type == COMPLEX || x.type == COMPLEX2) {
-        tex_tex_complex_mul_tex(new_frame, x.frame, y.frame);
+        tex_tex_complex_div_tex(new_frame, x.frame, y.frame);
         return Texture2DData(x.type, new_frame, x.tex_params);
     }
     tex_tex_mul_tex(new_frame, x.frame, y.frame);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
-Texture2DData const Texture2DData::laplacian(struct Laplacian2DParams params) {
+Texture2DData Texture2DData::laplacian(struct Laplacian2DParams params) const {
     frame_id new_frame = activate_frame(&this->tex_params);
     tex_laplacian2D(new_frame, this->frame, &params);
     return Texture2DData(this->type, new_frame, this->tex_params);
+}
+
+Texture2DData conj(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    if (x.type == COMPLEX || x.type == COMPLEX2) {
+        tex_conj(new_frame, x.frame);
+    } else {
+        tex_copy(new_frame, x.frame);
+    }
+    return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
 
@@ -507,24 +614,43 @@ Texture2DData exp(const Texture2DData &x) {
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
-Texture2DData make_x(double x0, double xf, int type, int width, int height,
-                     GLuint wrap_s, GLuint wrap_t,
-                     GLuint min_filter, GLuint mag_filter) {
-    struct TextureParams tex_params {.format=type_to_format(type),
-        .width=(int)width, .height=(int)height,
-        .wrap_s=(int)wrap_s, .wrap_t=(int)wrap_t,
-        .min_filter=(int)min_filter, .mag_filter=(int)mag_filter};
-    frame_id new_frame = activate_frame(&tex_params);
-    struct Vec4 w00 = {{{.x=(float)x0, .y=(float)x0,
-                .z=(float)x0, .w=(float)x0}}};
-    struct Vec4 w10 = {{{.x=(float)xf, .y=(float)xf,
-                .z=(float)xf, .w=(float)xf}}};
-    struct Vec4 w01 = {{{.x=(float)x0, .y=(float)x0,
-                .z=(float)x0, .w=(float)x0}}};
-    struct Vec4 w11 = {{{.x=(float)xf, .y=(float)xf,
-                .z=(float)xf, .w=(float)xf}}};
-    tex_bilerp(new_frame, &w00, &w10, &w01, &w11);
-    return Texture2DData(type, new_frame, tex_params);
+Texture2DData sqrt(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    if (x.type == COMPLEX || x.type == COMPLEX2)
+        tex_complex_sqrt(new_frame, x.frame);
+    else
+        tex_sqrt(new_frame, x.frame);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData min(double a, const Texture2DData &v) {
+    if (is_scalar_type(v.type)) {
+        frame_id new_frame = activate_frame(&v.tex_params);
+        tex_float_min_tex(new_frame, a, v.frame);
+        return Texture2DData(v.type, new_frame, v.tex_params);
+    } else {
+        int size = size_of_type(v.type);
+        // TODO!
+    }
+}
+
+Texture2DData min(const Texture2DData &v, double a) {
+    return min(a, v);
+}
+
+Texture2DData max(double a, const Texture2DData &v) {
+    if (is_scalar_type(v.type)) {
+        frame_id new_frame = activate_frame(&v.tex_params);
+        tex_float_max_tex(new_frame, a, v.frame);
+        return Texture2DData(v.type, new_frame, v.tex_params);
+    } else {
+        int size = size_of_type(v.type);
+        // TODO!
+    }
+}
+
+Texture2DData max(const Texture2DData &v, double a) {
+    return max(a, v);
 }
 
 Texture2DData make_y(double y0, double yf, int type, int width, int height,
@@ -537,13 +663,120 @@ Texture2DData make_y(double y0, double yf, int type, int width, int height,
     frame_id new_frame = activate_frame(&tex_params);
     struct Vec4 w00 = {{{.x=(float)y0, .y=(float)y0,
                 .z=(float)y0, .w=(float)y0}}};
-    struct Vec4 w10 = {{{.x=(float)y0, .y=(float)y0,
-                .z=(float)y0, .w=(float)y0}}};
-    struct Vec4 w01 = {{{.x=(float)yf, .y=(float)yf,
+    struct Vec4 w10 = {{{.x=(float)yf, .y=(float)yf,
                 .z=(float)yf, .w=(float)yf}}};
+    struct Vec4 w01 = {{{.x=(float)y0, .y=(float)y0,
+                .z=(float)y0, .w=(float)y0}}};
     struct Vec4 w11 = {{{.x=(float)yf, .y=(float)yf,
                 .z=(float)yf, .w=(float)yf}}};
     tex_bilerp(new_frame, &w00, &w10, &w01, &w11);
     return Texture2DData(type, new_frame, tex_params);
 }
 
+Texture2DData make_x(double x0, double xf, int type, int width, int height,
+                     GLuint wrap_s, GLuint wrap_t,
+                     GLuint min_filter, GLuint mag_filter) {
+    struct TextureParams tex_params {.format=type_to_format(type),
+        .width=(int)width, .height=(int)height,
+        .wrap_s=(int)wrap_s, .wrap_t=(int)wrap_t,
+        .min_filter=(int)min_filter, .mag_filter=(int)mag_filter};
+    frame_id new_frame = activate_frame(&tex_params);
+    struct Vec4 w00 = {{{.x=(float)x0, .y=(float)x0,
+                .z=(float)x0, .w=(float)x0}}};
+    struct Vec4 w10 = {{{.x=(float)x0, .y=(float)x0,
+                .z=(float)x0, .w=(float)x0}}};
+    struct Vec4 w01 = {{{.x=(float)xf, .y=(float)xf,
+                .z=(float)xf, .w=(float)xf}}};
+    struct Vec4 w11 = {{{.x=(float)xf, .y=(float)xf,
+                .z=(float)xf, .w=(float)xf}}};
+    tex_bilerp(new_frame, &w00, &w10, &w01, &w11);
+    return Texture2DData(type, new_frame, tex_params);
+}
+
+Texture2DData ddx(const Texture2DData &f, struct Grad2DParams params) {
+    frame_id new_frame = activate_frame(&f.tex_params);
+    tex_ddx(new_frame, f.frame, &params);
+    return Texture2DData(f.type, new_frame, f.tex_params);
+}
+
+Texture2DData ddy(const Texture2DData &f, struct Grad2DParams params) {
+    frame_id new_frame = activate_frame(&f.tex_params);
+    tex_ddy(new_frame, f.frame, &params);
+    return Texture2DData(f.type, new_frame, f.tex_params);
+}
+
+Texture2DData fft(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_fft(new_frame, x.frame, &x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData ifft(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_ifft(new_frame, x.frame, &x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData fftshift(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_fftshift(new_frame, x.frame, &x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData cast_to(int type,
+                      const Texture2DData &x,
+                      Channel c0, Channel c1, Channel c2, Channel c3,
+                      const Texture2DData &y,
+                      Channel d0, Channel d1, Channel d2, Channel d3) {
+    struct TextureParams p {
+        .format=type_to_format(type),
+        .width = x.tex_params.width, .height = x.tex_params.height,
+        .generate_mipmap = x.tex_params.generate_mipmap,
+        .wrap_s = x.tex_params.wrap_s,
+        .wrap_t = x.tex_params.wrap_t,
+        .min_filter = x.tex_params.min_filter,
+        .mag_filter = x.tex_params.mag_filter,
+    };
+    frame_id new_frame = activate_frame(&p);
+    tex_swizzle2(new_frame,
+                 x.frame, (int)c0, (int)c1, (int)c2, (int)c3,
+                 y.frame, (int)d0, (int)d1, (int)d2, (int)d3);
+    return Texture2DData(type, new_frame, p);
+}
+
+Texture2DData roll(const Texture2DData &x, struct Vec2 v) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_roll(new_frame, x.frame, &v);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData roll(const Texture2DData &x, double a, double b) {
+    struct Vec2 v;
+    v.x = (float)a;
+    v.y = (float)b;
+    return roll(x, v);
+}
+
+Texture2DData substitute(const Texture2DData &x,
+                         double old_val, double new_val) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_substitute_float(new_frame, x.frame,
+                         (float)old_val, (float)new_val);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData zeroes(int type, int width, int height,
+                     bool generate_mipmap,
+                     GLuint wrap_s, GLuint wrap_t,
+                     GLuint min_filter, GLuint mag_filter) {
+    TextureParams tex_params {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame_id new_frame = activate_frame(&tex_params);
+    tex_zero(new_frame);
+    return Texture2DData(type, new_frame, tex_params);
+}

@@ -20,6 +20,8 @@ uniform int opType;
 #define MUL 3
 #define ADD 4
 #define SUB 5
+#define MIN 101
+#define MAX 102
 
 
 void main() {

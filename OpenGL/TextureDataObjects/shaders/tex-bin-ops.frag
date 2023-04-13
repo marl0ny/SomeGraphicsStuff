@@ -24,6 +24,8 @@ uniform int opType;
 #define SUB 5
 #define COMPLEX_DIV 12
 #define COMPLEX_MUL 13
+#define MIN 101
+#define MAX 102
 
 complex conj(complex z) {
     return complex(z.x, -z.y);
@@ -54,6 +56,10 @@ void main() {
     } else if (opType == COMPLEX_DIV) {
         fragColor = complex2(mul(valL.xy, inv(valR.xy)),
         		      mul(valL.zw, inv(valR.zw)));
+    } else if (opType == MIN) {
+        fragColor = min(valL, valR);
+    } else if (opType == MAX) {
+        fragColor = max(valL, valR);
     }
 
 }

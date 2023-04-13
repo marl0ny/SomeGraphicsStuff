@@ -11,23 +11,14 @@ out vec4 fragColor;
 varying highp vec2 UV;
 #endif
 
-#define complex vec2
-
-#define PI 3.141592653589793
-
 uniform float amplitude;
 uniform float sigma;
 uniform vec2 r0;
-uniform ivec2 wavenumber;
+uniform vec2 v0;
 
 void main() {
     float u = UV[0] - r0[0];
     float v = UV[1] - r0[1];
     float amp = amplitude*exp(-0.5*(u*u + v*v)/(sigma*sigma));
-    float nx = float(wavenumber[0]);
-    float ny = float(wavenumber[1]);
-    complex phase = complex(cos(2.0*PI*(nx*u + ny*v)),
-                            sin(2.0*PI*(nx*u + ny*v)));
-    complex psi = amp*phase;
-    fragColor = vec4(psi, psi);
+    fragColor = amp*vec4(v0, v0);
 }
