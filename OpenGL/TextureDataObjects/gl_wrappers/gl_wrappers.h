@@ -150,6 +150,38 @@ struct UVec4 {
     };
 };
 
+struct Uint8Vec4 {
+    union {
+        struct { uint8_t x, y, z, w; };
+        struct { uint8_t r, g, b, a; };
+        struct { uint8_t s, t, p, q; };
+        struct { uint8_t ind[4]; };
+    };
+};
+
+struct PixelData {
+    union {
+        char bytes[256];
+        double as_double;
+        float as_float;
+        int as_int;
+        char as_int8;
+        unsigned char as_uint8;
+        struct Vec2 as_vec2;
+        struct DVec2 as_dvec2;
+        struct IVec2 as_ivec2;
+        struct UVec2 as_uvec2;
+        struct Vec3 as_vec3;
+        struct Vec4 as_vec4;
+        struct DVec4 as_dvec4;
+        struct IVec4 as_ivec4;
+        struct UVec4 as_uvec4;
+    };
+};
+
+
+void copy_tex_params(struct TextureParams *dst,
+                     const struct TextureParams *src);
 
 GLFWwindow *init_window(int width, int height);
 
@@ -197,13 +229,19 @@ void draw_quad();
 
 void draw_unbind_quad();
 
-void get_quad_texture_array(int quad_id,
-                            int x0, int y0, int width, int height,
-                            int texture_type, void *array);
+void get_rgb_unsigned_byte_array(int quad_id, int width, int height,
+                                 unsigned char *array);
 
-void quad_substitute_array(int quad_id, int width, int height,
-                           int texture_type, void *array);
+void get_quad_array(int quad_id, const struct TextureParams *tex_params,
+                    void *array);
 
+void quad_substitute_array(int quad_id,
+                           const struct TextureParams *tex_params,
+                           void *array);
+
+int pop_frame();
+
+void window_dimensions(GLFWwindow *window, int *ptr_w, int *ptr_h);
 
 #ifdef __cplusplus
 }

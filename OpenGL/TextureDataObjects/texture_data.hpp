@@ -95,6 +95,8 @@ class Texture2DData {
     friend Texture2DData sin(const Texture2DData &x);
     friend Texture2DData exp(const Texture2DData &x);
     friend Texture2DData sqrt(const Texture2DData &x);
+    friend Texture2DData pow(const Texture2DData &x, int n);
+    friend Texture2DData pow(const Texture2DData &x, double n);
     friend Texture2DData min(double a, const Texture2DData &v);
     friend Texture2DData min(const Texture2DData &v, double a);
     friend Texture2DData max(double a, const Texture2DData &v);
@@ -130,14 +132,32 @@ class Texture2DData {
                                 GLuint wrap_s, GLuint wrap_t,
                                 GLuint min_filter, GLuint mag_filter);
     friend class DrawTexture2DData;
+    void increment_ref_count();
+    void decrement_ref_count();
     Texture2DData(int type, frame_id frame,
                   const struct TextureParams &tex_params);
 public:
+    Texture2DData(float *data, int width, int height, bool generate_mipmap=true,
+                  GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                  GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+    Texture2DData(std::complex<float> *data, int width, int height, 
+                  bool generate_mipmap=true,
+                  GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                  GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
     Texture2DData(struct Vec2 *data, int width, int height,
                   bool generate_mipmap=true,
                   GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
                   GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
-    Texture2DData(float *data, int width, int height, bool generate_mipmap=true,
+    Texture2DData(struct Vec3 *data, int width, int height,
+                  bool generate_mipmap=true,
+                  GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                  GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+    Texture2DData(struct Vec4 *data, int width, int height,
+                  bool generate_mipmap=true,
+                  GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                  GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+    Texture2DData(struct Uint8Vec4 *data, int width, int height,
+                  bool generate_mipmap=true,
                   GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
                   GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
     Texture2DData(int type, int width, int height,
@@ -158,7 +178,17 @@ public:
     Texture2DData cast_to(int type,
                           Channel c0, Channel c1,
                           Channel c2, Channel c3) const;
+    void paste_to_array(void *array) const;
+    void paste_to_rgb_image_data(unsigned char *array) const;
+    void paste_to_rgba_image_data(unsigned char *array) const;
+    struct PixelData sum_reduction() const;
+    Texture2DData transpose() const;
+    Texture2DData reduce_to_column() const;
+    Texture2DData reduce_to_row() const;
+    Texture2DData reduce_to_single_channel() const;
+    struct PixelData squared_norm() const;
     ~Texture2DData() {
+        decrement_ref_count();
         if (frame >= 0)
             deactivate_frame(&tex_params, frame);
     }
@@ -236,6 +266,10 @@ Texture2DData sin(const Texture2DData &x);
 Texture2DData exp(const Texture2DData &x);
 
 Texture2DData sqrt(const Texture2DData &x);
+
+Texture2DData pow(const Texture2DData &x, int n);
+
+Texture2DData pow(const Texture2DData &x, double n);
 
 Texture2DData min(double a, const Texture2DData &v);
 

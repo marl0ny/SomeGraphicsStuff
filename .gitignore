@@ -10,6 +10,7 @@
 *.o
 *.so
 __pycache__
+/**/program.dSYM/
 program
 simple_cube
 simple_cylinder

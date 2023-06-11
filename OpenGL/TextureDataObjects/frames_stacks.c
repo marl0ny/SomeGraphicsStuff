@@ -11,7 +11,7 @@ struct FramesStack {
     int active_count;
 };
 
-#define MAX_FRAME_STACKS 20
+#define MAX_FRAME_STACKS 40
 
 static struct {
     int count;
@@ -135,6 +135,19 @@ void debug_print_frames_stack(const struct TextureParams *tex_params) {
             printf("  ");
     }
     puts("");
+}
+
+void delete_all_frames() {
+    #ifndef __APPLE__
+    while (pop_frame());
+    #else
+
+    #endif
+    for (int i = 0; i < s_all_stacks.count; i++) {
+        s_all_stacks.ind[i].total_count = 0;
+        s_all_stacks.ind[i].active_count = 0;
+    }
+    s_all_stacks.count = 0;
 }
 
 /* int main() {

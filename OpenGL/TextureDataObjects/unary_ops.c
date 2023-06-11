@@ -10,10 +10,12 @@ static struct {
     GLuint roll;
     GLuint conj;
     GLuint functions;
+    GLuint pow;
     GLuint gradient;
     GLuint laplacian;
     GLuint bilinear;
     GLuint float_substitute;
+    GLuint transpose;
 } s_unary_ops_programs = {0, };
 
 void init_unary_ops_programs() {
@@ -24,6 +26,8 @@ void init_unary_ops_programs() {
              = make_quad_program("./shaders/scale.frag");
         s_unary_ops_programs.functions
             = make_quad_program("./shaders/funcs.frag");
+        s_unary_ops_programs.pow
+            = make_quad_program("./shaders/pow.frag");
         s_unary_ops_programs.gradient
             = make_quad_program("./shaders/gradient.frag");
         s_unary_ops_programs.laplacian
@@ -38,6 +42,8 @@ void init_unary_ops_programs() {
             = make_quad_program("./shaders/roll.frag");
         s_unary_ops_programs.float_substitute
             = make_quad_program("./shaders/float-substitute.frag");
+        s_unary_ops_programs.transpose
+            = make_quad_program("./shaders/transpose.frag");
         s_unary_ops_programs.is_initialized = TRUE;
     }
 }
@@ -127,8 +133,14 @@ void tex_roll(frame_id dst, frame_id src, const struct Vec2 *translate_uv) {
     draw_unbind_quad();
 }
 
+void tex_transpose(frame_id dst, frame_id src) {
+    bind_quad(dst, s_unary_ops_programs.transpose);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
 enum {
-    R_COS=0, R_SIN=1, R_EXP=2, R_LOG=3, R_TAN=4, R_SQRT=5,
+    R_COS=0, R_SIN=1, R_EXP=2, R_LOG=3, R_TAN=4, R_SQRT=5, R_POW=6,
     C_COS=64, C_SIN=65, C_EXP=66, C_SQRT=67,
 };
 
@@ -204,6 +216,13 @@ void tex_complex_exp(frame_id dst, frame_id src) {
 void tex_complex_sqrt(frame_id dst, frame_id src) {
     bind_quad(dst, s_unary_ops_programs.functions);
     set_int_uniform("whichFunction", C_SQRT);
+    set_sampler2D_uniform("tex", src);
+    draw_unbind_quad();
+}
+
+void tex_pow(frame_id dst, frame_id src, double n) {
+    bind_quad(dst, s_unary_ops_programs.pow);
+    set_float_uniform("n", (float)n);
     set_sampler2D_uniform("tex", src);
     draw_unbind_quad();
 }

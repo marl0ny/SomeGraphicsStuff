@@ -2,17 +2,21 @@
 #include "unary_ops.h"
 #include "frames_stacks.h"
 #include "fft.h"
+#include "summation.h"
 #include <GLES3/gl3.h>
 #include <cmath>
 #include <complex>
 #include <iostream>
 #include <map>
+#include <string.h>
 #include <string>
 #include <vector>
 // #include <vector>
 #include <GLFW/glfw3.h>
 #include "texture_data.hpp"
- 
+
+
+static int s_texture_data_ref_count = 0; 
 
 static bool is_scalar_type(GLuint type) {
     return (type == FLOAT || type == HALF_FLOAT || type == SHORT ||
@@ -37,6 +41,26 @@ static int size_of_type(GLuint type) {
     return 4;
 }
 
+static int single_channel_equiv_of_type(GLuint format) {
+    switch(format) {
+        case FLOAT: case FLOAT2: case FLOAT3: case FLOAT4:
+        return FLOAT;
+        case HALF_FLOAT: case HALF_FLOAT2:
+        case HALF_FLOAT3: case HALF_FLOAT4:
+        return HALF_FLOAT;
+        case INT: case INT2: case INT3: case INT4:
+        return INT;
+        case UINT: case UINT2: case UINT3: case UINT4:
+        return UINT;
+        case USHORT: case USHORT2: case USHORT3: case USHORT4:
+        return USHORT;
+        case UBYTE: case UBYTE2: case UBYTE3: case UBYTE4:
+        return UBYTE;
+        case BYTE: case BYTE2: case BYTE3: case BYTE4:
+        return BYTE;
+    }
+    return -1;
+}
 
 static int type_to_format(GLuint format) {
     switch(format) {
@@ -125,12 +149,59 @@ static void modify_viewport_if_mismatch(int x, int y, int width, int height) {
      }
 }
 
+void Texture2DData::increment_ref_count() {
+    s_texture_data_ref_count++;
+}
+
+void Texture2DData::decrement_ref_count() {
+    s_texture_data_ref_count--;
+}
+
 Texture2DData::Texture2DData(int type, frame_id frame,
                              const struct TextureParams &tex_params) {
     modify_viewport_if_mismatch(0, 0, tex_params.width, tex_params.height);
     this->type = type;
     this->frame = frame;
     this->tex_params = tex_params;
+    increment_ref_count();
+}
+
+Texture2DData::Texture2DData(float *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = FLOAT;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
+}
+
+Texture2DData::Texture2DData(std::complex<float> *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = COMPLEX;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
 }
 
 Texture2DData::Texture2DData(struct Vec2 *data, int width, int height,
@@ -148,16 +219,16 @@ Texture2DData::Texture2DData(struct Vec2 *data, int width, int height,
     };
     frame = activate_frame(&tex_params);
     tex_zero(frame);
-    quad_substitute_array(frame, width, height, GL_FLOAT, data);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
 }
 
-
-Texture2DData::Texture2DData(float *data, int width, int height,
+Texture2DData::Texture2DData(struct Vec3 *data, int width, int height,
                              bool generate_mipmap,
                              GLuint wrap_s, GLuint wrap_t,
                              GLuint min_filter, GLuint mag_filter) {
     modify_viewport_if_mismatch(0, 0, width, height);
-    this->type = FLOAT;
+    this->type = FLOAT3;
     this->tex_params = {
         .format=type_to_format(type),
         .width=width, .height=height,
@@ -167,7 +238,46 @@ Texture2DData::Texture2DData(float *data, int width, int height,
     };
     frame = activate_frame(&tex_params);
     tex_zero(frame);
-    quad_substitute_array(frame, width, height, GL_FLOAT, data);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
+}
+
+Texture2DData::Texture2DData(struct Vec4 *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = FLOAT4;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
+}
+
+Texture2DData::Texture2DData(struct Uint8Vec4 *data, int width, int height,
+                             bool generate_mipmap,
+                             GLuint wrap_s, GLuint wrap_t,
+                             GLuint min_filter, GLuint mag_filter) {
+    modify_viewport_if_mismatch(0, 0, width, height);
+    this->type = BYTE4;
+    this->tex_params = {
+        .format=type_to_format(type),
+        .width=width, .height=height,
+        .generate_mipmap = (int)generate_mipmap,
+        .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
+        .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
+    };
+    frame = activate_frame(&tex_params);
+    tex_zero(frame);
+    quad_substitute_array(frame, &this->tex_params, data);
+    increment_ref_count();
 }
 
 Texture2DData::Texture2DData(int type, int width, int height,
@@ -184,6 +294,7 @@ Texture2DData::Texture2DData(int type, int width, int height,
         .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
     };
     frame = activate_frame(&tex_params);
+    increment_ref_count();
 }
 
 Texture2DData::Texture2DData(const Texture2DData &x) {
@@ -199,11 +310,12 @@ Texture2DData::Texture2DData(const Texture2DData &x) {
     };
     frame = activate_frame(&tex_params);
     tex_copy(this->frame, x.frame);
+    increment_ref_count();
 }
 
 Texture2DData& Texture2DData::operator=(const Texture2DData &x) {
     modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
-    std::cout << "copy assignment called." << std::endl;
+    // std::cout << "copy assignment called." << std::endl;
     tex_copy(this->frame, x.frame);
     return *this;
 }
@@ -243,6 +355,70 @@ Texture2DData& Texture2DData::operator=(Texture2DData &&x) {
 
 void Texture2DData::paste_to_quad(frame_id quad) const {
     tex_copy(quad, this->frame);
+}
+
+void Texture2DData::paste_to_array(void *array) const {
+    get_quad_array(this->frame, &this->tex_params, array);
+}
+
+void Texture2DData::paste_to_rgb_image_data(unsigned char *array) const {
+    get_rgb_unsigned_byte_array(this->frame,
+                                this->tex_params.width, this->tex_params.height,
+                                array);
+}
+
+struct PixelData Texture2DData::sum_reduction() const {
+    return sum(this->frame, &this->tex_params);
+}
+
+Texture2DData Texture2DData::transpose() const {
+    struct TextureParams tex_params;
+    copy_tex_params(&tex_params, &this->tex_params);
+    tex_params.width = this->tex_params.height;
+    tex_params.height = this->tex_params.width;
+    frame_id new_frame = activate_frame(&tex_params);
+    int tmp_viewport[4] = {0,};
+    glGetIntegerv(GL_VIEWPORT, tmp_viewport);
+    glViewport(0, 0, tex_params.width, tex_params.height);
+    tex_transpose(new_frame, this->frame);
+    glViewport(tmp_viewport[0], tmp_viewport[1],
+               tmp_viewport[2], tmp_viewport[3]);
+    return Texture2DData(this->type, new_frame, tex_params);
+}
+
+Texture2DData Texture2DData::reduce_to_column() const {
+    struct TextureParams tex_params;
+    copy_tex_params(&tex_params, &this->tex_params);
+    tex_params.width = 1;
+    frame_id new_frame = activate_frame(&tex_params);
+    reduce_2d_to_1d(new_frame, this->frame,
+                    &tex_params, &this->tex_params);
+    return Texture2DData(type, new_frame, tex_params);
+}
+
+Texture2DData Texture2DData::reduce_to_row() const {
+    struct TextureParams tex_params;
+    copy_tex_params(&tex_params, &this->tex_params);
+    tex_params.height = 1;
+    frame_id new_frame = activate_frame(&tex_params);
+    reduce_2d_to_1d(new_frame, this->frame,
+                    &tex_params, &this->tex_params);
+    return Texture2DData(type, new_frame, tex_params);
+}
+
+struct PixelData Texture2DData::squared_norm() const {
+    return norm_squared(this->frame, &this->tex_params);
+}
+
+Texture2DData Texture2DData::reduce_to_single_channel() const {
+    struct TextureParams tex_params;
+    copy_tex_params(&tex_params, &this->tex_params);
+    int type = single_channel_equiv_of_type(this->type);
+    int size = size_of_type(this->type);
+    tex_params.format = type_to_format(type);
+    frame_id new_frame = activate_frame(&tex_params);
+    ::reduce_to_single_channel(new_frame, this->frame, size);
+    return Texture2DData(type, new_frame, tex_params);
 }
 
 void Texture2DData::set_as_sampler2D_uniform(const char *name) const {
@@ -620,6 +796,18 @@ Texture2DData sqrt(const Texture2DData &x) {
         tex_complex_sqrt(new_frame, x.frame);
     else
         tex_sqrt(new_frame, x.frame);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData pow(const Texture2DData &x, int n) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_pow(new_frame, x.frame, (double)n);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData pow(const Texture2DData &x, double n) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_pow(new_frame, x.frame, n);
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 

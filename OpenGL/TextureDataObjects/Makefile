@@ -1,5 +1,5 @@
 SHELL = /bin/bash
-FLAGS = -O2 -Wall -g
+FLAGS = -O0 -g -Wno-everything # -Wall
 # FLAGS = -O2 -Wall
 C_COMPILE = gcc
 CPP_COMPILE = clang++ -std=c++17
@@ -27,20 +27,40 @@ endif
 
 TARGET = ${PWD}/program
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
-             unary_ops.c fft.c
-C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o fft.o
+             unary_ops.c fft.c bitmap.c summation.c
+C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o fft.o \
+			 bitmap.o summation.o
 CPP_SOURCES_DEP = texture_data.cpp draw_texture_data.cpp
 CPP_OBJECTS_DEP = texture_data.o draw_texture_data.o
+CPP_SOURCES_SIM = texture_data_transfers_stuff.cpp \
+					summation_stuff.cpp reduction_to_1d.cpp \
+					complex_func.cpp \
+					waves.cpp poisson.cpp \
+					reaction_diffusion.cpp stable_fluids.cpp \
+					n_body.cpp mol_dynamics.cpp \
+					schrod_leapfrog.cpp schrod_splitstep.cpp \
+					schrod_splitstep_image_potential.cpp \
+					dirac_leapfrog.cpp isf_splitstep.cpp
+CPP_OBJECTS_SIM = texture_data_transfers_stuff.o summation_stuff.o \
+					reduction_to_1d.o complex_func.o waves.o\
+					poisson.o reaction_diffusion.o stable_fluids.o \
+					n_body.o mol_dynamics.o \
+					schrod_splitstep_image_potential.o schrod_leapfrog.o\
+					schrod_splitstep.cpp isf_splitstep.o\
+					dirac_leapfrog.o
 CPP_SOURCES_MAIN = main.cpp
-CPP_OBJECTS_MAIN = main.o
+CPP_OBJECTS_MAIN =  main.o
 
 
 all: ${TARGET}
 
-${TARGET}: ${C_OBJECTS} ${CPP_OBJECTS_DEP} ${CPP_OBJECTS_MAIN}
-	${CPP_COMPILE} ${FLAGS} -o $@ $^ ${LIBS}
+${TARGET}: ${C_OBJECTS} ${CPP_OBJECTS_DEP} ${CPP_OBJECTS_SIM} ${CPP_OBJECTS_MAIN}
+	${CPP_COMPILE} ${FLAGS} -o $@ $^ ${LIBS} ${INCLUDE}
 
 ${CPP_OBJECTS_MAIN}: ${CPP_SOURCES_MAIN}
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+${CPP_OBJECTS_SIM}: ${CPP_SOURCES_SIM}
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 ${CPP_OBJECTS_DEP}: ${CPP_SOURCES_DEP}

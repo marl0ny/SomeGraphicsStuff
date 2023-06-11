@@ -1,18 +1,28 @@
 #include "fft.h"
 #include "frames_stacks.h"
 #include "unary_ops.h"
+#include <stdio.h>
 
+#define boolean int
 #define TRUE 1
 #define FALSE 0
+
+
+static boolean power2_leq_4096(int val) {
+    switch(val) {
+    case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128:
+    case 256: case 512: case 1024: case 2048: case 4096:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
 
 static struct {
     int is_initialized;
     GLuint fft;
     GLuint rev_bit_sort2;
     GLuint fftshift;
-    // GLuint functions;
-    // GLuint laplacian;
-    // GLuint bilinear;
 } s_fft_programs = {0, };
 
 
@@ -73,7 +83,7 @@ static frame_id ifft_iter(int fft_iter_program,
         set_float_uniform("blockSize", block_size/(float)size);
         set_float_uniform("angleSign", 1.0);
         set_float_uniform("size", (float)size);
-        set_float_uniform("scale", 
+        set_float_uniform("scale",
                           (block_size == size)? 1.0/(float)size: 1.0);
         draw_unbind_quad();
         swap2(&iter2[0], &iter2[1]);
@@ -85,6 +95,12 @@ void tex_fft(frame_id dst, frame_id src,
              const struct TextureParams *tex_params) {
     int width = tex_params->width;
     int height = tex_params->height;
+    if (!power2_leq_4096(width) || !power2_leq_4096(height)) {
+        fprintf(stderr,
+                "Width and height must be a power of two and "
+                "less than or equal to 4096.\n");
+        return;
+    }
     int iter_frame1 = activate_frame(tex_params);
     int iter_frame2 = activate_frame(tex_params);
     rev_bit_sort2(s_fft_programs.rev_bit_sort2,
@@ -107,14 +123,20 @@ void tex_ifft(frame_id dst, frame_id src,
               const struct TextureParams *tex_params) {
     int width = tex_params->width;
     int height = tex_params->height;
+    if (!power2_leq_4096(width) || !power2_leq_4096(height)) {
+        fprintf(stderr,
+                "Width and height must be a power of two and "
+                "less than or equal to 4096.\n");
+        return;
+    }
     int iter_frame1 = activate_frame(tex_params);
     int iter_frame2 = activate_frame(tex_params);
-    rev_bit_sort2(s_fft_programs.rev_bit_sort2, 
+    rev_bit_sort2(s_fft_programs.rev_bit_sort2,
                   src, iter_frame1, width, height);
     int res = ifft_iter(s_fft_programs.fft,
                         iter_frame1, iter_frame2, width, FALSE);
     if (res == iter_frame1) {
-        res = ifft_iter(s_fft_programs.fft, 
+        res = ifft_iter(s_fft_programs.fft,
                         iter_frame1, iter_frame2, height, TRUE);
     } else {
         res = ifft_iter(s_fft_programs.fft, iter_frame2,
@@ -132,5 +154,3 @@ void tex_fftshift(frame_id dst, frame_id src,
     draw_unbind_quad();
 }
 
-#undef TRUE
-#undef FALSE

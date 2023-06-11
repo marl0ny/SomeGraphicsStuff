@@ -48,6 +48,8 @@ void tex_swizzle(frame_id dst, frame_id src,
 
 void tex_roll(frame_id dst, frame_id src, const struct Vec2 *translate_uv);
 
+void tex_transpose(frame_id dst, frame_id src);
+
 void tex_conj(frame_id dst, frame_id src);
 
 void tex_cos(frame_id dst, frame_id src);
@@ -69,6 +71,8 @@ void tex_complex_sin(frame_id dst, frame_id src);
 void tex_complex_exp(frame_id dst, frame_id src);
 
 void tex_complex_sqrt(frame_id dst, frame_id src);
+
+void tex_pow(frame_id dst, frame_id src, double n);
 
 void tex_substitute_float(frame_id dst, frame_id src,
                           float old_val, float new_val);

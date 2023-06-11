@@ -14,6 +14,7 @@ varying highp vec2 UV;
 #define complex vec2
 
 uniform sampler2D tex;
+uniform sampler2D bgTex;
 
 
 vec3 complexToColour(complex val) {
@@ -54,6 +55,7 @@ void main() {
     vec2 psi = vec2(psiPotential[0], psiPotential[1]);
     float absVal = psi[0]*psi[0] + psi[1]*psi[1];
     // fragColor = vec4(min(absVal, 1.0)*complexToColour(psi), 1.0);
-    fragColor = vec4(absVal*complexToColour(psi), 1.0);
+    vec4 bg = texture2D(bgTex, UV);
+    fragColor = vec4(absVal*complexToColour(psi), 1.0) + bg;
     // fragColor = vec4(absVal, absVal, absVal, 1.0);
 }

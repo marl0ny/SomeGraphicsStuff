@@ -1,4 +1,5 @@
 #include "gl_wrappers.h"
+#include <GLES3/gl3.h>
 #include <GLES3/gl32.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,18 +46,31 @@ static struct Frame s_frames[MAX_FRAME_COUNT];
 static struct Frame *s_current_frame = NULL;
 static int s_current_frame_id = 0;
 static int s_total_frames = 0;
-static float QUAD_VERTICES[12] = {
+static int s_err_msg_counter = 0;
+
+static const float QUAD_VERTICES[12] = {
     -1.0, -1.0, 0.0,
     -1.0, 1.0, 0.0,
     1.0, 1.0, 0.0,
     1.0, -1.0, 0.0};
-static int QUAD_ELEMENTS[6] = {
+static const int QUAD_ELEMENTS[6] = {
     0, 1, 2, 0, 2, 3};
-static int s_err_msg_counter = 0;
 
 static const char ERR_NO_FRAME_ACTIVE[] = "No frame active.\n";
 static const char ERR_FRAME_ACTIVE[] = "Frame already active.\n";
 
+
+void copy_tex_params(struct TextureParams *dst,
+                     const struct TextureParams *src) {
+    dst->format = src->format;
+    dst->width = src->width;
+    dst->height = src->height;
+    dst->generate_mipmap = src->generate_mipmap;
+    dst->wrap_s = src->wrap_s;
+    dst->wrap_t = src->wrap_t;
+    dst->mag_filter = src->mag_filter;
+    dst->min_filter = src->min_filter;
+}
 
 GLFWwindow *init_window(int width, int height) {
     if (glfwInit() != GL_TRUE) {
@@ -301,10 +315,12 @@ GLuint make_quad_program_from_string_source(const char *src) {
 static GLuint to_base(int sized) {
     switch(sized) {
     case GL_RGBA32F: case GL_RGBA32I: case GL_RGBA32UI: case GL_RGBA16F:
-    case GL_RGBA16I: case GL_RGBA16UI: case GL_RGBA8I: case GL_RGBA8UI:
+    case GL_RGBA16I: case GL_RGBA16UI:
+    case GL_RGBA8I: case GL_RGBA8UI: case GL_RGBA8:
         return GL_RGBA;
     case GL_RGB32F: case GL_RGB32I: case GL_RGB32UI: case GL_RGB16F:
     case GL_RGB16I: case GL_RGB16UI: case GL_RGB8I: case GL_RGB8UI:
+    case GL_RGB8:
         return GL_RGB;
     case GL_RG32F: case GL_RG32I: case GL_RG32UI: case GL_RG16F:
     case GL_RG16I: case GL_RG16UI: case GL_RG8I: case GL_RG8UI:
@@ -391,6 +407,24 @@ void quad_init_objects() {
     }
 }
 
+int pop_frame() {
+    if (s_current_frame != NULL) {
+        fprintf(stderr, ERR_FRAME_ACTIVE);
+        return 0;
+    }
+    if (s_total_frames == 1) return s_total_frames - 1;
+    s_current_frame = &s_frames[--s_total_frames];
+    s_current_frame_id = s_total_frames;
+    glDeleteTextures(1, &s_current_frame->texture);
+    glDeleteRenderbuffers(1, &s_current_frame->rbo);
+    glDeleteFramebuffers(1, &s_current_frame->fbo);
+    glDeleteBuffers(1, &s_current_frame->ebo);
+    glDeleteBuffers(1, &s_current_frame->vbo);
+    glDeleteBuffers(1, &s_current_frame->vao);
+    s_current_frame = NULL;
+    return s_current_frame_id;
+}
+
 int new_frame(const struct TextureParams *texture_params,
               float *vertices, int sizeof_vertices,
               int *elements, int sizeof_elements) {
@@ -399,6 +433,11 @@ int new_frame(const struct TextureParams *texture_params,
         return -1;
     }
     int frame_id = s_total_frames++;
+    if (s_total_frames > MAX_FRAME_COUNT) {
+        fprintf(stderr, "Max number of frames %d exceeded.\n",
+                --s_total_frames);
+        return -1;
+    }
     s_current_frame = &s_frames[frame_id];
     s_current_frame_id = frame_id;
     // init textures
@@ -441,10 +480,12 @@ int new_frame(const struct TextureParams *texture_params,
     glBindBuffer(GL_ARRAY_BUFFER, *vbo_ptr);
     glBufferData(GL_ARRAY_BUFFER, sizeof_vertices,
                  vertices, GL_STATIC_DRAW);
-    glGenBuffers(1, ebo_ptr);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *ebo_ptr);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof_elements,
-                 elements, GL_STATIC_DRAW);
+    // if (elements != NULL) {
+        glGenBuffers(1, ebo_ptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *ebo_ptr);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof_elements,
+                     elements, GL_STATIC_DRAW);
+        // }
     if (s_current_frame_id != 0) {
         glGenFramebuffers(1, fbo_ptr);
         glBindFramebuffer(GL_FRAMEBUFFER, *fbo_ptr);
@@ -469,6 +510,11 @@ int new_quad(const struct TextureParams *texture_params) {
     }
     int quad_id = s_total_frames;
     s_total_frames += 1;
+    if (s_total_frames > MAX_FRAME_COUNT) {
+        fprintf(stderr, "Max number of frames %d exceeded.\n",
+                --s_total_frames);
+        return -1;
+    }
     if (s_total_frames == 1 && texture_params != NULL) {
         fprintf(stdout, "Params ignored for first frame.\n");
     }
@@ -743,6 +789,47 @@ void draw_unbind_quad() {
     unbind();
 }
 
+void get_rgb_unsigned_byte_array(int quad_id, int width, int height,
+                                 unsigned char *array) {
+    if (s_current_frame != NULL) {
+        fprintf(stderr, ERR_FRAME_ACTIVE);
+        return;
+    }
+    s_current_frame_id = quad_id;
+    s_current_frame = &s_frames[quad_id];
+    glBindVertexArray(s_current_frame->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_current_frame->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_current_frame->ebo);
+    if (s_current_frame_id != 0)
+        glBindFramebuffer(GL_FRAMEBUFFER, s_current_frame->fbo);
+    glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
+    glBindTexture(GL_TEXTURE_2D, s_current_frame->texture);
+    glReadPixels(0, 0, width, height,
+                 GL_RGB, GL_UNSIGNED_BYTE, array);
+    unbind();
+}
+
+void get_quad_array(int quad_id, const struct TextureParams *tex_params,
+                    void *array) {
+    if (s_current_frame != NULL) {
+        fprintf(stderr, ERR_FRAME_ACTIVE);
+        return;
+    }
+    s_current_frame_id = quad_id;
+    s_current_frame = &s_frames[quad_id];
+    glBindVertexArray(s_current_frame->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, s_current_frame->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_current_frame->ebo);
+    if (s_current_frame_id != 0)
+        glBindFramebuffer(GL_FRAMEBUFFER, s_current_frame->fbo);
+    glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
+    glBindTexture(GL_TEXTURE_2D, s_current_frame->texture);
+    glReadPixels(0, 0, tex_params->width, tex_params->height,
+                 to_base(tex_params->format), to_type(tex_params->format),
+                 array);
+    unbind();
+}
+
 void get_quad_texture_array(int quad_id,
                             int x0, int y0, int width, int height,
                             int texture_type, void *array) {
@@ -774,8 +861,8 @@ void get_quad_texture_array(int quad_id,
     unbind();
 }
 
-void quad_substitute_array(int quad_id, int width, int height,
-                           int texture_type, void *array) {
+void quad_substitute_array(int quad_id, const struct TextureParams *tex_params,
+                           void *array) {
     if (s_current_frame != NULL) {
         fprintf(stderr, ERR_FRAME_ACTIVE);
         return;
@@ -790,8 +877,10 @@ void quad_substitute_array(int quad_id, int width, int height,
     };
     glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
     glBindTexture(GL_TEXTURE_2D, s_current_frame->texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
-                    GL_RGBA, texture_type, array);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 
+                    tex_params->width, tex_params->height,
+                    to_base(tex_params->format), 
+                    to_type(tex_params->format), array);
     // glTexImage2D(GL_TEXTURE_2D, 0, 4,
     //              width, height, 0, GL_RGBA, texture_type,
     //              array);
@@ -799,3 +888,10 @@ void quad_substitute_array(int quad_id, int width, int height,
     unbind();
 }
 
+void window_dimensions(GLFWwindow *window, int *ptr_w, int *ptr_h) {
+    glfwGetWindowSize(window, ptr_w, ptr_h);
+#ifdef __APPLE__
+    *ptr_w = 2**ptr_w;
+    *ptr_h = 2**ptr_h;
+#endif
+}

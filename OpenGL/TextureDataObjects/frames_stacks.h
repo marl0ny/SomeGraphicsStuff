@@ -12,6 +12,8 @@ frame_id activate_frame(const struct TextureParams *tex_params);
 void deactivate_frame(const struct TextureParams *tex_params,
                       frame_id id_of_frame);
 
+void delete_all_frames();
+
 #ifdef __cplusplus
 }
 #endif
