@@ -15,7 +15,11 @@ varying highp vec2 UV;
 
 uniform sampler2D tex;
 uniform sampler2D bgTex;
+uniform float phaseAdjust;
 
+complex mul(complex w, complex z) {
+    return complex(w.x*z.x - w.y*z.y, w.x*z.y + w.y*z.x);
+}
 
 vec3 complexToColour(complex val) {
     float re = val[0];
@@ -52,7 +56,9 @@ vec3 complexToColour(complex val) {
 
 void main() {
     vec4 psiPotential = texture2D(tex, UV);
-    vec2 psi = vec2(psiPotential[0], psiPotential[1]);
+    complex phaseFactor = vec2(cos(phaseAdjust), sin(phaseAdjust));
+    vec2 psi = mul(phaseFactor, vec2(psiPotential[0], psiPotential[1]));
+    // float absVal = min(psi[0]*psi[0] + psi[1]*psi[1], 1.0);
     float absVal = psi[0]*psi[0] + psi[1]*psi[1];
     // fragColor = vec4(min(absVal, 1.0)*complexToColour(psi), 1.0);
     vec4 bg = texture2D(bgTex, UV);

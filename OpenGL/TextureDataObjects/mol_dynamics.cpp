@@ -15,6 +15,14 @@
 #include "bitmap.h"
 #include "summation.h"
 #include <GLES3/gl3.h>
+#include <time.h>
+
+static double time_difference_in_ms(const struct timespec *t1,
+                                    const struct timespec *t2) {
+    if (t2->tv_nsec >= t1->tv_nsec)
+        return (double)(t2->tv_nsec - t1->tv_nsec)/1000000.0;
+    return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/1000000.0;
+}
 
 
 /* A very rudimentary molecular dynamics simulation.
@@ -38,13 +46,12 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
-    int N_PARTICLES = 4096;
+    int N_PARTICLES = 2048;
     // double dt = 0.000001;
     double t = 0.0;
     double dt = 0.0000005;
     // double dt = 0.00000001;
     // double dt = 0.0;
-    double sigma = 0.0075;
     frame_id view_program
         = make_quad_program("./shaders/copy.frag");
 
@@ -59,90 +66,90 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
         float rx2 = cos(theta)*rx - sin(theta)*ry;
         float ry2 = sin(theta)*rx + cos(theta)*ry;
         p0_arr.push_back({.x = rx2, .y = ry2});
-        v0_arr.push_back({.x = 100.0F*ry2, .y = -100.0F*rx2});
+        v0_arr.push_back({.x = -700.0F*ry2, .y = 700.0F*rx2});
     }
+
+    double sigma = 0.0075;
+    double epsilon = 100000.0;
+    double gravity_force = -30000.0;
+    double wall_force = 1e10;
+    double total_energy = 0.0;
 
     auto r = Texture2DData((struct Vec2 *)&p0_arr[0], N_PARTICLES, 1);
     auto v = Texture2DData((struct Vec2 *)&v0_arr[0], N_PARTICLES, 1);
 
-    double epsilon = 100000.0;
-    auto potential_func = [&](Texture2DData &r) -> Texture2DData {
-        double sigma12 = pow(sigma, 12);
-        double sigma6 = pow(sigma, 6);
-        return (4.0*epsilon)*(sigma12*pow(r, -12) - sigma6*pow(r, -6));
-    };
-    auto force_func = [&](Texture2DData &r,
-                                    Texture2DData &abs_r) -> Texture2DData {
-        double sigma12 = pow(sigma, 12);
-        double sigma6 = pow(sigma, 6);
-        auto scalar_part = (4.0*epsilon)*(-12.0*sigma12*pow(abs_r, -14)
-             + 6*sigma6*pow(abs_r, -8));
-        return r/scalar_part.cast_to(FLOAT2, X, X);
-    };
-
-    auto force_com
+    /*auto force_com
         = DrawTexture2DData(Path("./shaders/lennard-jones-force.frag"));
     force_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon}});
     auto force_for_com
         = DrawTexture2DData(Path("./shaders/lennard-jones-force-for.frag"));
     force_for_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon},
                                       {"nParticles", (float)N_PARTICLES},
-                                      // {"gravity", -30000.0}, 
-                                      // {"wall", 1e10}
                                       });
-    force_for_com.set_int_uniforms({{"isRow", false}});
+    force_for_com.set_int_uniforms({{"isRow",true}});
     auto energy_for_com
         = DrawTexture2DData(Path("./shaders/lennard-jones-int-energy-for.frag"));
     energy_for_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon},
                                       {"nParticles", (float)N_PARTICLES},
-                                      {"gravity", -30000.0}, {"wall", 1e10}});
+                                      {"gravity", gravity_force},
+                                      {"wall", wall_force}});
     energy_for_com.set_int_uniforms({{"isRow", true}});
-    
     auto ext_force_com
         = DrawTexture2DData(Path("./shaders/ext-force.frag"));
-    ext_force_com.set_float_uniforms({{"gravity", -30000.0}, {"wall", 1e10}});
+    ext_force_com.set_float_uniforms({{"gravity", gravity_force},
+                                      {"wall", wall_force}});
     auto add_ext_forces = [&](const Texture2DData &r,
-                              Texture2DData &&int_forces) -> Texture2DData {
+                              Texture2DData &int_forces) -> Texture2DData {
         glViewport(0, 0, N_PARTICLES, 1);
         Texture2DData forces = zeroes(FLOAT2, N_PARTICLES, 1);
         ext_force_com.draw(forces,
                            "positionsTex", r, "forcesTex", int_forces);
         return forces;
-    };
-    // Texture2DData force_pairs0 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
-    // Texture2DData force_pairs1 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
-    Texture2DData int_energy = zeroes(FLOAT, N_PARTICLES, 1);
+        };*/
+
+    auto energy_force_for_com
+        = DrawTexture2DData(Path("./shaders/lennard-jones-for.frag"));
+    energy_force_for_com.set_float_uniforms({{"sigma", sigma},
+                                             {"epsilon", epsilon},
+                                             {"nParticles", (float)N_PARTICLES},
+                                             {"gravity", gravity_force},
+                                             {"wall", wall_force}});
+    energy_force_for_com.set_int_uniforms({{"isRow", true}});
+
+    /*Texture2DData int_energy = zeroes(FLOAT, N_PARTICLES, 1);
+    Texture2DData force_int0 = zeroes(FLOAT2, N_PARTICLES, 1);
+    Texture2DData force_int1 = zeroes(FLOAT2, N_PARTICLES, 1);*/
+
+    Texture2DData step_data = zeroes(FLOAT4, N_PARTICLES, 1);
     auto step = [&](const Texture2DData &r0, const Texture2DData &v0,
-                              double dt, double t, 
+                              double dt, double t,
                               int i) -> std::vector<Texture2DData> {
-        // glViewport(0, 0, N_PARTICLES, N_PARTICLES);
-        // force_com.draw(force_pairs0, "positionsTex", r0);
-        // auto force0 = add_ext_forces(r0, force_pairs0.reduce_to_row());
         glViewport(0, 0, N_PARTICLES, 1);
-        Texture2DData force_int0 = zeroes(FLOAT2, 1, N_PARTICLES);
-        Texture2DData force_int1 = zeroes(FLOAT2, 1, N_PARTICLES);
-        auto r0_transpose = r0.transpose();
-        glViewport(0, 0, 1, N_PARTICLES);
-        force_for_com.draw(force_int0, "positionsTex", r0_transpose);
-        glViewport(0, 0, N_PARTICLES, 1);
-        auto force0 = add_ext_forces(r0, force_int0.transpose());
-        glViewport(0, 0, N_PARTICLES, 1);
+
+        if (t < dt)
+            energy_force_for_com.draw(step_data, "positionsTex", r0);
+        Texture2DData force0 = step_data.cast_to(FLOAT2, X, Y);
         Texture2DData r1 = r0 + v0*dt + (0.5*dt*dt)*force0;
-        auto r1_transpose = r1.transpose();
-        // glViewport(0, 0, N_PARTICLES, N_PARTICLES);
-        // force_com.draw(force_pairs1, "positionsTex", r1);
-        // auto force1 = add_ext_forces(r1, force_pairs1.reduce_to_row());
-        glViewport(0, 0, 1, N_PARTICLES);
-        force_for_com.draw(force_int1, "positionsTex", r1_transpose);
-        glViewport(0, 0, N_PARTICLES, 1);
-        auto force1 = add_ext_forces(r1, force_int1.transpose());
-        glViewport(0, 0, N_PARTICLES, 1);
+        energy_force_for_com.draw(step_data, "positionsTex", r1);
+        Texture2DData force1 = step_data.cast_to(FLOAT2, X, Y);
+        Texture2DData v1 = v0 + 0.5*(force0 + force1)*dt;
+        Texture2DData pot_energies = step_data.cast_to(FLOAT, Z);
+        double pe = pot_energies.sum_reduction().as_double;
+        double ke = 0.5*v1.squared_norm().as_double;
+        total_energy = pe + ke;
+
+        /*force_for_com.draw(force_int0, "positionsTex", r0);
+        auto force0 = add_ext_forces(r0, force_int0);
+        Texture2DData r1 = r0 + v0*dt + (0.5*dt*dt)*force0;
+        force_for_com.draw(force_int1, "positionsTex", r1);
+        auto force1 = add_ext_forces(r1, force_int1);
         Texture2DData v1 = v0 + (0.5*dt)*(force0 + force1);
         energy_for_com.draw(int_energy, "positionsTex", r1);
         double pe = int_energy.sum_reduction().as_double;
         double ke = 0.5*v1.squared_norm().as_double;
         if (i == 0)
-            std::cout << "Energy: " << ke + pe << std::endl;
+        std::cout << "Energy: " << ke + pe << std::endl;*/
+
         return std::vector<Texture2DData> {r1, v1};
     };
 
@@ -179,7 +186,11 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
     }
 
     for (int k = 0, exit_loop=false; !exit_loop; k++) {
-        for (int i = 0; i < 25; i++)
+        struct timespec t1, t2;
+        clock_gettime(CLOCK_MONOTONIC, &t1); 
+	// clock_gettime(CLOCK_REALTIME, &t1);
+        int steps_per_frame = 5;
+        for (int i = 0; i < steps_per_frame; i++)
         {
             std::vector<Texture2DData> tmp = step(r, v, dt, t, i);
             t += dt;
@@ -205,6 +216,19 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
             exit_loop = true;
         }
         glfwSwapBuffers(window);
+	clock_gettime(CLOCK_MONOTONIC, &t2);
+        // clock_gettime(CLOCK_REALTIME, &t2);
+        if (k % 10 == 0 && k != 0) {
+            std::cout << "Energy: " << total_energy << std::endl;
+            double delta_t = time_difference_in_ms(&t1, &t2);
+            // std::cout << delta_t << " ms" << std::endl;
+            std::cout << "frames/s: " 
+                      << floor((1000.0/delta_t)) 
+                      << std::endl;
+            std::cout << "steps/s: " 
+                << floor((1000.0/delta_t)*steps_per_frame) 
+                << std::endl;
+        }
     }
     return exit_status;
 }

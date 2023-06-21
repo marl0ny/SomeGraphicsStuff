@@ -3,3 +3,5 @@
 
 
 int particles_lennard_jones(GLFWwindow *window, frame_id main_frame);
+
+int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame);

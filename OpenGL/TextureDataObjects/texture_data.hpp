@@ -164,6 +164,8 @@ public:
                   bool generate_mipmap=true,
                   GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
                   GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+    Texture2DData(int type, const std::string &path);
+    Texture2DData(const std::string &path);
     Texture2DData(const Texture2DData &x);
     Texture2DData& operator=(const Texture2DData &x);
     Texture2DData(Texture2DData &&x);
@@ -187,6 +189,8 @@ public:
     Texture2DData reduce_to_row() const;
     Texture2DData reduce_to_single_channel() const;
     struct PixelData squared_norm() const;
+    void serialize() const;
+    void serialize(const std::string &path) const;
     ~Texture2DData() {
         decrement_ref_count();
         if (frame >= 0)

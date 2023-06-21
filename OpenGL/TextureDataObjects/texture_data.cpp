@@ -14,6 +14,7 @@
 // #include <vector>
 #include <GLFW/glfw3.h>
 #include "texture_data.hpp"
+#include "serialize.h"
 
 
 static int s_texture_data_ref_count = 0; 
@@ -58,6 +59,29 @@ static int single_channel_equiv_of_type(GLuint format) {
         return UBYTE;
         case BYTE: case BYTE2: case BYTE3: case BYTE4:
         return BYTE;
+    }
+    return -1;
+}
+
+// TODO: complete this.
+static int format_to_type(GLuint format) {
+    switch(format) {
+        case GL_R32F:
+        return FLOAT;
+        case GL_RG32F:
+        return FLOAT2;
+        case GL_RGB32F:
+        return FLOAT3;
+        case GL_RGBA32F:
+        return FLOAT4;
+        case GL_R16F:
+        return HALF_FLOAT;
+        case GL_RG16F:
+        return HALF_FLOAT2;
+        case GL_RGB16F:
+        return HALF_FLOAT3;
+        case GL_RGBA16F:
+        return HALF_FLOAT4;
     }
     return -1;
 }
@@ -155,6 +179,18 @@ void Texture2DData::increment_ref_count() {
 
 void Texture2DData::decrement_ref_count() {
     s_texture_data_ref_count--;
+}
+
+Texture2DData::Texture2DData(int type, const std::string &fname) {
+    this->frame = ::deserialize(fname.c_str(), &this->tex_params);
+    this->type = type;
+    increment_ref_count();
+}
+
+Texture2DData::Texture2DData(const std::string &fname) {
+    this->frame = ::deserialize(fname.c_str(), &this->tex_params);
+    this->type = format_to_type(tex_params.format);
+    increment_ref_count();
 }
 
 Texture2DData::Texture2DData(int type, frame_id frame,
@@ -490,6 +526,13 @@ Texture2DData Texture2DData::cast_to(int type,
     return Texture2DData(type, new_frame, tex_params);
 }
 
+void Texture2DData::serialize() const {
+    ::serialize("file.dat", this->frame, &this->tex_params);
+}
+
+void Texture2DData::serialize(const std::string &path) const {
+    ::serialize(path.c_str(), this->frame, &this->tex_params);
+}
 
 void swap(Texture2DData &x, Texture2DData &y) {
     // Copy members of x into temporary variables
@@ -968,3 +1011,4 @@ Texture2DData zeroes(int type, int width, int height,
     tex_zero(new_frame);
     return Texture2DData(type, new_frame, tex_params);
 }
+

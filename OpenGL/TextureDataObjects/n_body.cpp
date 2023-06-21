@@ -31,7 +31,7 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
-    int N_PARTICLES = 8000;
+    int N_PARTICLES = 2048;
     double dt = 0.000003;
     frame_id view_program
         = make_quad_program("./shaders/copy.frag");
@@ -54,15 +54,17 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
         = DrawTexture2DData(Path("./shaders/particles-force-coulomb.frag"));
     auto energy_int_com
         = DrawTexture2DData(Path("./shaders/energy-int-coulomb.frag"));
-    auto step = [&](const Texture2DData &r0, const Texture2DData &v0
-                             ) -> std::vector<Texture2DData> {
-        Texture2DData force_pairs0 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
-        Texture2DData force_pairs1 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
+    Texture2DData force_pairs0 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
+    Texture2DData force_pairs1 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
+    auto step = [&](int step_number,
+                    const Texture2DData &r0, const Texture2DData &v0
+                    ) -> std::vector<Texture2DData> {
         Texture2DData energy_pairs = zeroes(FLOAT, N_PARTICLES, N_PARTICLES);
         // Texture2DData int_energy_pairs
         //   = zeroes(FLOAT, N_PARTICLES, N_PARTICLES);
         glViewport(0, 0, N_PARTICLES, N_PARTICLES);
-        force_com.draw(force_pairs0, "positionsTex", r0);
+        if (step_number == 0)
+            force_com.draw(force_pairs0, "positionsTex", r0);
         Texture2DData force0 = force_pairs0.reduce_to_row();
         glViewport(0, 0, N_PARTICLES, 1);
         Texture2DData r1 = r0 + v0*dt + (0.5*dt*dt)*force0;
@@ -110,8 +112,11 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
     }
 
     for (int k = 0, exit_loop=false; !exit_loop; k++) {
-        {
-            std::vector<Texture2DData> tmp = step(r, v);
+        int steps_per_frame = 10;
+        for (int i = 0; i < steps_per_frame; i++) {
+            std::vector<Texture2DData> tmp
+                = step(k*steps_per_frame + i, r, v);
+            swap(force_pairs0, force_pairs1);
             r = tmp[0], v = tmp[1];
         }
         glViewport(0, 0, window_width, window_height);
