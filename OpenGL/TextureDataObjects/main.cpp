@@ -30,9 +30,10 @@
 #include "schrod_splitstep_image_potential.hpp"
 #include "dirac_leapfrog.hpp"
 #include "isf_splitstep.hpp"
+#include "sph.hpp"
 
 int main() {
-    int WIDTH_TO_HEIGHT = 2;
+    int WIDTH_TO_HEIGHT = 1;
     #ifdef __APPLE__
     // int NX = 512, NY = 512;
     // int NX = 1024, NY = 1024;
@@ -61,12 +62,13 @@ int main() {
         // particles_coulomb,
         // stable_fluids,
         // isf_splitstep,
+        sph_mt,
         // particles_lennard_jones,
         // particles_lennard_jones_mt,
         // schrod_leapfrog,
         // schrod_splitstep,
         // dirac_leapfrog,
-        schrod_splitstep_image_potential,
+        // schrod_splitstep_image_potential,
         // gray_scott_reaction_diffusion
     };
     for (auto &f: functions) {

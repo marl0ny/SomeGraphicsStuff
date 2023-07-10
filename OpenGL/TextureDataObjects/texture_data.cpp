@@ -221,7 +221,8 @@ Texture2DData::Texture2DData(float *data, int width, int height,
     increment_ref_count();
 }
 
-Texture2DData::Texture2DData(std::complex<float> *data, int width, int height,
+Texture2DData::Texture2DData(std::complex<float> *data,
+                             int width, int height,
                              bool generate_mipmap,
                              GLuint wrap_s, GLuint wrap_t,
                              GLuint min_filter, GLuint mag_filter) {

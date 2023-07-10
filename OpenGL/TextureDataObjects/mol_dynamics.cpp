@@ -78,35 +78,6 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
     auto r = Texture2DData((struct Vec2 *)&p0_arr[0], N_PARTICLES, 1);
     auto v = Texture2DData((struct Vec2 *)&v0_arr[0], N_PARTICLES, 1);
 
-    /*auto force_com
-        = DrawTexture2DData(Path("./shaders/lennard-jones-force.frag"));
-    force_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon}});
-    auto force_for_com
-        = DrawTexture2DData(Path("./shaders/lennard-jones-force-for.frag"));
-    force_for_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon},
-                                      {"nParticles", (float)N_PARTICLES},
-                                      });
-    force_for_com.set_int_uniforms({{"isRow",true}});
-    auto energy_for_com
-        = DrawTexture2DData(Path("./shaders/lennard-jones-int-energy-for.frag"));
-    energy_for_com.set_float_uniforms({{"sigma", sigma}, {"epsilon", epsilon},
-                                      {"nParticles", (float)N_PARTICLES},
-                                      {"gravity", gravity_force},
-                                      {"wall", wall_force}});
-    energy_for_com.set_int_uniforms({{"isRow", true}});
-    auto ext_force_com
-        = DrawTexture2DData(Path("./shaders/ext-force.frag"));
-    ext_force_com.set_float_uniforms({{"gravity", gravity_force},
-                                      {"wall", wall_force}});
-    auto add_ext_forces = [&](const Texture2DData &r,
-                              Texture2DData &int_forces) -> Texture2DData {
-        glViewport(0, 0, N_PARTICLES, 1);
-        Texture2DData forces = zeroes(FLOAT2, N_PARTICLES, 1);
-        ext_force_com.draw(forces,
-                           "positionsTex", r, "forcesTex", int_forces);
-        return forces;
-        };*/
-
     auto energy_force_for_com
         = DrawTexture2DData(Path("./shaders/lennard-jones-for.frag"));
     energy_force_for_com.set_float_uniforms({{"sigma", sigma},
@@ -115,10 +86,6 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
                                              {"gravity", gravity_force},
                                              {"wall", wall_force}});
     energy_force_for_com.set_int_uniforms({{"isRow", true}});
-
-    /*Texture2DData int_energy = zeroes(FLOAT, N_PARTICLES, 1);
-    Texture2DData force_int0 = zeroes(FLOAT2, N_PARTICLES, 1);
-    Texture2DData force_int1 = zeroes(FLOAT2, N_PARTICLES, 1);*/
 
     Texture2DData step_data = zeroes(FLOAT4, N_PARTICLES, 1);
     auto step = [&](const Texture2DData &r0, const Texture2DData &v0,
@@ -137,18 +104,6 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
         double pe = pot_energies.sum_reduction().as_double;
         double ke = 0.5*v1.squared_norm().as_double;
         total_energy = pe + ke;
-
-        /*force_for_com.draw(force_int0, "positionsTex", r0);
-        auto force0 = add_ext_forces(r0, force_int0);
-        Texture2DData r1 = r0 + v0*dt + (0.5*dt*dt)*force0;
-        force_for_com.draw(force_int1, "positionsTex", r1);
-        auto force1 = add_ext_forces(r1, force_int1);
-        Texture2DData v1 = v0 + (0.5*dt)*(force0 + force1);
-        energy_for_com.draw(int_energy, "positionsTex", r1);
-        double pe = int_energy.sum_reduction().as_double;
-        double ke = 0.5*v1.squared_norm().as_double;
-        if (i == 0)
-        std::cout << "Energy: " << ke + pe << std::endl;*/
 
         return std::vector<Texture2DData> {r1, v1};
     };
@@ -189,7 +144,7 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
         struct timespec t1, t2;
         clock_gettime(CLOCK_MONOTONIC, &t1); 
 	// clock_gettime(CLOCK_REALTIME, &t1);
-        int steps_per_frame = 5;
+        int steps_per_frame = 25;
         for (int i = 0; i < steps_per_frame; i++)
         {
             std::vector<Texture2DData> tmp = step(r, v, dt, t, i);

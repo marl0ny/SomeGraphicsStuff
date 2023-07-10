@@ -17,15 +17,16 @@
 #include <GLES3/gl3.h>
 #include <pthread.h>
 #include <time.h>
+#include <unistd.h>
 
 
 static const int N_PARTICLES = 2048;
+
 
 struct ThreadData {
     int start;
     int end;
     int n_particles;
-    float gravity, wall;
     float epsilon, sigma;
     const struct Vec2 *positions;
     struct Vec2 *forces;
@@ -68,8 +69,6 @@ get_ext_wall_force(struct Vec2 r, float wall,
 static void *threaded_compute_energies_and_forces(void *void_data) {
     struct ThreadData *data = (struct ThreadData *)void_data;
     int n_particles = data->n_particles;
-    float gravity = data->gravity;
-    float wall = data->wall;
     float epsilon = data->epsilon;
     float sigma = data->sigma;
     float sigma2 = sigma*sigma;
@@ -82,47 +81,11 @@ static void *threaded_compute_energies_and_forces(void *void_data) {
     float e_offset
          = 4.0*epsilon*(1.0/check_dist12 - 1.0/check_dist6);
     for (int j = data->start; j < data->end; j++) {
-        // std::cout << j << std::endl;
         float rj_x = data->positions[j].x;
         float rj_y = data->positions[j].y;
         struct Vec2 rj {rj_x, rj_y};
         struct Vec2 int_force {0.0, 0.0};
         float int_energy = 0.0;
-        /*for (int i = 0; i < n_particles; i++) {
-            float ri_x = data->positions[i].x;
-            float ri_y = data->positions[i].y;
-            float rx = ri_x - rj_x;
-            float ry = ri_y - rj_y;
-            float r2 = rx*rx + ry*ry;
-            if (i != j && r2 < ((3.0*3.0)*sigma2)) {
-                float r4 = r2*r2;
-                float r6 = r4*r2;
-                float r8 = r4*r4;
-                float r12 = r8*r4;
-                float r14 = r12*r2;
-                float s1 = (4.0*epsilon)*(-12.0*sigma12/r14);
-                float s2 = (4.0*epsilon)*(6.0*sigma6/r8);
-                int_energy += 4.0*epsilon*(sigma12/r12 - sigma6/r6);
-                int_force.x += rx*(s1 + s2);
-                int_force.y += ry*(s1 + s2);
-            }
-        }
-        float ext_wall_energy
-        = get_ext_wall_energy(rj, wall, 0.01, 0.99, 0.99, 0.01);
-        struct Vec2 ext_wall_force
-        = get_ext_wall_force(rj, wall, 0.01, 0.99, 0.99, 0.01);
-        float gravity_energy = -gravity*rj_y;
-        struct Vec2 gravity_force {0.0, gravity};
-        data->forces[j].x = int_force.x + ext_wall_force.x + gravity_force.x;
-        data->forces[j].y = int_force.y + ext_wall_force.y + gravity_force.y;
-        data->energies[j] = int_energy + ext_wall_energy + gravity_energy;
-        */
-        float ext_wall_energy
-            = get_ext_wall_energy(rj, wall, 0.01, 0.99, 0.99, 0.01);
-        struct Vec2 ext_wall_force
-            = get_ext_wall_force(rj, wall, 0.01, 0.99, 0.99, 0.01);
-        float gravity_energy = -gravity*rj_y;
-        struct Vec2 gravity_force {0.0, gravity};
         for (int i = j+1; i < n_particles; i++) {
             float ri_x = data->positions[i].x;
             float ri_y = data->positions[i].y;
@@ -148,11 +111,22 @@ static void *threaded_compute_energies_and_forces(void *void_data) {
                 data->forces[i].y -= fy;
             }
         }
-        data->forces[j].x += ext_wall_force.x + gravity_force.x;
-        data->forces[j].y += ext_wall_force.y + gravity_force.y;
-        data->energies[j] = int_energy + ext_wall_energy + gravity_energy;
     }
     return NULL;
+}
+
+#define MAX_SUPPORTED_THREADS 32
+static int number_of_threads_to_use() {
+    // Number of threads to use
+    // https://stackoverflow.com/a/150971
+#ifndef WIN_32
+    int n_threads = sysconf(_SC_NPROCESSORS_ONLN);
+#else
+    int n_threads = 4
+#endif
+        if (n_threads > MAX_SUPPORTED_THREADS)
+            return MAX_SUPPORTED_THREADS;
+    return n_threads;
 }
 
 static double time_difference_in_ms(const struct timespec *t1,
@@ -207,7 +181,11 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
     auto p1_arr = std::vector<struct Vec2> {};
     auto v1_arr = std::vector<struct Vec2> {};
     for (int i = 0; i < N_PARTICLES; i++) {
-        float rx = (float)(i % 64)/(float)128 + 0.25;
+        // float rx = (float)(i % 64)/(float)128 + 0.25;
+        // float ry = (float)(i / 64)/(float)128 + 0.25;
+        float offset = ((i / 64) % 2 == 1)? 0.5/128: 0.0;
+        // float offset = 0.0;
+        float rx = (float)(i % 64)/(float)128 + offset + 0.25;
         float ry = (float)(i / 64)/(float)128 + 0.25;
         // float rx = (float)(i % 128)/(float)128 + 0.25;
         // float ry = (float)(i / 128)/(float)128 + 0.25;
@@ -215,21 +193,23 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
         float rx2 = cos(theta)*rx - sin(theta)*ry;
         float ry2 = sin(theta)*rx + cos(theta)*ry;
         p0_arr.push_back({.x = rx2, .y = ry2});
-        v0_arr.push_back({.x = 700.0F*ry2, .y = -700.0F*rx2});
+        v0_arr.push_back({.x = -5600.0F*ry2, .y = 5600.0F*rx2});
         p1_arr.push_back({.x = rx2, .y = ry2});
-        v1_arr.push_back({.x = 700.0F*ry2, .y = -700.0F*rx2});
+        v1_arr.push_back({.x = -5600.0F*ry2, .y = 5600.0F*rx2});
     }
 
     double sigma = 0.0075;
-    double epsilon = 8000000.0;
+    // double epsilon = 8000000.0;
     // double epsilon = 10000000.0;
-    double gravity_force = -800000.0;
-    // double gravity_force = -10000000.0;
+    double epsilon = 2e7;
+    // double gravity_force = -800000.0;
+    double gravity_force = -10000000.0;
     double wall_force = 1e13;
 
     auto r = Texture2DData((struct Vec2 *)&p0_arr[0], N_PARTICLES, 1);
     auto v = Texture2DData((struct Vec2 *)&v0_arr[0], N_PARTICLES, 1);
-    int n_threads = 8;
+    int n_threads = number_of_threads_to_use();
+    std::cout << "Threads used: " << n_threads << std::endl;
     int updates_per_th = N_PARTICLES/n_threads;
     std::vector<std::vector<struct Vec2>> force_th {};
     for (int i = 0; i < n_threads; i++)
@@ -272,14 +252,12 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
         auto threaded_force_update = [&](struct Vec2 *force,
                                          const struct Vec2 *positions) {
             int n_th = 0;
-            pthread_t threads[N_PARTICLES] = {0,};
-            struct ThreadData particle_threads[N_PARTICLES] = {};
+            pthread_t threads[MAX_SUPPORTED_THREADS] = {0,};
+            struct ThreadData particle_threads[MAX_SUPPORTED_THREADS] = {};
             for (; n_th < n_threads; n_th++) {
                 particle_threads[n_th].start = thread_starts[n_th];
                 particle_threads[n_th].end = thread_ends[n_th];
                 particle_threads[n_th].n_particles = N_PARTICLES;
-                particle_threads[n_th].gravity = gravity_force;
-                particle_threads[n_th].wall = wall_force;
                 particle_threads[n_th].epsilon = epsilon;
                 particle_threads[n_th].sigma = sigma;
                 particle_threads[n_th].positions = positions;
@@ -296,6 +274,20 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
                 for (int j = 0; j < N_PARTICLES; j++) {
                     force[j].x += force_th[i][j].x;
                     force[j].y += force_th[i][j].y;
+                    if (i == n_th - 1) {
+                        struct Vec2 gravity_force_vec {.x=0.0F, .y=(float)gravity_force};
+                        struct Vec2 rj {positions[j]};
+                        float ext_wall_energy
+                            = get_ext_wall_energy(rj, wall_force,
+                                                  0.01, 0.99, 0.99, 0.01);
+                        struct Vec2 ext_wall_force
+                            = get_ext_wall_force(rj, wall_force,
+                                                 0.01, 0.99, 0.99, 0.01);
+                        float gravity_energy = -gravity_force*rj.y;
+                        force[j].x += ext_wall_force.x + gravity_force_vec.x;
+                        force[j].y += ext_wall_force.y + gravity_force_vec.y;
+                        energies[j] += ext_wall_energy + gravity_energy;
+                    }
                 }
             }
         };
@@ -393,8 +385,9 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
         // clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t2);
         clock_gettime(CLOCK_MONOTONIC, &t2);
         if (k % 2 == 0 && k != 0) {
-            std::cout << "Energy: " << total_energy << std::endl;
-            std::cout << "Max velocity: " << velocity_max << std::endl;
+            std::cout << "energy: " << total_energy << std::endl;
+            std::cout << "max velocity: " << velocity_max << std::endl;
+            std::cout << "time step: " << dt << std::endl;
             double delta_t = time_difference_in_ms(&t1, &t2);
             // std::cout << delta_t << " ms" << std::endl;
             std::cout << "frames/s: " << (1000.0/delta_t) << std::endl;

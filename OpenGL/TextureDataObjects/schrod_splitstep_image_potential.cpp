@@ -36,6 +36,11 @@ static std::vector<Vec4> get_potential_from_png_file(std::string path,
     return data;
 }
 
+template <typename T>
+static T min_temp(T a, T b) {
+    return (a < b)? a: b;
+}
+
 static std::vector<Vec4> get_potential_from_bmp_file(std::string path) {
     int width = 0, height = 0;
     unsigned char *raw
@@ -79,14 +84,17 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     window_dimensions(window, &window_width, &window_height);
     // int NX = 256, NY = 256;
     int frame_count = 0;
-    float phase_adjust_scale = 0.09;
+    float phase_adjust_scale = 0.07;
+    // phase_adjust_scale = 0.0; // for focusing
+    // float phase_adjust_scale = 0.0;
     auto imag_unit = std::complex<double>(0.0, 1.0);
     // double dt = 1.0;
     // std::complex<double> dt = 3.0 - 0.1*imag_unit;
     double r_time = 0.0;
+    double nonlinear_time = 0.0;
     double hbar = 1.0;
     double m = 1.0;
-    bool use_nonlinear = false;
+    bool use_nonlinear = true;
     // double dx = width/(float)NX, dy = height/(float)NY;
     double pi = 3.141592653589793;
     int view_program = make_quad_program("./shaders/view.frag");
@@ -112,10 +120,10 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
         command.set_ivec2_uniforms({{"wavenumber", {.x=20, .y=10}}, });
     else
         command.set_ivec2_uniforms({{"wavenumber", {.x=40, .y=20}}, });
-    auto psi = command.create(COMPLEX, NX, NY, true,
+    /* auto psi = command.create(COMPLEX, NX, NY, true,
                                GL_REPEAT, GL_REPEAT,
-                               GL_LINEAR, GL_LINEAR);
-    // auto psi = Texture2DData(COMPLEX, "./file.dat");
+                               GL_LINEAR, GL_LINEAR);*/
+    auto psi = Texture2DData(COMPLEX, "./video4.dat");
     auto psi1 = psi*(500.0/sqrt(psi.squared_norm().as_double));
     auto psi2 = psi1;
     auto x = make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
@@ -130,6 +138,7 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     std::complex<double> dt = 1.0;
     // std::complex<double> zdt = 3.0 - 0.1*imag_unit;
     std::complex<double> zdt = 1.0 - 0.0333*imag_unit;
+    // zdt = 1.0 - 0.001*imag_unit; // For Focusing
     if (NY <= 128) {
         dt *= 0.25;
         zdt *= 0.25;
@@ -142,45 +151,68 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
                           Texture2DData &pot) -> Texture2DData {
         return x_propagator*ifft(p_propagator*fft(x_propagator*psi));
     };
-    double nl_coeff = 0.1;
+    // double nl_coeff = 0.1;
+    double nl_coeff = 0.0;
     if (NY <= 128) nl_coeff = 0.001;
     auto x_propagator_nonlinear = [=](Texture2DData &psi,
-                                         Texture2DData &pot) -> Texture2DData {
+                                         Texture2DData &pot,
+                                         double nl_coeff) -> Texture2DData {
+
+        // For nonfocusing
         // double nl_scale = 10.0*(double)NY/512.0;
         return exp((-imag_unit*(zdt/2.0)/hbar)*(pot + nl_coeff*psi*conj(psi)));
+
+        // For focusing
+        // Texture2DData u = psi*conj(psi);
+        // return exp((-imag_unit*(zdt/2.0)/hbar)*(pot + 0.2*nl_coeff/(u + 0.01)));
     };
     auto h_psi_func_nonlinear = [&](Texture2DData &psi,
-                          Texture2DData &pot) -> Texture2DData {
+                          Texture2DData &pot, double nl_coeff) -> Texture2DData {
         Texture2DData psi2 = ifft(p_propagator_complex
-                                  *fft(x_propagator_nonlinear(psi, pot)*psi));
-        return x_propagator_nonlinear(psi2, pot)*psi2;
+                                  *fft(x_propagator_nonlinear(
+                                    psi, pot, nl_coeff)*psi));
+        return x_propagator_nonlinear(psi2, pot, nl_coeff)*psi2;
     };
     auto view_com = DrawTexture2DData(Path("./shaders/view.frag"));
-    view_com.set_float_uniforms({{"phaseAdjust", phase_adjust_scale*r_time}});
     auto data = new uint8_t[3*window_width*window_height] {0,};
     std::time_t t0 = std::time(nullptr);
     for (int k = 0, exit_loop = false; !exit_loop; k++) {
         int steps_frame = 16;
         glViewport(0, 0, NX, NY);
         for (int i = 0; i < steps_frame; i++) {
-            if (use_nonlinear)
-                psi2 = h_psi_func_nonlinear(psi1, pot);
-            else
+            if (use_nonlinear) {
+                nl_coeff = min_temp<double>(nonlinear_time/10000.0, 0.1);
+                psi2 = h_psi_func_nonlinear(psi1, pot, nl_coeff);
+                nonlinear_time += sqrt(dt.real()*dt.real() 
+                    + dt.imag()*dt.imag());
+            } else {
                 psi2 = h_psi_func(psi1, pot);
+            }
+            r_time += sqrt(dt.real()*dt.real() + dt.imag()*dt.imag());
             double norm_val = sqrt(psi2.squared_norm().as_double);
             psi2 = psi2*(500.0/norm_val);
-            r_time += sqrt(dt.real()*dt.real() + dt.imag()*dt.imag());
             swap(psi1, psi2);
         }
+        // std::cout << nl_coeff << std::endl;
         glViewport(0, 0, window_width, window_height);
-        /*{
+        {
             auto bmp_frame = Texture2DData(HALF_FLOAT3,
                                            window_width, window_height);
+            std::cout << "Simulation time elapsed: " << r_time << std::endl;
+            if (use_nonlinear) {
+                std::cout << "Nonlinear time: " 
+                    << nonlinear_time << std::endl;
+                double phase_adj
+                     = min_temp<double>(nonlinear_time/10.0, 
+                                        1.0)*phase_adjust_scale;
+                std::cout << "Phase adjustment: " << phase_adj << std::endl;
+                view_com.set_float_uniforms({{"phaseAdjust", phase_adj*r_time}});
+            }
             view_com.draw(bmp_frame, "tex", psi1);
 
             bmp_frame.paste_to_rgb_image_data(data);
             std::stringstream filename {};
-            std::string d_path = "/Volumes/T7/bmp_files7/";
+            std::string d_path = "/Volumes/T7/bmp_files10/";
             // std::string d_path = "./";
             if (k < 10)
                 filename << d_path << "data_0000" << k;
@@ -201,7 +233,7 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
             write_to_bitmap(&(filename.str())[0], data,
                             window_width, window_height);
             
-        }*/
+        }
         bind_quad(main_frame, view_program);
         psi1.set_as_sampler2D_uniform("tex");
         // std::cout << r_time << std::endl;
