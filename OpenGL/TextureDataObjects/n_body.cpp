@@ -16,6 +16,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 
 
 /* N-body gravity simulation.
@@ -111,7 +123,9 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
                                     NULL, -1);
     }
 
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         int steps_per_frame = 10;
         for (int i = 0; i < steps_per_frame; i++) {
             std::vector<Texture2DData> tmp
@@ -139,6 +153,13 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop) loop();
+    #endif
     return exit_status;
 }

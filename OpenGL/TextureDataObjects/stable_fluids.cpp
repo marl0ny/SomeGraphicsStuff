@@ -16,6 +16,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 /*
 Stable fluids simulation.
 
@@ -112,7 +124,7 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
                              int n_iterations) -> Texture2DData {
         struct Grad2DParams grad_params {
             .dx=dx, .dy=dy, .width=width, .height=height,
-            .order_of_accuracy=4, .staggered=1
+            .staggered=1, .order_of_accuracy=4
         };
         auto div_dot_v = ddx(vel, grad_params).cast_to(FLOAT, X)
                                 + ddy(vel, grad_params).cast_to(FLOAT, Y);
@@ -131,7 +143,7 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
                                     ) -> Texture2DData {
         Grad2DParams grad_params {
             .dx=dx, .dy=dy, .width=width, .height=height,
-            .order_of_accuracy=4, .staggered=-1
+            .staggered=-1, .order_of_accuracy=4,
         };
         auto dpdx = ddx(p, grad_params);
         auto dpdy = ddy(p, grad_params);
@@ -141,7 +153,10 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
     };
 
     auto pressure = 0.0*dist;
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         glViewport(0, 0, NX, NY);
         dist = advect_func(dist, vel);
         vel = advect_func(vel, vel);
@@ -170,6 +185,15 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
+    
     return exit_status;
 }

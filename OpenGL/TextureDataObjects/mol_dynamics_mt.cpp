@@ -19,6 +19,17 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
 
 static const int N_PARTICLES = 2048;
 
@@ -123,6 +134,9 @@ static int number_of_threads_to_use() {
     int n_threads = sysconf(_SC_NPROCESSORS_ONLN);
 #else
     int n_threads = 4
+#endif
+#ifdef __EMSCRIPTEN__
+    n_threads = 12;
 #endif
         if (n_threads > MAX_SUPPORTED_THREADS)
             return MAX_SUPPORTED_THREADS;
@@ -344,7 +358,9 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
                                     NULL, -1);
     }
 
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         struct timespec t1, t2;
         // clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t1);
         clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -384,7 +400,8 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
         glfwSwapBuffers(window);
         // clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t2);
         clock_gettime(CLOCK_MONOTONIC, &t2);
-        if (k % 2 == 0 && k != 0) {
+        bool print_stats = true;
+        if (print_stats && k % 2 == 0 && k != 0) {
             std::cout << "energy: " << total_energy << std::endl;
             std::cout << "max velocity: " << velocity_max << std::endl;
             std::cout << "time step: " << dt << std::endl;
@@ -395,6 +412,15 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
                 << ((1000.0/delta_t)*steps_per_frame)
                 << std::endl;
         }
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
+
     return exit_status;
 }

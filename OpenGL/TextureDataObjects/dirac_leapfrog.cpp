@@ -16,6 +16,17 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
 
 /* Numerically solving the Dirac equation using centred second order
 finite differences in time, where the upper and lower spinors can be optionally
@@ -118,7 +129,10 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
                   )/(1.0 - idtmc2_2hbar + idtqphi_2hbar);
     };
     eom(psi1, psi0, psi0, vec_potential, 0.5*dt);
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         glViewport(0, 0, NX, NY);
         for (int i = 0; i < 10; i++) {
             eom(psi2, psi0, psi1, vec_potential, dt);
@@ -139,7 +153,16 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
             exit_status = 1;
             exit_loop = true;
         }
+        k++;
         glfwSwapBuffers(window);
-    }
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while(!exit_loop)
+        loop();
+    #endif
     return exit_status;
 }
+ 

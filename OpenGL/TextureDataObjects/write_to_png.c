@@ -1,3 +1,4 @@
+#ifndef __EMSCRIPTEN__
 #include <png.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,3 +55,4 @@ int write_rgb8_png(const char *fname,
     fclose(f);
     return 0;
 }
+#endif

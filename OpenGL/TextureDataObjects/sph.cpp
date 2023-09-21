@@ -19,6 +19,18 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 static const int N_PARTICLES = 2048;
 
 #define PI 3.141592653589793
@@ -59,9 +71,15 @@ static int number_of_threads_to_use() {
 #else
     int n_threads = 4
 #endif
+
+#ifdef __EMSCRIPTEN__
+    n_threads = 8;
+#endif
+
         if (n_threads > MAX_SUPPORTED_THREADS)
             return MAX_SUPPORTED_THREADS;
     return n_threads;
+
 }
 
 static struct Vec2
@@ -532,7 +550,9 @@ int sph_mt(GLFWwindow *window, frame_id main_frame) {
                                     NULL, -1);
     }
 
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         struct timespec t1, t2;
         // clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t1);
         clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -582,7 +602,15 @@ int sph_mt(GLFWwindow *window, frame_id main_frame) {
                         << ((1000.0/delta_t)*steps_per_frame)
                         << std::endl;
         }
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while(!exit_loop)
+        loop();
+    #endif
     return exit_status;
 }
 

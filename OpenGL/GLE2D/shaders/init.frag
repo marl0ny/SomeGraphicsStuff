@@ -32,8 +32,8 @@ complex conj(complex z) {
 void main() {
     float y = UV[1] - 0.5;
     float x = UV[0] - 0.5;
-    vec2 aField = 10.0*vec2(-y, x);
-    // vec2 aField = 0.0*vec2(-y, x);
+    // vec2 aField = 10.0*vec2(-y, x);
+    vec2 aField = 0.0*vec2(-y, x);
     float u = UV[0] - r0[0];
     float v = UV[1] - r0[1];
     float nx = float(wavenumber[0]);

@@ -115,7 +115,10 @@ class Texture2DData {
                              struct Grad2DParams params);
     friend Texture2DData fft(const Texture2DData &x);
     friend Texture2DData ifft(const Texture2DData &x);
+    friend Texture2DData fft_omp(const Texture2DData &x);
+    friend Texture2DData ifft_omp(const Texture2DData &x);
     friend Texture2DData fftshift(const Texture2DData &x);
+    friend Texture2DData fftshift(const Texture2DData &x, int type);
     friend Texture2DData cast_to(int type,
                                  const Texture2DData &x,
                                  Channel c0, Channel c1,
@@ -167,11 +170,13 @@ public:
     Texture2DData(int type, const std::string &path);
     Texture2DData(const std::string &path);
     Texture2DData(const Texture2DData &x);
-    Texture2DData& operator=(const Texture2DData &x);
+    Texture2DData &operator=(const Texture2DData &x);
     Texture2DData(Texture2DData &&x);
     Texture2DData &operator=(Texture2DData &&x);
     void paste_to_quad(frame_id quad) const;
     void debug_print_state() const;
+    int get_frame_id() const;
+    int get_type_id() const;
     void set_as_sampler2D_uniform(const char *name) const;
     Texture2DData laplacian(struct Laplacian2DParams params) const;
     Texture2DData cast_to(int type, Channel c0) const;
@@ -299,7 +304,13 @@ Texture2DData fft(const Texture2DData &x);
 
 Texture2DData ifft(const Texture2DData &x);
 
+Texture2DData fft_omp(const Texture2DData &x);
+
+Texture2DData ifft_omp(const Texture2DData &x);
+
 Texture2DData fftshift(const Texture2DData &x);
+
+Texture2DData fftshift(const Texture2DData &x, int type);
 
 Texture2DData cast_to(int type,
                       const Texture2DData &x,

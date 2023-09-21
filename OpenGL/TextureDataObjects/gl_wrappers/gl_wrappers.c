@@ -10,14 +10,12 @@
 static const char QUAD_VERTEX_SHADER_SOURCE[] = ""
     "#VERSION_NUMBER_PLACEHOLDER\n"
     "\n"
-    "precision highp float;\n"
-    "\n"
-    "#if __VERSION__ >= 300\n"
+    "#if __VERSION__ <= 120\n"
+    "attribute vec3 position;\n"
+    "varying vec2 UV;\n"
+    "#else\n"
     "in vec3 position;\n"
     "out highp vec2 UV;\n"
-    "#else\n"
-    "attribute vec3 position;\n"
-    "varying highp UV;\n"
     "#endif\n"
     "\n"
     "void main() {\n"
@@ -74,14 +72,29 @@ void copy_tex_params(struct TextureParams *dst,
 
 GLFWwindow *init_window(int width, int height) {
     if (glfwInit() != GL_TRUE) {
+        #ifndef __EMSCRIPTEN__
+	fprintf(stderr, "%s\n", glfwGetError(NULL));
         fprintf(stderr, "Unable to create glfw window.\n");
         exit(1);
+        #endif
     }
+    #ifdef __EMSCRIPTEN__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #else
+    #ifdef OLD_OPENGL_VERSION
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+    #endif
     #ifndef __APPLE__
     GLFWwindow *window = glfwCreateWindow(width, height, "Window",
                                           NULL, NULL);
@@ -93,8 +106,11 @@ GLFWwindow *init_window(int width, int height) {
                                           NULL, NULL);
     #endif
     if (!window) {
+        #ifndef __EMSCRIPTEN__
+	fprintf(stderr, "%x\n", glfwGetError(NULL)); 
         fprintf(stderr, "Unable to create glfw window.\n");
         exit(1);
+        #endif
     }
     glfwMakeContextCurrent(window);
     return window;
@@ -119,7 +135,15 @@ void compile_shader(GLuint shader_ref, const char *shader_source) {
     int size = 0;
     for (int i = 0; shader_source[i]; i++, size++);
     #ifndef __EMSCRIPTEN__
-    const char version_number[] = "#version 330 core\n";
+    int minor_version = 0, major_version = 0;
+    glGetIntegerv(GL_MINOR_VERSION, &minor_version);
+    glGetIntegerv(GL_MAJOR_VERSION, &major_version);
+    // fprintf(stdout, "%d, %d\n", major_version, minor_version);
+    #ifdef OLD_OPENGL_VERSION
+    const char version_number[] = "#version 120\n";
+    #else
+    const char version_number[] = "#version 330\n";
+    #endif
     #else
     const char version_number[] = "#version 300 es  \n";
     #endif
@@ -253,7 +277,7 @@ GLuint make_program(const char *path_vertex, const char *path_fragment) {
     glGetProgramiv(program, GL_LINK_STATUS, &status);
     glGetProgramInfoLog(program, 512, NULL, buf);
     if (status != GL_TRUE) {
-        fprintf(stderr, "%s\n%s", "Failed to link program:", buf);
+        fprintf(stderr, "%s\n%s\n", "Failed to link program:", buf);
     }
     glUseProgram(program);
     return program;
@@ -280,7 +304,7 @@ GLuint make_quad_program(const char *frag_shader_loc) {
     glGetProgramiv(program, GL_LINK_STATUS, &status);
     glGetProgramInfoLog(program, 512, NULL, buf);
     if (status != GL_TRUE) {
-        fprintf(stderr, "%s\n%s", "Failed to link program:", buf);
+        fprintf(stderr, "%s\n%s\n", "Failed to link program:", buf);
     }
     glUseProgram(program);
     return program;

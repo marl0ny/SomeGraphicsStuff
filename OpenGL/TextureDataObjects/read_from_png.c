@@ -1,3 +1,4 @@
+#ifndef __EMSCRIPTEN__
 #include <png.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,7 +70,8 @@ int read_png(const char *fname, unsigned char *buf, int buf_size) {
     // png_set_sig_bytes(read_ptr, header_size);
     png_read_png(read_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
     png_byte **row_pointers;
-    int width, height, bit_depth;
+    unsigned int width, height;
+    int bit_depth;
     int colour_type, interlace_method;
     int compression_type, filter_method;
     png_get_IHDR(read_ptr, info_ptr, &width, &height, &bit_depth, &colour_type,
@@ -108,3 +110,4 @@ int read_png(const char *fname, unsigned char *buf, int buf_size) {
     fclose(f);
     return 0;
 }
+#endif

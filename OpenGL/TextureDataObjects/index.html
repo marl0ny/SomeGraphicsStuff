@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+<meta charset="utf-8"/>
+<html>
+    <center>
+        <h1 style="color:white;">Simulation</h1>>
+    <body style="font-family: Arial; background-color: rgb(0, 0, 0);">
+        <canvas id="canvas", oncontextmenu="event.preventDefault()"> </canvas>
+    </body>
+    </center>
+    <center>
+        <!--
+    <p style="color:white;">
+       Click anywhere on the canvas to reset the simulation.<br>
+       The left and right-hand side
+       show position and momentum space respectively.<br>
+    </p></center>
+    !-->
+    <script type='text/javascript'>
+        var canvas = document.getElementById('canvas');
+        var Module = {
+          canvas: canvas
+        };
+    </script>
+    <!--<script scr="/stats/stats.min.js"></script>!-->
+    <!--<script type="text/javascript">
+	    var stats = new Stats
+    </script>!-->
+    <script src="main.js"></script>
+</html>
+

@@ -17,6 +17,17 @@
 #include <GLES3/gl3.h>
 #include <time.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
 
 static double time_difference_in_ms(const struct timespec *t1,
                                     const struct timespec *t2);
@@ -32,9 +43,7 @@ static double time_difference_in_ms(const struct timespec *t1,
 
    - Wikipedia contributors. (2021, May 6). Split-step method.
    In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Split-step_method.
-
-*/
+   https://en.wikipedia.org/wiki/Split-step_method.*/
 int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
     int exit_status = 0;
     int NX = 256, NY = 256;
@@ -43,8 +52,8 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
     // int NX = 256, NY = 256;
     int frame_count = 0;
     auto imag_unit = std::complex<double>(0.0, 1.0);
-    // double dt = 3.0;
-    std::complex<double> dt = 3.0 - 0.1*imag_unit;
+    double dt = 3.0;
+    // std::complex<double> dt = 3.0 - 0.1*imag_unit;
     double hbar = 1.0;
     double m = 1.0;
     // double dx = width/(float)NX, dy = height/(float)NY;
@@ -56,60 +65,41 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
     command.set_float_uniforms({{"amplitude", 5.0},
                                 {"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}}, });
-    command.set_ivec2_uniforms({{"wavenumber", {.x=-5, .y=5}}, });
-    auto psi = command.create(COMPLEX, NX, NY, true,
-                               GL_REPEAT, GL_REPEAT,
-                               GL_LINEAR, GL_LINEAR);
-    auto psi1 = psi*(100.0/sqrt(psi.squared_norm().as_double));
-    auto psi2 = psi1;
+    command.set_ivec2_uniforms({{"wavenumber", {.x=-6, .y=5}}, });
+    auto psi_unnorm = command.create(COMPLEX, NX, NY, true,
+                                     GL_REPEAT, GL_REPEAT,
+                                     GL_LINEAR, GL_LINEAR);
+    auto psi {psi_unnorm*(100.0/sqrt(psi_unnorm.squared_norm().as_double))};
     auto x = make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
     auto y = make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
-    auto px = fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
-    auto py = fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
-    auto pot = (0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
-    auto p_propagator = exp((-imag_unit*dt/(2.0*m*hbar))*(px*px + py*py));
-    auto x_propagator = exp((-imag_unit*(dt/2.0)/hbar)*pot);
-    auto h_psi_func = [=](Texture2DData &psi,
-                          Texture2DData &pot) -> Texture2DData {
+    Texture2DData pot = (0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
+    Texture2DData x_propagator = exp((-imag_unit*(dt/2.0)/hbar)*pot);
+    Texture2DData px = fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
+    Texture2DData py = fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
+    Texture2DData p2 = px*px + py*py;
+    Texture2DData p_propagator = exp((-imag_unit*dt/(2.0*m*hbar))*p2);
+    auto h_psi_func = [&](const Texture2DData psi_x0) -> Texture2DData {
         return x_propagator*ifft(p_propagator*fft(x_propagator*psi));
     };
     auto view_com = DrawTexture2DData(Path("./shaders/view.frag"));
     auto data = new uint8_t[3*window_width*window_height] {0,};
     std::time_t t0 = std::time(nullptr);
-    for (int k = 0, exit_loop = false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
         glViewport(0, 0, NX, NY);
-        int steps_per_frame = 2;
+        int steps_per_frame = 1;
         for (int i = 0; i < steps_per_frame; i++) {
-            psi2 = h_psi_func(psi1, pot);
-            psi2 = psi2*(100.0/sqrt(psi2.squared_norm().as_double));
-            swap(psi1, psi2);
+            psi = h_psi_func(psi);
+            psi = psi*(100.0/sqrt(psi.squared_norm().as_double));
         }
+
         glViewport(0, 0, window_width, window_height);
-        /*{
-            auto bmp_frame = Texture2DData(HALF_FLOAT3,
-                                           window_width, window_height);
-            view_com.draw(bmp_frame, "tex", psi1);
-
-            bmp_frame.paste_to_rgb_image_data(data);
-            std::stringstream filename {};
-            std::string d_path = "./";
-            if (k < 10)
-                filename << d_path << "data_000" << k << ".bmp";
-            else if (k < 100)
-                filename << d_path << "data_00" << k << ".bmp";
-            else if (k < 1000)
-                filename << d_path << "data_0" << k << ".bmp";
-            else
-                filename << d_path << "data_" << k << ".bmp";
-            std::string filename_str = filename.str();
-            write_to_bitmap(&filename_str[0], data,
-            window_width, window_height);
-
-        }*/
         bind_quad(main_frame, view_program);
-        psi1.set_as_sampler2D_uniform("tex");
+        psi.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
         frame_count++;
@@ -123,11 +113,21 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
         clock_gettime(CLOCK_MONOTONIC, &frame_end);
         if (k % 10 == 0 && k != 0) {
             double delta_t = time_difference_in_ms(&frame_start, &frame_end);
+	    // std::cout << psi2.sum_reduction().as_dvec4.x << std::endl;
             std::cout << "frames/s: " << (1000.0/delta_t) << std::endl;
             std::cout << "steps/s: " << (1000.0/delta_t)*steps_per_frame
                       << std::endl;
         }
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while(!exit_loop)
+        loop();
+    #endif
+    
     std::time_t t1 = std::time(nullptr);
     std::cout << (double)frame_count/((double)t1 - (double)t0) << std::endl;
     return exit_status;

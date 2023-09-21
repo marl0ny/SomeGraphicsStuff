@@ -16,6 +16,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 /*
 Gray Scott Reaction Diffusion.
 
@@ -109,7 +121,9 @@ int gray_scott_reaction_diffusion(GLFWwindow *window,
         };
     };
 
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+    bool exit_loop = false;
+    int n = 0;
+    loop = [&] {
         glViewport(0, 0, width, height);
         for (int k = 0; k < 50; k++) {
             uv = forward_euler(uv[0], uv[1], dt);
@@ -122,13 +136,20 @@ int gray_scott_reaction_diffusion(GLFWwindow *window,
         view_u.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
-        if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
+        if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && n > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {
             exit_status = 1;
             exit_loop = true;
         }
+        n++;
         glfwSwapBuffers(window);
-    }
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop) loop();
+    #endif
     return exit_status;
 }

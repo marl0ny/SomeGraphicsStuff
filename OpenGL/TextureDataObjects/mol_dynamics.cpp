@@ -17,6 +17,18 @@
 #include <GLES3/gl3.h>
 #include <time.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 static double time_difference_in_ms(const struct timespec *t1,
                                     const struct timespec *t2) {
     if (t2->tv_nsec >= t1->tv_nsec)
@@ -140,7 +152,9 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
                                     NULL, -1);
     }
 
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         struct timespec t1, t2;
         clock_gettime(CLOCK_MONOTONIC, &t1); 
 	// clock_gettime(CLOCK_REALTIME, &t1);
@@ -184,6 +198,13 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
                 << floor((1000.0/delta_t)*steps_per_frame) 
                 << std::endl;
         }
-    }
+        k++;
+    };
+    
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop) loop();
+    #endif
     return exit_status;
 }

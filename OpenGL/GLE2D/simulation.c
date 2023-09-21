@@ -13,7 +13,7 @@ void init_sim_params(SimParams *params) {
     params->height = 64.0;
     params->dx = params->width/params->texel_width;
     params->dy = params->height/params->texel_height;
-    params->sigma = 5e1;
+    params->sigma = 10000.0;
     params->kappa = 300000.0;
     // params->complex_psi_step_offset.x = 0.07; // 1.0/sqrt(2.0);
     // params->complex_psi_step_offset.y = 1.0; // 1.0/sqrt(2.0);

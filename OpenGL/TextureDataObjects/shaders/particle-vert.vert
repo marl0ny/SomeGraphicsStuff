@@ -1,12 +1,19 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 uvIndex;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
+#define texture texture2D
+#endif
+
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+
+#if __VERSION__ <= 120
 attribute vec2 uvIndex;
+#else
+in vec2 uvIndex;
 #endif
 
 uniform sampler2D tex;

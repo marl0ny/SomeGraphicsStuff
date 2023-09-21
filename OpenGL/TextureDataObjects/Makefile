@@ -1,20 +1,14 @@
 SHELL = /bin/bash
-FLAGS = -O2 -g -Wno-everything -ffast-math # -Wall
-# FLAGS = -O2 -Wall
-C_COMPILE = clang 
-CPP_COMPILE = clang++ -std=c++11
-# COMPILE = clang
 
-# For Linux the prerequisite installs are OpenGL with GLEW and GLFW.
-ifeq ($(shell uname), Linux)
-INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers
+
+INCLUDE = -I${PWD} -I${PWD}/gl_wrappers
 LIBS = -lm -lGL -lGLEW -lglfw -pthread -lpng
-endif
 
 # For MacOS you must first install the relavent OpenGL and GLFW libraries.
-# If you installed the libraries through Homebrew you will probably first
-# need to know the location of the Homebrew developement files, which varies
-# from installation to installation, and then edit the INCLUDE and LIBS
+# Depending on which package manager you used, as well as the age and 
+# type of your system, the actual location of these libraries will vary.
+# You must first determine the actual location of the developement directories
+# for your own system, and then edit the INCLUDE and LIBS 
 # variables accordingly.
 ifeq ($(shell uname),Darwin)
 INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers -I/opt/homebrew/include\
@@ -27,6 +21,19 @@ endif
 
 
 TARGET = ${PWD}/program
+FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
+# FLAGS = -O0 -g -Wall
+C_COMPILE = clang 
+CPP_COMPILE = clang++ -std=c++11
+
+TARGET = main.js
+CPP_COMPILE = emcc
+C_COMPILE = emcc
+FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
+	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+LIBS =
+INCLUDE =
+
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
              unary_ops.c fft.c bitmap.c summation.c write_to_png.c \
 						 read_from_png.c serialize.c

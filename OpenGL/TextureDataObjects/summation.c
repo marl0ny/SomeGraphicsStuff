@@ -228,10 +228,14 @@ void reduce_to_single_channel(frame_id dst, frame_id src,
 
 struct PixelData sum(frame_id quad_id,
                      const struct TextureParams *tex_params) {
+    // TODO: if using an older version of OpenGL default to this line:
     // return sum_for_loop(quad_id, tex_params);
     struct TextureParams new_tex_params = {};
     memcpy(&new_tex_params, tex_params,
            sizeof(struct TextureParams));
+    /* #ifdef __EMSCRIPTEN__
+    return sum_for_loop(quad_id, tex_params);
+    #endif*/
     if (((tex_params->width % 2 == 0) || (tex_params->height % 2 == 0)) &&
         (tex_params->width > 3 && tex_params->height > 3)) {
         if (tex_params->width % 2 == 0)
@@ -260,12 +264,21 @@ struct PixelData sum(frame_id quad_id,
 struct PixelData norm_squared(frame_id src,
                               const struct TextureParams *tex_params) {
     GLuint type = to_type(tex_params->format);
+    #ifndef __EMSCRIPTEN__
     int tmp_format = GL_R32F;
     if (type == GL_INT || type == GL_SHORT || type == GL_BYTE)
         tmp_format = GL_R32I;
     else if (type == GL_UNSIGNED_INT || type == GL_UNSIGNED_SHORT
              || type == GL_UNSIGNED_BYTE)
         tmp_format = GL_R32UI;
+    #else
+    int tmp_format = GL_RGBA32F;
+    if (type == GL_INT || type == GL_SHORT || type == GL_BYTE)
+        tmp_format = GL_RGBA32I;
+    else if (type == GL_UNSIGNED_INT || type == GL_UNSIGNED_SHORT
+             || type == GL_UNSIGNED_BYTE)
+        tmp_format = GL_RGBA32UI;
+    #endif
     struct TextureParams tmp_tex_params = {
         .format=tmp_format,
         .width=tex_params->width, .height=tex_params->height,
@@ -282,10 +295,11 @@ struct PixelData norm_squared(frame_id src,
     if (base_val == GL_RGB) size = 3;
     if (base_val == GL_RG) size = 2;
     if (base_val == GL_RED) size = 1;
-    // printf("%d\n", size);
+    // printf("size: %d\n", size);
     set_int_uniform("size", size);
     draw_unbind_quad();
     struct PixelData dat = sum(tmp_frame, &tmp_tex_params);
+    // printf("Pixel data value as float: %g\n", dat.as_float);
     deactivate_frame(&tmp_tex_params, tmp_frame);
     return dat;
 }

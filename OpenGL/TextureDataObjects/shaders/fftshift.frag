@@ -1,14 +1,21 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 UV;
-out vec4 fragColor;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
+#define texture texture2D
+#endif
+
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+ 
+#if __VERSION__ <= 120
+varying vec2 UV;
 #define fragColor gl_FragColor
-varying highp vec2 UV;
+#else
+in vec2 UV;
+out vec4 fragColor;
 #endif
 
 uniform sampler2D tex;
@@ -20,12 +27,4 @@ void main() {
     float u = (u0 < 0.5)? u0 + 0.5: u0 - 0.5;
     float v = (v0 < 0.5)? v0 + 0.5: v0 - 0.5;
     fragColor = texture2D(tex, vec2(u, v));
-    /*if (!isVertical)
-        fragColor = (u < 0.5)?
-            texture2D(tex, vec2(u + 0.5, v)): 
-            texture2D(tex, vec2(u - 0.5, v));
-    else
-        fragColor = (v < 0.5)? 
-            texture2D(tex, vec2(u, v + 0.5)): 
-            texture2D(tex, vec2(u, v - 0.5));*/
 }

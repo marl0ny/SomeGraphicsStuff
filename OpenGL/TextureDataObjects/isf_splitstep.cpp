@@ -16,6 +16,20 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
+static const double pi = 3.141592653589793;
+
 /*
 Incompressible Schrodinger Flow implementation.
 
@@ -34,13 +48,12 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
-    int NX = 512, NY = 512;
+    int NX = 256, NY = 256;
     double dt = 2.0;
     double width = (double)NX, height = (double)NY;
     double dx = width/(double)NX, dy = height/(double)NY;
     double hbar = 1.0;
     double m = 1.0;
-    double pi = 3.141592653589793;
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
     auto init_current_command
@@ -122,7 +135,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                             ) -> std::vector<Texture2DData> {
         Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
-            .order_of_accuracy=4, .staggered=1};
+            .staggered=1, .order_of_accuracy=4};
         auto hbar_i = -imag_unit*hbar;
         auto psi_u_dag = roll(conj(psi_u), -dx/(2.0*width), -dy/(2.0*height));
         auto psi_d_dag = roll(conj(psi_d), -dx/(2.0*width), -dy/(2.0*height));
@@ -137,7 +150,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
     auto pressure_func = [=](std::vector<Texture2DData> &j) -> Texture2DData {
         Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
-            .order_of_accuracy=4, .staggered=-1};
+            .staggered=-1, .order_of_accuracy=4};
         auto grad_dot_j = ddx(j[0], grad_params) + ddy(j[1], grad_params);
         return poisson_func_fft(grad_dot_j);
     };
@@ -168,7 +181,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                               Texture2DData &pressure) -> Texture2DData {
         Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
-            .order_of_accuracy=4, .staggered=-1};
+            .staggered=-1, .order_of_accuracy=4};
         auto grad_dot_j = ddx(j[0], grad_params) + ddy(j[1], grad_params);
         auto pressuref = pressure.cast_to(FLOAT, X);
         return poisson_func_iterative(grad_dot_j, pressuref, 10
@@ -176,8 +189,11 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
     };
 
     auto pressure = 0.0*psi_u;
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
-        glViewport(0, 0, NX, NY);
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
+         glViewport(0, 0, NX, NY);
         psi_u = h_psi_func(psi_u);
         psi_d = h_psi_func(psi_d);
         auto norm = sqrt(psi_u*conj(psi_u) + psi_d*conj(psi_d));
@@ -219,6 +235,15 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
+
     return exit_status;
 }

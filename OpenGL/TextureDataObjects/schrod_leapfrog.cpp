@@ -17,6 +17,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 
 /* Numerically solving the Schrodinger equation using explicit finite
    differences. This follows an article by Visscher.
@@ -34,8 +46,8 @@ int schrod_leapfrog(GLFWwindow *window,
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
-    int NX = 512;
-    int NY = 512;
+    int NX = 256;
+    int NY = 256;
     double dt = 0.011;
     double hbar = 1.0;
     double m = 1.0;
@@ -46,7 +58,8 @@ int schrod_leapfrog(GLFWwindow *window,
     glViewport(0, 0, NX, NY);
     auto command
         = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
-    command.set_float_uniforms({{"amplitude", 5.0}, {"sigma", 0.05}});
+    command.set_float_uniforms({{"amplitude", 5.0},
+				{"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.2, .y=0.2}}, });
     command.set_ivec2_uniforms({{"wavenumber", {.x=-5, .y=5}}, });
     auto psi1 = command.create(COMPLEX, NX, NY, true,
@@ -64,11 +77,16 @@ int schrod_leapfrog(GLFWwindow *window,
     };
     auto psi2 = psi1 - (imag_unit*(0.5*dt/hbar))*h_psi_func(psi1, pot);
     auto psi3 = psi2;
+    // auto psi_p = ifft(fft(psi3));
+    // std::cout << psi_p.get_frame_id() << std::endl;
     auto view_com = DrawTexture2DData(Path("./shaders/view.frag"));
     int frame_count = 0;
     auto data = new uint8_t[3*window_width*window_height] {0,};
     std::time_t t0 = std::time(nullptr);
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    int exit_loop = false;
+    loop = [&] {
         glViewport(0, 0, NX, NY);
         for (int i = 0; i < 20; i++) {
             psi3 = psi1 - (imag_unit*(dt/hbar))*(h_psi_func(psi2, pot)
@@ -79,26 +97,6 @@ int schrod_leapfrog(GLFWwindow *window,
             // laplacian_psi2.paste_to_quad(main_frame);
         }
         glViewport(0, 0, window_width, window_height);
-        /*{
-            auto bmp_frame = Texture2DData(HALF_FLOAT3,
-                                           window_width, window_height);
-            view_com.draw(bmp_frame, "tex", psi1);
-
-            bmp_frame.paste_to_rgb_image_data(data);
-            std::stringstream filename {};
-            if (k < 10)
-                filename << "data_000" << k << ".bmp";
-            else if (k < 100)
-                filename << "data_00" << k << ".bmp";
-            else if (k < 1000)
-                filename << "data_0" << k << ".bmp";
-            else
-                filename << "data_" << k << ".bmp";
-            std::string filename_str = filename.str();
-            write_to_bitmap(&filename_str[0], data,
-            window_width, window_height);
-
-        }*/
         frame_count++;
         bind_quad(main_frame, view_program);
         psi1.set_as_sampler2D_uniform("tex");
@@ -112,7 +110,16 @@ int schrod_leapfrog(GLFWwindow *window,
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
+
     std::time_t t1 = std::time(nullptr);
     std::cout << (double)frame_count/((double)t1 - (double)t0) << std::endl;
     return exit_status;

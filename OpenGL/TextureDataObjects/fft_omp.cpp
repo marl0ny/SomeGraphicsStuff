@@ -2,8 +2,8 @@
 
 typedef double real;
 
-static const real tau = 6.2831853071795864;
-static const real invsqrt2 = 0.70710678118654752;
+static const real TAU = 6.2831853071795864;
+static const real INVSQRT2 = 0.70710678118654752;
 
 
 template <typename T>
@@ -42,12 +42,12 @@ static void bitreverse2(T *arr, int n) {
 static real _cos_arr[256];
 static bool _is_cos_arr_init = false;
 static void _cos_arr_init(int n) {
-    real angle=tau/n;
+    real angle = TAU/n;
     real c, s;
     _cos_arr[0] = 1.0;
-    _cos_arr[n/8] = invsqrt2;
+    _cos_arr[n/8] = INVSQRT2;
     _cos_arr[n/4] = 0.0;
-    _cos_arr[3*n/8] = -invsqrt2;
+    _cos_arr[3*n/8] = -INVSQRT2;
     for (int i = 1; i < n/8; i++) {
         c = cos(i*angle);
         s = sin(i*angle);
@@ -84,8 +84,8 @@ static inline void _fft(bool is_inverse, T* z, int n) {
                          (-sign*_cos_arr[i*block_total + n/4]):
                          (sign*_cos_arr[i*block_total - n/4]);
                 #else
-                cos_val = cos(tau*i/block_size);
-                sin_val = sign*sin(tau*i/block_size);
+                cos_val = cos(TAU*i/block_size);
+                sin_val = sign*sin(TAU*i/block_size);
                 #endif
                 /*Get even and odd elements*/
                 even = z[j + i];
@@ -97,7 +97,7 @@ static inline void _fft(bool is_inverse, T* z, int n) {
                 if (is_inverse && block_size == n) n_val = n;
                 z[j + i].real((even.real() + exp.real())/n_val);
                 z[j + i].imag((even.imag() + exp.imag())/n_val);
-                z[block_size/2 + j + i].real((even.real() 
+                z[block_size/2 + j + i].real((even.real()
                                                - exp.real())/n_val);
                 z[block_size/2 + j + i].imag((even.imag()
                                                - exp.imag())/n_val);

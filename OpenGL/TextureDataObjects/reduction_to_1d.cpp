@@ -16,6 +16,17 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
 
 /* Reduce a 2D texture to 1D by summing over either the rows or columns.
 */
@@ -63,7 +74,10 @@ int reduction_to_1d(GLFWwindow *window,
     };
     Uint8Vec4 *byte4_arr = (Uint8Vec4 *)calloc(window_width*window_height, 
                                           sizeof(Uint8Vec4));
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         FillDataRet tmp = fill_data();
         float tmp2[0x1000];
         Texture2DData tmp_tex{data, window_width, window_height};
@@ -84,8 +98,8 @@ int reduction_to_1d(GLFWwindow *window,
                 tmp.norm_squared_1d[i]: max_val;
         for (int i = 0; i < NY; i++)
             max_val2 = (tmp2[i] > max_val2)? tmp2[i]: max_val2;
-        printf("Max val using cpu vs glsl\n");
-        printf("%g, %g\n", max_val, max_val2);
+        // printf("Max val using cpu vs glsl\n");
+        // printf("%g, %g\n", max_val, max_val2);
         for (int i = 0; i < NY; i++) {
             int index0 = i;
             int index1 = (int)(0.5*NX*tmp.norm_squared_1d[i]/max_val);
@@ -135,6 +149,15 @@ int reduction_to_1d(GLFWwindow *window,
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while(!exit_loop)
+        loop();
+    #endif
+    
     return exit_status;
 }

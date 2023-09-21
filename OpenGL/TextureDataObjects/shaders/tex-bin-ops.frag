@@ -1,14 +1,21 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 UV;
-out vec4 fragColor;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
+#define texture texture2D
+#endif
+
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+ 
+#if __VERSION__ <= 120
+varying vec2 UV;
 #define fragColor gl_FragColor
-varying highp vec2 UV;
+#else
+in vec2 UV;
+out vec4 fragColor;
 #endif
 
 #define complex vec2
@@ -51,8 +58,12 @@ void main() {
     } else if (opType == DIV) {
         fragColor = valL/valR;
     } else if (opType == COMPLEX_MUL) {
-        fragColor = complex2(mul(valL.xy, valR.xy),
-        		      mul(valL.zw, valR.zw));
+        fragColor = complex2(valL.x*valR.x - valL.y*valR.y,
+                             valL.x*valR.y + valL.y*valR.x,
+                             valL.z*valR.z - valL.w*valR.w,
+                             valL.z*valR.w + valL.w*valR.z);
+        // fragColor = complex2(mul(valL.xy, valR.xy),
+        // 		      mul(valL.zw, valR.zw));
     } else if (opType == COMPLEX_DIV) {
         fragColor = complex2(mul(valL.xy, inv(valR.xy)),
         		      mul(valL.zw, inv(valR.zw)));

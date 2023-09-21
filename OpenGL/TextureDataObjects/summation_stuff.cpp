@@ -16,6 +16,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 
 /* Sum through all elements in a texture. */
 int summation_stuff(GLFWwindow *window,
@@ -55,24 +67,30 @@ int summation_stuff(GLFWwindow *window,
             .norm_squared = norm_squared_sum,
         };
     };
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         FillDataRet tmp = fill_data();
         DVec4 sum = tmp.elementwise_sum;
         double norm_squared_sum = tmp.norm_squared;
+        auto f = Texture2DData(data, NX, NY);
+        PixelData sum2 = f.sum_reduction();
+        double tmp2 = f.squared_norm().as_double;
+
+        // Print the information
         std::cout << "Array sum for loop:" << std::endl;
         std::cout << "x: " << sum.x << ", y: " << sum.y
          << ", z: " << sum.z << ", w: " << sum.w << std::endl;
-        auto f = Texture2DData(data, NX, NY);
         std::cout << "Using method: " << std::endl;
-        PixelData sum2 = f.sum_reduction();
         std::cout << "x: " << sum2.as_dvec4.x << ", y: " << sum2.as_dvec4.y
          << ", z: " << sum2.as_dvec4.z << ", w: " << sum2.as_dvec4.w
          << std::endl;
         std::cout << "Norm squared for loop: ";
         std::cout << norm_squared_sum << std::endl;
         std::cout << "Using method: ";
-        double tmp2 = f.squared_norm().as_double;
         std::cout << tmp2 << std::endl;
+
         bind_quad(main_frame, view_program);
         f.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
@@ -85,6 +103,14 @@ int summation_stuff(GLFWwindow *window,
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+    };
+    
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
     return exit_status;
 }

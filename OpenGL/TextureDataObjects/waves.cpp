@@ -16,6 +16,18 @@
 #include "summation.h"
 #include <GLES3/gl3.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+#include <functional>
+
+static std::function <void()> loop;
+#ifdef __EMSCRIPTEN__
+static void main_loop() {
+    loop();
+}
+#endif
+
 /* Finite difference waves simulation using
 second order centred difference in time.*/
 int waves(GLFWwindow *window, frame_id main_frame) {
@@ -43,7 +55,10 @@ int waves(GLFWwindow *window, frame_id main_frame) {
                 .order_of_accuracy=8});
         return dt*laplacian_w1 + 2.0*w1 - w0;
     };
-    for (int k = 0, exit_loop=false; !exit_loop; k++) {
+
+    int k = 0;
+    bool exit_loop = false;
+    loop = [&] {
         for (int j = 0; j < 10; j++) {
             if (k == 0 && j == 0) {
                 w2 = step(w1, w1, 0.05);
@@ -64,6 +79,19 @@ int waves(GLFWwindow *window, frame_id main_frame) {
             exit_loop = true;
         }
         glfwSwapBuffers(window);
-    }
+        k++;
+        #ifdef __EMSCRIPTEN__
+        if (exit_loop)
+            emscripten_cancel_main_loop();
+        #endif
+    };
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 0, true);
+    #else
+    while (!exit_loop)
+        loop();
+    #endif
+    std::cout << "This is reached\n";
+
     return exit_status;
 }

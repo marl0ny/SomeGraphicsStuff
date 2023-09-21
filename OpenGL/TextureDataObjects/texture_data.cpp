@@ -2,6 +2,7 @@
 #include "unary_ops.h"
 #include "frames_stacks.h"
 #include "fft.h"
+#include "fft_omp.hpp"
 #include "summation.h"
 #include <GLES3/gl3.h>
 #include <cmath>
@@ -373,7 +374,7 @@ Texture2DData::Texture2DData(Texture2DData &&x) {
     x.frame = -1;
 }
 
-Texture2DData& Texture2DData::operator=(Texture2DData &&x) {
+Texture2DData &Texture2DData::operator=(Texture2DData &&x) {
     modify_viewport_if_mismatch(0, 0, x.tex_params.width, x.tex_params.height);
     deactivate_frame(&this->tex_params, this->frame);
     this->frame = x.frame;
@@ -465,6 +466,14 @@ void Texture2DData::set_as_sampler2D_uniform(const char *name) const {
 void Texture2DData::debug_print_state() const {
     std::cout << "type_id: " << type << "\n";
     std::cout << "frame_id: " << frame << "\n";
+}
+
+int Texture2DData::get_frame_id() const {
+    return frame;
+}
+
+int Texture2DData::get_type_id() const {
+    return type;
 }
 
 Texture2DData Texture2DData::cast_to(int type, Channel c0) const {
@@ -949,7 +958,23 @@ Texture2DData ifft(const Texture2DData &x) {
     return Texture2DData(x.type, new_frame, x.tex_params);
 }
 
+Texture2DData fft_omp(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData ifft_omp(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
 Texture2DData fftshift(const Texture2DData &x) {
+    frame_id new_frame = activate_frame(&x.tex_params);
+    tex_fftshift(new_frame, x.frame, &x.tex_params);
+    return Texture2DData(x.type, new_frame, x.tex_params);
+}
+
+Texture2DData fftshift(const Texture2DData &x, int type) {
     frame_id new_frame = activate_frame(&x.tex_params);
     tex_fftshift(new_frame, x.frame, &x.tex_params);
     return Texture2DData(x.type, new_frame, x.tex_params);

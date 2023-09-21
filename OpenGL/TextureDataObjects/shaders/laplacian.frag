@@ -1,14 +1,21 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 UV;
-out vec4 fragColor;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
+#define texture texture2D
+#endif
+
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+ 
+#if __VERSION__ <= 120
+varying vec2 UV;
 #define fragColor gl_FragColor
-varying highp vec2 UV;
+#else
+in vec2 UV;
+out vec4 fragColor;
 #endif
 
 uniform float dx;
@@ -108,9 +115,9 @@ vec4 laplacian8thOrder17Point(sampler2D tex) {
     vec4 r4 = texture(tex, UV + 4.0*vec2(dx/width, 0.0));
     vec4 c0 = texture(tex, UV);
     float dy2 = dy*dy, dx2 = dx*dx;
-    vec4 d2Tdx2 = (-(r4 + L4)/560.0 + 8*(r3 + L3)/315.0 - (r2 + L2)/5.0
+    vec4 d2Tdx2 = (-(r4 + L4)/560.0 + 8.0*(r3 + L3)/315.0 - (r2 + L2)/5.0
                     + 8.0*(r1 + L1)/5.0 - 205.0*c0/72.0)/dx2;
-    vec4 d2Tdy2 = (-(u4 + d4)/560.0 + 8*(u3 + d3)/315.0 - (u2 + d2)/5.0
+    vec4 d2Tdy2 = (-(u4 + d4)/560.0 + 8.0*(u3 + d3)/315.0 - (u2 + d2)/5.0
                     + 8.0*(u1 + d1)/5.0 - 205.0*c0/72.0)/dy2;
     return d2Tdx2 + d2Tdy2;
 }
