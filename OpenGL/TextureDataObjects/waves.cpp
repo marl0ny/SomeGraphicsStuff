@@ -36,8 +36,8 @@ int waves(GLFWwindow *window, frame_id main_frame) {
     window_dimensions(window, &window_width, &window_height);
     int NX = window_width, NY = window_height;
     int view_program = make_quad_program("./shaders/view.frag");
-    Texture2DData x = make_x(-0.5, 0.5, FLOAT, NX, NY);
-    Texture2DData y = make_y(-0.5, 0.5, FLOAT, NX, NY);
+    Texture2DData x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
+    Texture2DData y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     auto w1 = 10.0*exp(-0.5*(x*x + y*y)/(0.01*0.01));
     w1 = w1 + 10.0*exp((-0.5/(0.01*0.01))*((x-0.3)*(x-0.3)
          + (y+0.1)*(y+0.1)));
@@ -50,7 +50,7 @@ int waves(GLFWwindow *window, frame_id main_frame) {
     auto w3 = w2;
     auto step = [=](Texture2DData &w0, Texture2DData &w1,
                     double dt) -> Texture2DData {
-        auto laplacian_w1 = w1.laplacian({.dx=1.0, .dy=1.0,
+        auto laplacian_w1 = funcs2D::laplacian(w1, {.dx=1.0, .dy=1.0,
                 .width=(double)NX, .height=(double)NY,
                 .order_of_accuracy=8});
         return dt*laplacian_w1 + 2.0*w1 - w0;

@@ -43,6 +43,12 @@ void tex_bilerp(frame_id dst,
                 const struct Vec4 *w00, const struct Vec4 *w01,
                 const struct Vec4 *w10, const struct Vec4 *w11);
 
+void tex_trilerp(frame_id dst, const struct IVec3 *texel_dimensions_3d,
+                 const struct Vec4 *w000, const struct Vec4 *w010,
+                 const struct Vec4 *w100, const struct Vec4 *w110,
+                 const struct Vec4 *w001, const struct Vec4 *w011,
+                 const struct Vec4 *w101, const struct Vec4 *w111);
+
 void tex_swizzle(frame_id dst, frame_id src,
                  int c0, int c1, int c2, int c3);
 

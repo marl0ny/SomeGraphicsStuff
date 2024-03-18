@@ -60,15 +60,15 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
     auto imag_unit = std::complex<double>(0.0, 1.0);
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
-    auto x = make_x(-0.5, 0.5, FLOAT, NX, NY);
-    auto y = make_y(-0.5, 0.5, FLOAT, NX, NY);
+    auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
+    auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     auto command
         = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
     command.set_float_uniforms({{"amplitude", 5.0},
                                 {"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}}, });
     command.set_ivec2_uniforms({{"wavenumber", {.x=0, .y=0}}, });
-    auto phi0 = zeroes(COMPLEX2, NX, NY);
+    auto phi0 = funcs2D::zeroes(COMPLEX2, NX, NY);
     command.draw(phi0);
     std::vector<Texture2DData> psi0 {phi0, 0.0*phi0};
     std::vector<Texture2DData> psi1 {phi0, 0.0*phi0};
@@ -86,9 +86,12 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
         Texture2DData psi1 = psi.cast_to(COMPLEX, Channel::Z, Channel::W);
         struct Vec2 tmp {.x=-(float)(dx/(2.0*width)),
             .y=-(float)(dy/(2.0*height))};
-        auto vx = (stag == 1)? roll(vec_potential[1], tmp): vec_potential[1];
-        auto vy = (stag == 1)? roll(vec_potential[2], tmp): vec_potential[2];
-        auto vz = (stag == 1)? roll(vec_potential[3], tmp): vec_potential[3];
+        auto vx = (stag == 1)? 
+            funcs2D::roll(vec_potential[1], tmp): vec_potential[1];
+        auto vy = (stag == 1)? 
+            funcs2D::roll(vec_potential[2], tmp): vec_potential[2];
+        auto vz = (stag == 1)? 
+            funcs2D::roll(vec_potential[3], tmp): vec_potential[3];
         Texture2DData tmp0 = (vz*psi0 + (vx - imag_unit*vy)*psi1);
         Texture2DData tmp1 = ((vx + imag_unit*vy)*psi0 - vz*psi1);
         return cast_to(COMPLEX2,
@@ -100,10 +103,10 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
         struct Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
             .staggered=stag, .order_of_accuracy=4};
-        auto tmp0 = (ddx(psi1, grad_params)
-                     - imag_unit*ddy(psi1, grad_params));
-        auto tmp1 = (ddx(psi0, grad_params)
-                     + imag_unit*ddy(psi0, grad_params));
+        auto tmp0 = (funcs2D::ddx(psi1, grad_params)
+                     - imag_unit*funcs2D::ddy(psi1, grad_params));
+        auto tmp1 = (funcs2D::ddx(psi0, grad_params)
+                     + imag_unit*funcs2D::ddy(psi0, grad_params));
         return cast_to(COMPLEX2,
                        tmp0, X, Y, NONE, NONE, tmp1, NONE, NONE, X, Y);
     };
@@ -121,7 +124,7 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
                    + (1.0 - idtmc2_2hbar - idtqphi_2hbar)*psi0[0]
                   )/(1.0 + idtmc2_2hbar + idtqphi_2hbar);
         // idtqphi_2hbar
-        //     = roll(idtqphi_2hbar, -dx/(2.0*width), -dy/(2.0*height));
+        //     = (idtqphi_2hbar, -dx/(2.0*width), -dy/(2.0*height));
         psi2[1] = ((-dt*c)*sigma_dot_grad(psi1[0], 0)
                    + iqdt_hbar*sigma_dot_vec_potential(psi1[0],
                                                        vec_potential, 0)

@@ -99,7 +99,7 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
                                              {"wall", wall_force}});
     energy_force_for_com.set_int_uniforms({{"isRow", true}});
 
-    Texture2DData step_data = zeroes(FLOAT4, N_PARTICLES, 1);
+    Texture2DData step_data = funcs2D::zeroes(FLOAT4, N_PARTICLES, 1);
     auto step = [&](const Texture2DData &r0, const Texture2DData &v0,
                               double dt, double t,
                               int i) -> std::vector<Texture2DData> {

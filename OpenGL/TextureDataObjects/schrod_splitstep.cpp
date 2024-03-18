@@ -48,7 +48,7 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
     int exit_status = 0;
     int NX = 256, NY = 256;
     int window_width = 0, window_height = 0;
-    glfwGetWindowSize(window, &window_width, &window_height);
+    window_dimensions(window, &window_width, &window_height);
     // int NX = 256, NY = 256;
     int frame_count = 0;
     auto imag_unit = std::complex<double>(0.0, 1.0);
@@ -70,16 +70,17 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
                                      GL_REPEAT, GL_REPEAT,
                                      GL_LINEAR, GL_LINEAR);
     auto psi {psi_unnorm*(100.0/sqrt(psi_unnorm.squared_norm().as_double))};
-    auto x = make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
-    auto y = make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
+    auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
+    auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
     Texture2DData pot = (0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
     Texture2DData x_propagator = exp((-imag_unit*(dt/2.0)/hbar)*pot);
-    Texture2DData px = fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
-    Texture2DData py = fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
+    Texture2DData px = funcs2D::fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
+    Texture2DData py = funcs2D::fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
     Texture2DData p2 = px*px + py*py;
     Texture2DData p_propagator = exp((-imag_unit*dt/(2.0*m*hbar))*p2);
     auto h_psi_func = [&](const Texture2DData psi_x0) -> Texture2DData {
-        return x_propagator*ifft(p_propagator*fft(x_propagator*psi));
+        return x_propagator
+        *funcs2D::ifft(p_propagator*funcs2D::fft(x_propagator*psi));
     };
     auto view_com = DrawTexture2DData(Path("./shaders/view.frag"));
     auto data = new uint8_t[3*window_width*window_height] {0,};
@@ -91,7 +92,7 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
         glViewport(0, 0, NX, NY);
-        int steps_per_frame = 1;
+        int steps_per_frame = 2;
         for (int i = 0; i < steps_per_frame; i++) {
             psi = h_psi_func(psi);
             psi = psi*(100.0/sqrt(psi.squared_norm().as_double));
@@ -101,6 +102,29 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
         bind_quad(main_frame, view_program);
         psi.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
+
+        /* auto bmp_frame = Texture2DData(HALF_FLOAT3,
+                                           window_width, window_height);
+        view_com.draw(bmp_frame, "tex", psi);
+        bmp_frame.paste_to_rgb_image_data(data);
+        if (k % 5 == 0 && k != 0) {
+            std::stringstream filename {};
+            std::string d_path = "./";
+            if (k < 10)
+                filename << d_path << "data_0000" << k;
+            else if (k < 100)
+                filename << d_path << "data_000" << k;
+            else if (k < 1000)
+                filename << d_path << "data_00" << k;
+            else if (k < 10000)
+                filename << d_path << "data_0" << k;
+            else
+                filename << d_path << "data_" << k;
+            filename << ".bmp";
+            write_to_bitmap(&(filename.str())[0], data,
+                             window_width, window_height);
+        }*/
+
         glfwPollEvents();
         frame_count++;
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)

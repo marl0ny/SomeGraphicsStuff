@@ -33,15 +33,19 @@ int poisson(GLFWwindow *window, frame_id main_frame) {
     // double dx = width/(double)NX, dy = height/(double)NY;
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
-    auto x0 = make_x(0.0, 1.0, FLOAT, NX, NY) - 0.5 - 0.5/(double)NX;
-    auto y0 = make_y(0.0, 1.0, FLOAT, NX, NY) - 0.5 - 0.5/(double)NY;
+    auto x0 = funcs2D::make_x(0.0, 1.0, 
+                                             FLOAT, NX, NY
+                                             ) - 0.5 - 0.5/(double)NX;
+    auto y0 = funcs2D::make_y(0.0, 1.0, 
+                                             FLOAT, NX, NY
+                                             ) - 0.5 - 0.5/(double)NY;
     // auto x = max(x0, 0.5/(double)NX).cast_to(COMPLEX, X, NONE);
     // auto y = max(y0, 0.5/(double)NY).cast_to(COMPLEX, X, NONE);
     auto x = x0; // .cast_to(COMPLEX, X, NONE);
     auto y = y0; // .cast_to(COMPLEX, X, NONE);
     double pi = 3.141592653589793;
-    auto px = fftshift(2.0*pi*x);
-    auto py = fftshift(2.0*pi*y);
+    auto px = funcs2D::fftshift(2.0*pi*x);
+    auto py = funcs2D::fftshift(2.0*pi*y);
     auto w = 0.25*exp(-0.5*(x*x + y*y)/(0.01*0.01)).cast_to(COMPLEX, X, NONE);
     w = w + 0.5*exp((-0.5/(0.01*0.01))*((x-0.3)*(x-0.3)
                                          + (y+0.1)*(y+0.1))
@@ -59,7 +63,7 @@ int poisson(GLFWwindow *window, frame_id main_frame) {
     // auto eigval = min(((-4.0/(dx*dx))*sx*sx + (-4.0/(dy*dy))*sy*sy), -0.001);
     // eigval = fftshift(eigval).cast_to(COMPLEX, X, NONE);
     auto eigval = max(px*px + py*py, 0.001).cast_to(COMPLEX, X, NONE);
-    auto phi = -1.0*ifft(fft(w)/eigval);
+    auto phi = -1.0*funcs2D::ifft(funcs2D::fft(w)/eigval);
     phi = phi.cast_to(COMPLEX, X, Y, NONE, NONE);
     // auto laplacian_phi = 100.0*phi.laplacian({.dx=dx, .dy=dy,
     //         .width=width, .height=height, .order_of_accuracy=4});

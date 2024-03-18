@@ -68,8 +68,8 @@ int gray_scott_reaction_diffusion(GLFWwindow *window,
     glViewport(0, 0, NX, NY);
     std::vector<Texture2DData> uv;
     {
-        auto x = make_x(-0.5, 0.5, FLOAT, NX, NY);
-        auto y = make_y(-0.5, 0.5, FLOAT, NX, NY);
+        auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
+        auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
         auto u = exp(-0.5*(x*x + y*y)/(0.03*0.03));
         {
             // u = u - 3.0*exp(-0.5*(pow(x - 0.25, 2)
@@ -77,7 +77,7 @@ int gray_scott_reaction_diffusion(GLFWwindow *window,
             u = u + exp(-0.5*(pow(x + 0.25, 2)
                               + pow(y + 0.25, 2))/(0.03*0.03));
         }
-        auto v = roll(u, {.x=0.02, .y=0.02});
+        auto v = funcs2D::roll(u, {.x=0.02, .y=0.02});
         uv = {u, v};
     }
 
@@ -88,8 +88,8 @@ int gray_scott_reaction_diffusion(GLFWwindow *window,
             .dx=dx, .dy=dy, .width=width, .height=height, .order_of_accuracy=4,
         };
         return {
-            r_u*u.laplacian(params) - u*pow(v, 2) + f*(1.0 - u),
-            r_v*v.laplacian(params) + u*pow(v, 2) - (k + f)*v
+            r_u*funcs2D::laplacian(u, params) - u*pow(v, 2) + f*(1.0 - u),
+            r_v*funcs2D::laplacian(v, params) + u*pow(v, 2) - (k + f)*v
         };
     };
 

@@ -98,19 +98,22 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
     auto psi_u = 0.999*tmp0*tmp1;
     auto psi_d = sqrt(1.0 - conj(psi_u)*psi_u);
     auto imag_unit = std::complex<double>(0.0, 1.0);
-    auto x = make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
-    auto y = make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
-    auto px = fftshift(2.0*pi*x);
-    auto py = fftshift(2.0*pi*y);
+    auto x = funcs2D::make_x(-0.5, 0.5, 
+        FLOAT, NX, NY) - 0.5/(double)NX;
+    auto y = funcs2D::make_y(-0.5, 0.5, 
+        FLOAT, NX, NY) - 0.5/(double)NY;
+    auto px = funcs2D::fftshift(2.0*pi*x);
+    auto py = funcs2D::fftshift(2.0*pi*y);
     auto p_propagator = exp((-imag_unit*dt/(2.0*m*hbar))*
                             (px*px + py*py).cast_to(COMPLEX, X, NONE));
     auto sx = sin(pi*x), sy = sin(pi*y);
     // auto laplace_eigval
     //     = max(((4.0/(dx*dx))*sx*sx + (4.0/(dy*dy))*sy*sy), 0.01);
     auto laplace_eigval = max(px*px + py*py, 0.001);
-    laplace_eigval = fftshift(laplace_eigval).cast_to(COMPLEX, X, NONE);
+    laplace_eigval = funcs2D::fftshift(
+        laplace_eigval).cast_to(COMPLEX, X, NONE);
     auto poisson_func_fft = [&](Texture2DData &rho) ->Texture2DData {
-        return -1.0*ifft(fft(rho/(laplace_eigval)));
+        return -1.0*funcs2D::ifft(funcs2D::fft(rho/(laplace_eigval)));
     };
     auto laplacian_solve_command
         = DrawTexture2DData(Path("./shaders/poisson-jacobi.frag"));
@@ -128,7 +131,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
         return x;
     };
     auto h_psi_func = [=](Texture2DData &psi) -> Texture2DData {
-        return ifft(p_propagator*fft(psi));
+        return funcs2D::ifft(p_propagator*funcs2D::fft(psi));
     };
     auto current_func = [=](Texture2DData &psi_u,
                             Texture2DData &psi_d
@@ -137,13 +140,15 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
             .width=width, .height=height,
             .staggered=1, .order_of_accuracy=4};
         auto hbar_i = -imag_unit*hbar;
-        auto psi_u_dag = roll(conj(psi_u), -dx/(2.0*width), -dy/(2.0*height));
-        auto psi_d_dag = roll(conj(psi_d), -dx/(2.0*width), -dy/(2.0*height));
-        auto jx = (hbar_i*(psi_u_dag*ddx(psi_u, grad_params)
-                           + psi_d_dag*ddx(psi_d, grad_params))
+        auto psi_u_dag 
+            = funcs2D::roll(conj(psi_u), -dx/(2.0*width), -dy/(2.0*height));
+        auto psi_d_dag 
+            = funcs2D::roll(conj(psi_d), -dx/(2.0*width), -dy/(2.0*height));
+        auto jx = (hbar_i*(psi_u_dag*funcs2D::ddx(psi_u, grad_params)
+                           + psi_d_dag*funcs2D::ddx(psi_d, grad_params))
                    ).cast_to(COMPLEX, X, NONE);
-        auto jy = (hbar_i*(psi_u_dag*ddy(psi_u, grad_params)
-                           + psi_d_dag*ddy(psi_d, grad_params))
+        auto jy = (hbar_i*(psi_u_dag*funcs2D::ddy(psi_u, grad_params)
+                           + psi_d_dag*funcs2D::ddy(psi_d, grad_params))
                    ).cast_to(COMPLEX, X, NONE);
         return std::vector<Texture2DData> {jx, jy};
     };
@@ -151,7 +156,8 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
         Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
             .staggered=-1, .order_of_accuracy=4};
-        auto grad_dot_j = ddx(j[0], grad_params) + ddy(j[1], grad_params);
+        auto grad_dot_j = funcs2D::ddx(j[0], grad_params)
+             + funcs2D::ddy(j[1], grad_params);
         return poisson_func_fft(grad_dot_j);
     };
     auto div_j_command
@@ -161,7 +167,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                               Texture2DData &pressure) -> Texture2DData {
         div_j_command.set_float_uniforms({{"dx", dx}, {"dy", dy},
           {"width", width}, {"height", height}});
-        auto div_j = zeroes(FLOAT, NX, NY);
+        auto div_j = funcs2D::zeroes(FLOAT, NX, NY);
         div_j_command.draw(div_j, "texU", psi_u, "texD", psi_d);
         auto tmp = div_j.cast_to(COMPLEX, X, NONE);
         return poisson_func_fft(tmp);
@@ -171,7 +177,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                               Texture2DData &pressure) -> Texture2DData {
         div_j_command.set_float_uniforms({{"dx", dx}, {"dy", dy},
                                           {"width", width}, {"height", height}});
-        auto div_j = zeroes(FLOAT, NX, NY);
+        auto div_j = funcs2D::zeroes(FLOAT, NX, NY);
         div_j_command.draw(div_j, "texU", psi_u, "texD", psi_d);
         auto pressuref = pressure.cast_to(FLOAT, X);
         return poisson_func_iterative(div_j, pressuref, 20
@@ -182,7 +188,8 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
         Grad2DParams grad_params {.dx=dx, .dy=dy,
             .width=width, .height=height,
             .staggered=-1, .order_of_accuracy=4};
-        auto grad_dot_j = ddx(j[0], grad_params) + ddy(j[1], grad_params);
+        auto grad_dot_j = funcs2D::ddx(j[0], grad_params) 
+            + funcs2D::ddy(j[1], grad_params);
         auto pressuref = pressure.cast_to(FLOAT, X);
         return poisson_func_iterative(grad_dot_j, pressuref, 10
                                       ).cast_to(COMPLEX, X, NONE);
@@ -204,10 +211,12 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                                current[0], X, NONE, NONE, NONE,
                                current[1], NONE, X, NONE, NONE);
         advect_command.set_float_uniforms({{"dt", dt}});
-        auto forward = zeroes(FLOAT, NX, NY);
+        auto forward 
+            = funcs2D::zeroes(FLOAT, NX, NY);
         advect_command.draw(forward, "velocityTex", v, "densityTex", dist);
         advect_command.set_float_uniforms({{"dt", -dt}});
-        auto backward = zeroes(FLOAT, NX, NY);
+        auto backward 
+            = funcs2D::zeroes(FLOAT, NX, NY);
         advect_command.draw(backward,
                             "velocityTex", v, "densityTex", forward);
         advect_higher_or_com.draw(dist, "tex", dist,

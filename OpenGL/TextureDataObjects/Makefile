@@ -26,35 +26,39 @@ FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
 C_COMPILE = clang 
 CPP_COMPILE = clang++ -std=c++11
 
-TARGET = main.js
-CPP_COMPILE = emcc
-C_COMPILE = emcc
-FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
-	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
-LIBS =
-INCLUDE =
+# TARGET = main.js
+# CPP_COMPILE = emcc
+# C_COMPILE = emcc
+# FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
+# 	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+# LIBS =
+# INCLUDE =
 
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
              unary_ops.c fft.c bitmap.c summation.c write_to_png.c \
 						 read_from_png.c serialize.c
 C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o fft.o \
 			 bitmap.o summation.o write_to_png.o read_from_png.o serialize.o
-CPP_SOURCES = complex_func.cpp dirac_leapfrog.cpp draw_texture_data.cpp\
+CPP_SOURCES = complex_func.cpp dirac_leapfrog.cpp draw_texture_data.cpp \
+							vector_field_view_2d.cpp vector_field_view_3d.cpp \
 							isf_splitstep.cpp main.cpp mol_dynamics.cpp mol_dynamics_mt.cpp \
 							n_body.cpp poisson.cpp reaction_diffusion.cpp \
 							reduction_to_1d.cpp schrod_leapfrog.cpp schrod_splitstep.cpp \
 							schrod_splitstep_image_potential.cpp stable_fluids.cpp \
 							summation_stuff.cpp texture_data.cpp fft_omp.cpp \
-							texture_data_transfers_stuff.cpp waves.cpp sph.cpp
-CPP_OBJECTS = texture_data.o draw_texture_data.o \
+							texture_data_transfers_stuff.cpp waves.cpp sph.cpp \
+							schrod_leapfrog_3d.cpp schrod_splitstep_3d.cpp \
+							dirac_splitstep_3d.cpp electrodynamics_3d.cpp 
+CPP_OBJECTS = texture_data.o draw_texture_data.o vector_field_view_2d.o vector_field_view_3d.o \
 					texture_data_transfers_stuff.o summation_stuff.o \
 					reduction_to_1d.o complex_func.o waves.o \
 					poisson.o reaction_diffusion.o stable_fluids.o \
 					n_body.o mol_dynamics.o mol_dynamics_mt.o sph.o \
 					schrod_splitstep_image_potential.o schrod_leapfrog.o\
 					schrod_splitstep.o isf_splitstep.o \
-					dirac_leapfrog.o fft_omp.o  \
-				  main.o
+					dirac_leapfrog.o fft_omp.o  schrod_leapfrog_3d.o \
+					schrod_splitstep_3d.o dirac_splitstep_3d.o electrodynamics_3d.o main.o
+
 OBJECTS = ${C_OBJECTS} ${CPP_OBJECTS}
 
 all: ${TARGET}
@@ -73,7 +77,13 @@ complex_func.o: complex_func.cpp
 dirac_leapfrog.o: dirac_leapfrog.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
+dirac_splitstep_3d.o: dirac_splitstep_3d.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
 draw_texture_data.o: draw_texture_data.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+electrodynamics_3d.o: electrodynamics_3d.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 fft_omp.o: fft_omp.cpp
@@ -103,10 +113,16 @@ reaction_diffusion.o: reaction_diffusion.cpp
 reduction_to_1d.o: reduction_to_1d.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
+schrod_leapfrog_3d.o: schrod_leapfrog_3d.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
 schrod_leapfrog.o: schrod_leapfrog.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 schrod_splitstep.o: schrod_splitstep.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+schrod_splitstep_3d.o: schrod_splitstep_3d.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 schrod_splitstep_image_potential.o: schrod_splitstep_image_potential.cpp
@@ -125,6 +141,12 @@ texture_data.o: texture_data.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 texture_data_transfers_stuff.o: texture_data_transfers_stuff.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+vector_field_view_2d.o: vector_field_view_2d.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+vector_field_view_3d.o: vector_field_view_3d.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 waves.o: waves.cpp

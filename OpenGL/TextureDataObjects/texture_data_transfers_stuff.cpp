@@ -57,8 +57,8 @@ int copy_data_for_cpu(GLFWwindow *window, frame_id main_frame) {
     int NY = window_height;
     int view_program = make_quad_program("./shaders/view.frag");
     auto *data = new uint8_t [NX*NY*3] {0,};
-    auto x0 = make_x(0.0, 1.0, FLOAT, NX, NY); // - 0.5 - 0.5/(double)NX;
-    auto y0 = make_y(0.0, 1.0, FLOAT, NX, NY);
+    auto x0 = funcs2D::make_x(0.0, 1.0, FLOAT, NX, NY); // - 0.5 - 0.5/(double)NX;
+    auto y0 = funcs2D::make_y(0.0, 1.0, FLOAT, NX, NY);
     auto f = x0 + y0;
     for (int i = 0; i < NY; i++) {
         for (int j = 0; j < NX; j++) {

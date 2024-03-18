@@ -27,10 +27,14 @@
 #include "mol_dynamics.hpp"
 #include "schrod_leapfrog.hpp"
 #include "schrod_splitstep.hpp"
+#include "schrod_splitstep_3d.hpp"
+#include "schrod_leapfrog_3d.hpp"
 #include "schrod_splitstep_image_potential.hpp"
 #include "dirac_leapfrog.hpp"
+#include "dirac_splitstep_3d.hpp"
 #include "isf_splitstep.hpp"
 #include "sph.hpp"
+#include "electrodynamics_3d.hpp"
 
 
 int main(int argc, char **argv) {
@@ -71,14 +75,18 @@ int main(int argc, char **argv) {
         // through the server (see run.py). Also got a warning about blocking
         // in the main thread.
         schrod_leapfrog,
+        schrod_leapfrog_3d,
         schrod_splitstep,
+        schrod_splitstep_3d,
         dirac_leapfrog, // Slow and doesn't work properly for  older systems
+        dirac_splitstep_3d,
         #ifndef __EMSCRIPTEN__
         schrod_splitstep_image_potential,
         #endif
         // Above will not work since it requires reading a png file,
         // and the png library appears to not be available for emscripten.
-        gray_scott_reaction_diffusion
+        gray_scott_reaction_diffusion,
+        electrodynamics_3d,
     };
     int which_function = 0;
     if (argc > 1)

@@ -126,10 +126,10 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     auto psi = Texture2DData(COMPLEX, "./video4.dat");
     auto psi1 = psi*(500.0/sqrt(psi.squared_norm().as_double));
     auto psi2 = psi1;
-    auto x = make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
-    auto y = make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
-    auto px = fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
-    auto py = fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
+    auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
+    auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
+    auto px = funcs2D::fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
+    auto py = funcs2D::fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
 
     auto pot = potential_image_tex.cast_to(COMPLEX, X, NONE);
     // auto pot = (0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
@@ -149,7 +149,8 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     auto x_propagator = exp((-imag_unit*(dt/2.0)/hbar)*pot);
     auto h_psi_func = [=](Texture2DData &psi,
                           Texture2DData &pot) -> Texture2DData {
-        return x_propagator*ifft(p_propagator*fft(x_propagator*psi));
+        return x_propagator
+        *funcs2D::ifft(p_propagator*funcs2D::fft(x_propagator*psi));
     };
     // double nl_coeff = 0.1;
     double nl_coeff = 0.0;
@@ -168,8 +169,8 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     };
     auto h_psi_func_nonlinear = [&](Texture2DData &psi,
                           Texture2DData &pot, double nl_coeff) -> Texture2DData {
-        Texture2DData psi2 = ifft(p_propagator_complex
-                                  *fft(x_propagator_nonlinear(
+        Texture2DData psi2 = funcs2D::ifft(p_propagator_complex
+                                  *funcs2D::fft(x_propagator_nonlinear(
                                     psi, pot, nl_coeff)*psi));
         return x_propagator_nonlinear(psi2, pot, nl_coeff)*psi2;
     };

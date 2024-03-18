@@ -23,11 +23,19 @@ void DrawTexture2DData::set_texture2D_data(std::string &&name,
     this->sampler2D_uniforms[name] = tex2d_data.frame;
 }*/
 
+void DrawTexture2DData::set_float_uniform(std::string k, float val) {
+    this->float_uniforms[k] = val;
+}
+
 void
 DrawTexture2DData::set_float_uniforms(std::map<std::string, float>
                                       float_uniforms) {
     for (auto &e: float_uniforms)
         this->float_uniforms[e.first] = e.second;
+}
+
+void DrawTexture2DData::set_int_uniform(std::string k, int val) {
+    this->int_uniforms[k] = val;
 }
 
 void
@@ -37,11 +45,19 @@ DrawTexture2DData::set_int_uniforms(std::map<std::string, int>
         this->float_uniforms[e.first] = e.second;
 }
 
+void DrawTexture2DData::set_vec2_uniform(std::string k, struct Vec2 val) {
+    this->vec2_uniforms[k] = val;
+}
+
 void
 DrawTexture2DData::set_vec2_uniforms(std::map<std::string, struct Vec2>
                                      vec2_uniforms) {
     for (auto &e: vec2_uniforms)
         this->vec2_uniforms[e.first] = e.second;
+}
+
+void DrawTexture2DData::set_vec3_uniform(std::string k, struct Vec3 val) {
+    this->vec3_uniforms[k] = val;
 }
 
 void DrawTexture2DData::set_vec3_uniforms(std::map<std::string, struct Vec3>
@@ -50,10 +66,18 @@ void DrawTexture2DData::set_vec3_uniforms(std::map<std::string, struct Vec3>
         this->vec3_uniforms[e.first] = e.second;
 }
 
+void DrawTexture2DData::set_vec4_uniform(std::string k, struct Vec4 val) {
+    this->vec4_uniforms[k] = val;
+}
+
 void DrawTexture2DData::set_vec4_uniforms(std::map<std::string, struct Vec4>
                                           vec4_uniforms) {
     for (auto &e: vec4_uniforms)
         this->vec4_uniforms[e.first] = e.second;
+}
+
+void DrawTexture2DData::set_ivec2_uniform(std::string name, struct IVec2 val) {
+    this->ivec2_uniforms[name] = val;
 }
 
 void DrawTexture2DData::set_ivec2_uniforms(std::map<std::string, struct IVec2>
@@ -62,8 +86,12 @@ void DrawTexture2DData::set_ivec2_uniforms(std::map<std::string, struct IVec2>
         this->ivec2_uniforms[e.first] = e.second;
 }
 
+void DrawTexture2DData::set_ivec3_uniform(std::string name, struct IVec3 val) {
+    this->ivec3_uniforms[name] = val;
+}
+
 void DrawTexture2DData::set_ivec3_uniforms(std::map<std::string, struct IVec3>
-                        ivec2_uniforms) {
+                        ivec3_uniforms) {
     for (auto &e: ivec3_uniforms)
         this->ivec3_uniforms[e.first] = e.second;
 }

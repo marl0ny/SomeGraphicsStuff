@@ -126,8 +126,9 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
             .dx=dx, .dy=dy, .width=width, .height=height,
             .staggered=1, .order_of_accuracy=4
         };
-        auto div_dot_v = ddx(vel, grad_params).cast_to(FLOAT, X)
-                                + ddy(vel, grad_params).cast_to(FLOAT, Y);
+        auto div_dot_v = funcs2D::ddx(vel, grad_params).cast_to(FLOAT, X)
+                                + funcs2D::ddy(vel, 
+                                               grad_params).cast_to(FLOAT, Y);
         poisson_solve_com.set_float_uniforms({{"dx", dx}, {"dy", dy},
                                               {"width", width},
                                               {"height", height}});
@@ -145,8 +146,8 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
             .dx=dx, .dy=dy, .width=width, .height=height,
             .staggered=-1, .order_of_accuracy=4,
         };
-        auto dpdx = ddx(p, grad_params);
-        auto dpdy = ddy(p, grad_params);
+        auto dpdx = funcs2D::ddx(p, grad_params);
+        auto dpdy = funcs2D::ddy(p, grad_params);
         auto grad_p = dpdx.cast_to(FLOAT2, X, NONE)
                                      + dpdy.cast_to(FLOAT2, NONE, X);
         return v - grad_p;

@@ -25,9 +25,102 @@ enum Channel {
     R=0, G=1, B=2, A=3,
 };
 
+class Texture2DData;
+
+
+namespace funcs2D {
+
+    Texture2DData zeroes(int type, int width, int height,
+                         bool generate_mipmap=true,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, 
+                         GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData make_x(double x0, double xf, int type, 
+                         int width, int height,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, 
+                         GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData make_y(double y0, double yf, int type,
+                         int width, int height,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, 
+                         GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData ddx(const Texture2DData &f, struct Grad2DParams params);
+
+    Texture2DData ddy(const Texture2DData &f, struct Grad2DParams params);
+
+    Texture2DData laplacian(const Texture2DData &f, 
+                            struct Laplacian2DParams params);
+
+    Texture2DData fft(const Texture2DData &x);
+
+    Texture2DData ifft(const Texture2DData &x);
+
+    Texture2DData fft_omp(const Texture2DData &x);
+
+    Texture2DData ifft_omp(const Texture2DData &x);
+
+    Texture2DData fftshift(const Texture2DData &x);
+
+    Texture2DData fftshift(const Texture2DData &x, int type);
+
+    Texture2DData roll(const Texture2DData &x, struct Vec2 v);
+
+    Texture2DData roll(const Texture2DData &x, double a, double b);
+}
+
+
+namespace funcs3D {
+
+    Texture2DData zeroes(int type, int width, int height, int length,
+                         bool generate_mipmap=true,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, 
+                         GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData make_x(double x0, double xf, int type, 
+                         int width, int height, int length,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData make_y(double y0, double yf, int type,
+                         int width, int height, int length,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData make_z(double z0, double zf, int type,
+                         int width, int height, int length,
+                         GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                         GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+
+    Texture2DData ddx(const Texture2DData &f, struct Grad2DParams params);
+
+    Texture2DData ddy(const Texture2DData &f, struct Grad2DParams params);
+
+    Texture2DData ddz(const Texture2DData &f, struct Grad2DParams params);
+
+    Texture2DData fft(const Texture2DData &x);
+
+    Texture2DData ifft(const Texture2DData &x);
+
+    Texture2DData fft_omp(const Texture2DData &x);
+
+    Texture2DData ifft_omp(const Texture2DData &x);
+
+    Texture2DData fftshift(const Texture2DData &x);
+
+    Texture2DData fftshift(const Texture2DData &x, int type);
+
+}
+
+
 class Texture2DData {
     int type = -1;
     frame_id frame = 0;
+    struct IVec4 dimensions = {};
     struct TextureParams tex_params = {0,};
     // Addition
     friend Texture2DData operator+(const Texture2DData &x,
@@ -101,24 +194,75 @@ class Texture2DData {
     friend Texture2DData min(const Texture2DData &v, double a);
     friend Texture2DData max(double a, const Texture2DData &v);
     friend Texture2DData max(const Texture2DData &v, double a);
-    friend Texture2DData make_x(double x0, double xf,
-                                int type, int width, int height,
-                                GLuint wrap_s, GLuint wrap_t,
-                                GLuint min_filter, GLuint mag_filter);
-    friend Texture2DData make_y(double y0, double yf,
-                                int type, int width, int height,
-                                GLuint wrap_s, GLuint wrap_t,
-                                GLuint min_filter, GLuint mag_filter);
-    friend Texture2DData ddx(const Texture2DData &f,
-                             struct Grad2DParams params);
-    friend Texture2DData ddy(const Texture2DData &f,
-                             struct Grad2DParams params);
-    friend Texture2DData fft(const Texture2DData &x);
-    friend Texture2DData ifft(const Texture2DData &x);
-    friend Texture2DData fft_omp(const Texture2DData &x);
-    friend Texture2DData ifft_omp(const Texture2DData &x);
-    friend Texture2DData fftshift(const Texture2DData &x);
-    friend Texture2DData fftshift(const Texture2DData &x, int type);
+
+    friend Texture2DData funcs2D::zeroes(int type, int width, int height,
+                                         bool generate_mipmap,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs2D::make_x(double x0, double xf,
+                                         int type, int width, int height,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs2D::make_y(double y0, double yf,
+                                         int type, int width, int height,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs2D::ddx(const Texture2DData &f,
+                                      struct Grad2DParams params);
+    friend Texture2DData funcs2D::ddy(const Texture2DData &f,
+                                      struct Grad2DParams params);
+    friend Texture2DData funcs2D::laplacian(const Texture2DData &f,
+                                            struct Laplacian2DParams params);
+    friend Texture2DData funcs2D::fft(const Texture2DData &x);
+    friend Texture2DData funcs2D::ifft(const Texture2DData &x);
+    friend Texture2DData funcs2D::fft_omp(const Texture2DData &x);
+    friend Texture2DData funcs2D::ifft_omp(const Texture2DData &x);
+    friend Texture2DData funcs2D::fftshift(const Texture2DData &x);
+    friend Texture2DData funcs2D::fftshift(const Texture2DData &x, int type);
+    friend Texture2DData funcs2D::roll(const Texture2DData &x, struct Vec2 v);
+    friend Texture2DData funcs2D::roll(const Texture2DData &x,
+                                       double a, double b);
+
+    friend Texture2DData funcs3D::zeroes(int type, 
+                                         int width, int height, int length,
+                                         bool generate_mipmap,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs3D::make_x(double x0, double xf,
+                                         int type,
+                                         int width, int height, int length,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs3D::make_y(double y0, double yf,
+                                         int type,
+                                         int width, int height, int length,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs3D::make_z(double y0, double yf,
+                                         int type,
+                                         int width, int height, int length,
+                                         GLuint wrap_s, GLuint wrap_t,
+                                         GLuint min_filter,
+                                         GLuint mag_filter);
+    friend Texture2DData funcs3D::ddx(const Texture2DData &f,
+                                      struct Grad2DParams params);
+    friend Texture2DData funcs3D::ddy(const Texture2DData &f,
+                                      struct Grad2DParams params);
+    friend Texture2DData funcs3D::ddz(const Texture2DData &f,
+                                      struct Grad2DParams params);
+    friend Texture2DData funcs3D::fft(const Texture2DData &x);
+    friend Texture2DData funcs3D::ifft(const Texture2DData &x);
+    friend Texture2DData funcs3D::fft_omp(const Texture2DData &x);
+    friend Texture2DData funcs3D::ifft_omp(const Texture2DData &x);
+    friend Texture2DData funcs3D::fftshift(const Texture2DData &x);
+    friend Texture2DData funcs3D::fftshift(const Texture2DData &x, int type);
+
     friend Texture2DData cast_to(int type,
                                  const Texture2DData &x,
                                  Channel c0, Channel c1,
@@ -126,18 +270,16 @@ class Texture2DData {
                                  const Texture2DData &y,
                                  Channel d0, Channel d1,
                                  Channel d2, Channel d3);
-    friend Texture2DData roll(const Texture2DData &x, struct Vec2 v);
-    friend Texture2DData roll(const Texture2DData &x, double a, double b);
+
     friend Texture2DData substitute(const Texture2DData &x,
                                     double old_val, double new_val);
-    friend Texture2DData zeroes(int type, int width, int height,
-                                bool generate_mipmap,
-                                GLuint wrap_s, GLuint wrap_t,
-                                GLuint min_filter, GLuint mag_filter);
     friend class DrawTexture2DData;
+    friend class VectorFieldView2D;
+    friend class VectorFieldView3D;
     void increment_ref_count();
     void decrement_ref_count();
     Texture2DData(int type, frame_id frame,
+                  const struct IVec4 &dimensions,
                   const struct TextureParams &tex_params);
 public:
     Texture2DData(float *data, int width, int height, bool generate_mipmap=true,
@@ -167,6 +309,10 @@ public:
                   bool generate_mipmap=true,
                   GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
                   GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
+    Texture2DData(int type, int width, int height, int length,
+                  bool generate_mipmap=true,
+                  GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
+                  GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
     Texture2DData(int type, const std::string &path);
     Texture2DData(const std::string &path);
     Texture2DData(const Texture2DData &x);
@@ -178,7 +324,6 @@ public:
     int get_frame_id() const;
     int get_type_id() const;
     void set_as_sampler2D_uniform(const char *name) const;
-    Texture2DData laplacian(struct Laplacian2DParams params) const;
     Texture2DData cast_to(int type, Channel c0) const;
     Texture2DData cast_to(int type, Channel c0, Channel c1) const;
     Texture2DData cast_to(int type, Channel c0, Channel c1, Channel c2) const;
@@ -288,47 +433,13 @@ Texture2DData max(double a, const Texture2DData &v);
 
 Texture2DData max(const Texture2DData &v, double a);
 
-Texture2DData make_x(double x0, double xf, int type, int width, int height,
-                     GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
-                     GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
-
-Texture2DData make_y(double y0, double yf, int type, int width, int height,
-                     GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
-                     GLuint min_filter=GL_LINEAR, GLuint mag_filter=GL_LINEAR);
-
-Texture2DData ddx(const Texture2DData &f, struct Grad2DParams params);
-
-Texture2DData ddy(const Texture2DData &f, struct Grad2DParams params);
-
-Texture2DData fft(const Texture2DData &x);
-
-Texture2DData ifft(const Texture2DData &x);
-
-Texture2DData fft_omp(const Texture2DData &x);
-
-Texture2DData ifft_omp(const Texture2DData &x);
-
-Texture2DData fftshift(const Texture2DData &x);
-
-Texture2DData fftshift(const Texture2DData &x, int type);
-
 Texture2DData cast_to(int type,
                       const Texture2DData &x,
                       Channel c0, Channel c1, Channel c2, Channel c3,
                       const Texture2DData &y,
                       Channel d0, Channel d1, Channel d2, Channel d3);
 
-Texture2DData roll(const Texture2DData &x, struct Vec2 v);
-
-Texture2DData roll(const Texture2DData &x, double a, double b);
-
 Texture2DData substitute(const Texture2DData &x,
                          double old_val, double new_val);
-
-Texture2DData zeroes(int type, int width, int height,
-                     bool generate_mipmap=true,
-                     GLuint wrap_s=GL_REPEAT, GLuint wrap_t=GL_REPEAT,
-                     GLuint min_filter=GL_LINEAR, 
-                     GLuint mag_filter=GL_LINEAR);
 
 #endif

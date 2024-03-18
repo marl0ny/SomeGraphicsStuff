@@ -34,6 +34,18 @@ void tex_ifft(frame_id dst, frame_id src,
 void tex_fftshift(frame_id dst, frame_id src,
                   const struct TextureParams *tex_params);
 
+void tex_fft3d(frame_id dst, frame_id scr,
+               const struct IVec3 *dimensions_3d,
+               const struct TextureParams *tex_params);
+
+void tex_ifft3d(frame_id dst, frame_id scr,
+                const struct IVec3 *dimensions_3d,
+                const struct TextureParams *tex_params);
+
+void tex_fftshift3d(frame_id dst, frame_id src,
+                    const struct IVec3 *dimensions_3d,
+                    const struct TextureParams *tex_params);
+
 #ifdef __cplusplus
 }
 #endif

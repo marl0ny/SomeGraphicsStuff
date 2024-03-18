@@ -26,8 +26,8 @@ int complex_func(GLFWwindow *window, frame_id main_frame) {
     int NY = window_height;
     std::complex<double> imag_unit {0.0, 1.0};
     int view_program = make_quad_program("./shaders/view.frag");
-    auto x_float = make_x(-0.5, 0.5, FLOAT, NX, NY);
-    auto y_float = make_y(-0.5, 0.5, FLOAT, NX, NY);
+    auto x_float = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
+    auto y_float = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     auto x = x_float.cast_to(COMPLEX, X, NONE);
     auto y = y_float.cast_to(COMPLEX, X, NONE);
     auto z = x + imag_unit*y;

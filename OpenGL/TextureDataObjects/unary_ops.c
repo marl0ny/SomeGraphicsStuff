@@ -14,6 +14,7 @@ static struct {
     GLuint gradient;
     GLuint laplacian;
     GLuint bilinear;
+    GLuint trilinear;
     GLuint float_substitute;
     GLuint transpose;
 } s_unary_ops_programs = {0, };
@@ -34,6 +35,8 @@ void init_unary_ops_programs() {
             = make_quad_program("./shaders/laplacian.frag");
         s_unary_ops_programs.bilinear
             = make_quad_program("./shaders/bilinear.frag");
+        s_unary_ops_programs.trilinear
+            = make_quad_program("./shaders/trilinear.frag");
         s_unary_ops_programs.swizzle
             = make_quad_program("./shaders/swizzle.frag");
         s_unary_ops_programs.conj
@@ -74,6 +77,30 @@ void tex_bilerp(frame_id dst,
     set_vec4_uniform("w01", w01->x, w01->y, w01->z, w01->w);
     set_vec4_uniform("w11", w11->x, w11->y, w11->z, w11->w);
     draw_unbind_quad();
+}
+
+void tex_trilerp(frame_id dst, const struct IVec3 *texel_dimensions_3d,
+                 const struct Vec4 *w000, const struct Vec4 *w010,
+                 const struct Vec4 *w100, const struct Vec4 *w110,
+                 const struct Vec4 *w001, const struct Vec4 *w011,
+                 const struct Vec4 *w101, const struct Vec4 *w111) {
+    bind_quad(dst, s_unary_ops_programs.trilinear);
+    set_ivec3_uniform("texelDimensions3D",
+                      texel_dimensions_3d->x,
+                      texel_dimensions_3d->y,
+                      texel_dimensions_3d->z);
+    // At z = 0
+    set_vec4_uniform("w000", w000->x, w000->y, w000->z, w000->w);
+    set_vec4_uniform("w100", w100->x, w100->y, w100->z, w100->w);
+    set_vec4_uniform("w010", w010->x, w010->y, w010->z, w010->w);
+    set_vec4_uniform("w110", w110->x, w110->y, w110->z, w110->w);
+    // At z = z_max
+    set_vec4_uniform("w001", w001->x, w001->y, w001->z, w001->w);
+    set_vec4_uniform("w101", w101->x, w101->y, w101->z, w101->w);
+    set_vec4_uniform("w011", w011->x, w011->y, w011->z, w011->w);
+    set_vec4_uniform("w111", w111->x, w111->y, w111->z, w111->w);
+    draw_unbind_quad();
+
 }
 
 void tex_laplacian2D(frame_id dst, frame_id src,

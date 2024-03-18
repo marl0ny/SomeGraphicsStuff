@@ -66,12 +66,15 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
         = DrawTexture2DData(Path("./shaders/particles-force-coulomb.frag"));
     auto energy_int_com
         = DrawTexture2DData(Path("./shaders/energy-int-coulomb.frag"));
-    Texture2DData force_pairs0 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
-    Texture2DData force_pairs1 = zeroes(FLOAT2, N_PARTICLES, N_PARTICLES);
+    Texture2DData force_pairs0 = funcs2D::zeroes(FLOAT2, 
+        N_PARTICLES, N_PARTICLES);
+    Texture2DData force_pairs1 = funcs2D::zeroes(FLOAT2, 
+        N_PARTICLES, N_PARTICLES);
     auto step = [&](int step_number,
                     const Texture2DData &r0, const Texture2DData &v0
                     ) -> std::vector<Texture2DData> {
-        Texture2DData energy_pairs = zeroes(FLOAT, N_PARTICLES, N_PARTICLES);
+        Texture2DData energy_pairs = funcs2D::zeroes(FLOAT, 
+            N_PARTICLES, N_PARTICLES);
         // Texture2DData int_energy_pairs
         //   = zeroes(FLOAT, N_PARTICLES, N_PARTICLES);
         glViewport(0, 0, N_PARTICLES, N_PARTICLES);
