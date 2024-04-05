@@ -8,7 +8,7 @@
 
 #if __VERSION__ <= 120
 attribute vec4 inputData;
-attribute vec4 COLOUR;
+varying vec4 COLOUR;
 #else
 in vec4 inputData;
 out vec4 COLOUR;

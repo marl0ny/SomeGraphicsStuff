@@ -19,16 +19,16 @@ out vec4 fragColor;
 #endif
 
 /* The Dirac equation using an arbitrary four-vector potential and
-with constants like c and hbar still explicitly shown is written
+with constants like c and hbar explicitly written out can be found
 on pg 566 (eq. 20.2.2) of Principles of Quantum Mechanics by Shankar.
 
- The position space propagator for the Dirac equation using the 
- split operator method in the Dirac representation is derived in 
- II.3 of this article by Bauke and Keitel: https://arxiv.org/abs/1012.3911.
- To derive the position space propagator for the Weyl representation,
+ The Split Operator position space propagator for the Dirac equation
+ in the Dirac representation is derived in II.3 of this article by 
+ Bauke and Keitel: https://arxiv.org/abs/1012.3911.
+ To derive the position space propagator in the Weyl representation,
  the gamma matrices as given on (3.25) in pg. 41 of 
- An Introduction to Quantum Field Theory by Michael Peskin and Daniel Schoeder
- are used.
+ An Introduction to Quantum Field Theory
+ by Michael Peskin and Daniel Schroeder are used.
 */
 uniform float dt;
 uniform float c;

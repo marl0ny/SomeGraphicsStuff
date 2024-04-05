@@ -6,9 +6,13 @@
 #define texture texture2D
 #endif
 
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+
 #if __VERSION__ <= 120
 attribute vec4 inputData;
-attribute vec4 COLOUR;
+varying vec4 COLOUR;
 #else
 in vec4 inputData;
 out vec4 COLOUR;
@@ -53,8 +57,16 @@ vec4 rotate(vec4 x, vec4 r) {
     return x2; 
 }
 
+vec4 project(vec4 x) {
+    vec4 y;
+    y[0] = x[0]*5.0/(x[2] + 5.0);
+    y[1] = x[1]*5.0/(x[2] + 5.0);
+    y[2] = x[2];
+    y[3] = 1.0;
+    return y;
+}
+
 void main() {
-    COLOUR = texture2D(colTex, inputData.xy);
     // Convert the texture coordinates of the inputData
     //  attribute to 3D texture coordinates
     vec3 r1 = to3DTextureCoordinates(inputData.xy) - vec3(0.5, 0.5, 0.5);
@@ -64,8 +76,9 @@ void main() {
     vec3 v2 = (length(v1) > 0.1)? 0.1*normalize(v1): v1; 
     // vec3 v2 = v1;
     // vec3 v2 = vec3(0.5, 0.5, 0.5);
-    vec3 r2 = viewScale*rotate(vec4(r1 + v2*inputData.w*vecScale, 1.0),
-                               rotation).xyz;
-    gl_Position = vec4(r2, 1.0);
+    vec3 r2 = viewScale*rotate(vec4(r1 + v2*inputData.w*vecScale,
+                               1.0), rotation).xyz;
+    gl_Position = project(vec4(r2, 1.0));
+    COLOUR = texture2D(colTex, inputData.xy);
 
 }

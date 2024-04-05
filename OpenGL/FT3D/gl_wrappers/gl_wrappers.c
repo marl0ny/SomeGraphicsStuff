@@ -222,10 +222,12 @@ GLuint make_program(const char *path_vertex, const char *path_fragment) {
         s_quad_vertex_shader_ref
             = make_vertex_shader(QUAD_VERTEX_SHADER_SOURCE);
     }
-    fprintf(stdout, "Compiling %s.\n", path_vertex);
+    fprintf(stdout, "Compiling %s", path_vertex);
     GLuint vs_ref = get_shader(path_vertex, GL_VERTEX_SHADER);
-    fprintf(stdout, "Compiling %s.\n", path_fragment);
+    fprintf(stdout, " %d\n", vs_ref);
+    fprintf(stdout, "Compiling %s", path_fragment);
     GLuint fs_ref = get_shader(path_fragment, GL_FRAGMENT_SHADER);
+    fprintf(stdout, " %d\n", vs_ref);
     GLuint program = glCreateProgram();
     if (program == 0) {
         fprintf(stderr, "Unable to create program.\n");
@@ -253,6 +255,7 @@ GLuint make_quad_program(const char *frag_shader_loc) {
     GLuint vs_ref = s_quad_vertex_shader_ref;
     fprintf(stdout, "Compiling %s.\n", frag_shader_loc);
     GLuint fs_ref = get_shader(frag_shader_loc, GL_FRAGMENT_SHADER);
+    fprintf(stdout, "%d\n", fs_ref);
     GLuint program = glCreateProgram();
     if (program == 0) {
         fprintf(stderr, "Unable to create program.\n");
@@ -700,7 +703,7 @@ void print_user_defined_uniforms() {
 
 void draw_quad() {
     if (s_current_frame == NULL) {
-        fprintf(stderr, ERR_NO_FRAME_ACTIVE);
+        fprintf(stderr, "draw_quad: %s", ERR_NO_FRAME_ACTIVE);
         return;
     }
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

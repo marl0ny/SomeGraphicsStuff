@@ -3,5 +3,4 @@
 #include "render.hpp"
 
 
-int dirac_splitstep_3d(Renderer *renderer);
-
+int pauli_leapfrog_3d(Renderer *renderer);

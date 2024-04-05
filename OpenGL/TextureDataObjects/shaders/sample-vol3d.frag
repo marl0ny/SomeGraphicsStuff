@@ -1,27 +1,46 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 UV;
-out vec4 fragColor;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
-#define fragColor gl_FragColor
-varying highp vec2 UV;
+#define texture texture2D
 #endif
 
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+ 
+#if __VERSION__ <= 120
+varying vec2 UV;
+#define fragColor gl_FragColor
+#else
+in vec2 UV;
+out vec4 fragColor;
+#endif
+
+#define quaternion vec4
+
 uniform sampler2D tex;
-uniform float scale;
+uniform float viewScale;
 uniform vec4 rotation;
 uniform ivec3 renderTexelDimensions3D;
-uniform ivec2 renderTexelDimensions2D;
-uniform ivec3 texelDimensions3D;
-uniform ivec2 texelDimensions2D;
+uniform ivec3 sampleTexelDimensions3D;
+uniform ivec2 sampleTexelDimensions2D;
 
+/* Sample and interpolate data points from the texture containing the 
+initial raw 3D volumetric data to points on volume render frame.
+This corresponds to the sampling step given in the Wikipedia page
+for volume ray casting.
 
-vec4 quaternionMultiply(vec4 q1, vec4 q2) {
-    vec4 q3;
+References:
+
+Volume ray casting - Wikipedia
+https://en.wikipedia.org/wiki/Volume_ray_casting
+
+*/
+
+quaternion mul(quaternion q1, quaternion q2) {
+    quaternion q3;
     q3.w = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z;
     q3.x = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y; 
     q3.y = q1.w*q2.y + q1.y*q2.w + q1.z*q2.x - q1.x*q2.z; 
@@ -29,48 +48,34 @@ vec4 quaternionMultiply(vec4 q1, vec4 q2) {
     return q3; 
 }
 
-vec4 quaternionConjugate(vec4 r) {
+quaternion conj(quaternion r) {
     return vec4(-r.x, -r.y, -r.z, r.w);
 }
 
-vec4 rotate(vec4 x, vec4 r) {
-    vec4 xr = quaternionMultiply(x, r);
-    vec4 rInv = quaternionConjugate(r);
-    vec4 x2 = quaternionMultiply(rInv, xr);
+quaternion rotate(quaternion x, quaternion r) {
+    quaternion xr = mul(x, r);
+    quaternion rInv = conj(r);
+    quaternion x2 = mul(rInv, xr);
     x2.w = 1.0;
     return x2; 
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
-    int width2D = renderTexelDimensions2D[0];
-    int height2D = renderTexelDimensions2D[1];
-    int width3D = renderTexelDimensions3D[0];
-    int height3D = renderTexelDimensions3D[1];
     int length3D = renderTexelDimensions3D[2];
-    float wStack = float(width2D)/float(width3D);
-    float hStack = float(height2D)/float(height3D);
-    float wIndex = floor(uv[1]*hStack)*wStack + floor(uv[0]*wStack);
-    return vec3(mod(uv[0]*wStack, 1.0), mod(uv[1]*hStack, 1.0),
-                (wIndex + 0.5)/float(length3D));
+    float u = mod(uv[0]*float(length3D), 1.0);
+    float v = uv[1];
+    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
+    return vec3(u, v, w);
 }
 
-vec2 to2DTextureCoordinates(vec3 position) {
-    int width2D = texelDimensions2D[0];
-    int height2D = texelDimensions2D[1];
-    int width3D = texelDimensions3D[0];
-    int height3D = texelDimensions3D[1];
-    int length3D = texelDimensions3D[2];
-    float wStack = float(width2D)/float(width3D);
-    float hStack = float(height2D)/float(height3D);
-    float u = position.x;
-    float v = position.y;
-    float w = position.z;
-    float wRatio = 1.0/wStack;
-    float hRatio = 1.0/hStack;
-    float wIndex = w*float(length3D) - 0.5;
-    vec2 wPosition = vec2(mod(wIndex, wStack)/wStack,
-                          floor(wIndex/wStack)/hStack);
-    return wPosition + vec2(u*wRatio, v*hRatio);
+vec2 to2DSampleTextureCoordinates(vec3 position) {
+    int width2D = sampleTexelDimensions2D[0];
+    int width3D = sampleTexelDimensions3D[0];
+    int length3D = sampleTexelDimensions3D[2];
+    float xIndex = float(width3D)*mod(position.x, 1.0);
+    float zIndex = float(length3D)*mod(position.z, 1.0);
+    float uIndex = floor(zIndex)*float(width3D) + xIndex; 
+    return vec2(uIndex/float(width2D), position.y);
 }
 
 // bilinear interpolation
@@ -89,9 +94,9 @@ rendered to.
 */
 vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     vec3 r = position;
-    float width3D = float(texelDimensions3D[0]);
-    float height3D = float(texelDimensions3D[1]);
-    float length3D = float(texelDimensions3D[2]);
+    float width3D = float(sampleTexelDimensions3D[0]);
+    float height3D = float(sampleTexelDimensions3D[1]);
+    float length3D = float(sampleTexelDimensions3D[2]);
     float x0 = (floor(r.x*width3D - 0.5) + 0.5)/width3D;
     float y0 = (floor(r.y*height3D - 0.5) + 0.5)/height3D;
     float z0 = (floor(r.z*length3D - 0.5) + 0.5)/length3D;
@@ -106,14 +111,14 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     vec3 r101 = vec3(x1, y0, z1);
     vec3 r011 = vec3(x0, y1, z1);
     vec3 r111 = vec3(x1, y1, z1);
-    vec4 f000 = texture2D(tex, to2DTextureCoordinates(r000));
-    vec4 f100 = texture2D(tex, to2DTextureCoordinates(r100));
-    vec4 f010 = texture2D(tex, to2DTextureCoordinates(r010));
-    vec4 f001 = texture2D(tex, to2DTextureCoordinates(r001));
-    vec4 f110 = texture2D(tex, to2DTextureCoordinates(r110));
-    vec4 f101 = texture2D(tex, to2DTextureCoordinates(r101));
-    vec4 f011 = texture2D(tex, to2DTextureCoordinates(r011));
-    vec4 f111 = texture2D(tex, to2DTextureCoordinates(r111));
+    vec4 f000 = texture2D(tex, to2DSampleTextureCoordinates(r000));
+    vec4 f100 = texture2D(tex, to2DSampleTextureCoordinates(r100));
+    vec4 f010 = texture2D(tex, to2DSampleTextureCoordinates(r010));
+    vec4 f001 = texture2D(tex, to2DSampleTextureCoordinates(r001));
+    vec4 f110 = texture2D(tex, to2DSampleTextureCoordinates(r110));
+    vec4 f101 = texture2D(tex, to2DSampleTextureCoordinates(r101));
+    vec4 f011 = texture2D(tex, to2DSampleTextureCoordinates(r011));
+    vec4 f111 = texture2D(tex, to2DSampleTextureCoordinates(r111));
     vec4 f0 = blI(r.xy, x0, y0, x1, y1, f000, f100, f010, f110);
     vec4 f1 = blI(r.xy, x0, y0, x1, y1, f001, f101, f011, f111);
     // Originally I made a mistake with the interpolation
@@ -124,12 +129,9 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     return mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }
 
-
 void main() {
-    vec4 viewPos = vec4(to3DTextureCoordinates(UV), 1.0)
-                   - vec4(0.5, 0.5, 0.5, 0.0);
-    vec3 r = (scale*rotate(viewPos, quaternionConjugate(rotation))
-                            + vec4(0.5, 0.5, 0.5, 0.0)).xyz;
+    vec4 viewPosition = vec4(to3DTextureCoordinates(UV) - vec3(0.5), 1.0);
+    vec3 r = rotate(viewPosition, conj(rotation)).xyz/viewScale + vec3(0.5);
     // This check needs to be done to avoid a repeating effect
     // caused by sampling beyond the initial boundary.
     if (r.x < 0.0 || r.x >= 1.0 ||

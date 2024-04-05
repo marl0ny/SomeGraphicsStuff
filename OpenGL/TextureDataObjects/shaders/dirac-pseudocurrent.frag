@@ -20,14 +20,17 @@ out vec4 fragColor;
 
 /* (3.73) on pg. 50 of an An Introduction to Quantum Field Theory
  by Michael Peskin and Daniel Schoeder gives the formula for
- computing current. The current is computed with just the
- spinor field and the gamma matrices,
- where the gamma matrices in the Weyl representation
- are given on (3.25) in pg. 41 of the same book. For the gamma
- matrices in the Dirac representation, this is obtained from
+ computing the current and pseudocurrent. These are computed with just the
+ spinor field and the gamma matrices, where the first four gamma matrices 
+ in the Weyl representation are given on (3.25) in pg. 41, the formula
+ for obtaining the fifth is given on (3.68) on pg. 50, and its elements
+ are explicitly given in (3.72) in the same page.
+ For the gamma matrices in the Dirac representation, this is obtained from
  the alpha matrices and beta matrix as presented in 20.1.12 on
- pg 565 of Principles of Quantum Mechanics by Shankar.
-
+ pg 565 of Principles of Quantum Mechanics by Shankar. 
+ For computing the the elements of \gamma^{5} in the Dirac representation,
+ the involutary property of the Pauli matrix are used which are given in 
+ the Pauli matrices Wikipedia page.
 */
 
 /* The type hermitian2x2 corresponds to a two by two
@@ -89,14 +92,15 @@ void main() {
     complex2 u = texture2D(uTex, UV);
     complex2 v = texture2D(vTex, UV);
     if (representation == DIRAC_REP)
-        fragColor = vec4(2.0*real(innerProd(u, matrixMul(sigmaX, v))),
-                         2.0*real(innerProd(u, matrixMul(sigmaY, v))),
-                         2.0*real(innerProd(u, matrixMul(sigmaZ, v))),
-                         dot(u, u) + dot(v, v));
+        fragColor = vec4(
+            expectationValue(sigmaX, u) - expectationValue(sigmaX, v),
+            expectationValue(sigmaY, u) - expectationValue(sigmaY, v),
+            expectationValue(sigmaZ, u) - expectationValue(sigmaZ, v),
+            (-innerProd(u, v) - innerProd(v, u)).r);
     else
         fragColor = vec4(
-            -expectationValue(sigmaX, u) + expectationValue(sigmaX, v),
-            -expectationValue(sigmaY, u) + expectationValue(sigmaY, v),
-            -expectationValue(sigmaZ, u) + expectationValue(sigmaZ, v),
-            dot(u, u) + dot(v, v));
+            expectationValue(sigmaX, u) + expectationValue(sigmaX, v),
+            expectationValue(sigmaY, u) + expectationValue(sigmaY, v),
+            expectationValue(sigmaZ, u) + expectationValue(sigmaZ, v),
+            (innerProd(u, v) + innerProd(v, -u)).r);
 }

@@ -1,15 +1,24 @@
 #VERSION_NUMBER_PLACEHOLDER
 
-precision highp float;
-
-#if __VERSION__ >= 300
-in vec2 UV;
-out vec4 fragColor;
+#if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
-#define fragColor gl_FragColor
-varying highp vec2 UV;
+#define texture texture2D
 #endif
+
+#if (__VERSION__ > 120) || defined(GL_ES)
+precision highp float;
+#endif
+ 
+#if __VERSION__ <= 120
+varying vec2 UV;
+#define fragColor gl_FragColor
+#else
+in vec2 UV;
+out vec4 fragColor;
+#endif
+
+#define quaternion vec4
 
 uniform vec4 rotation;
 uniform sampler2D gradientTex;
@@ -18,9 +27,24 @@ uniform sampler2D densityTex;
 uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
 
+/* The variable UV from the previous shader contains 
+the 2D texture coordinate representation of the volume render,
+which is used for sampling the gradient and density textures.
+Next the sampled gradient and density data for this pixel determines
+how it should be displayed.
 
-vec4 quaternionMultiply(vec4 q1, vec4 q2) {
-    vec4 q3;
+This corresponds to the shading step as given on the Wikipedia
+page for Volume ray casting.
+
+References:
+
+Volume ray casting - Wikipedia
+https://en.wikipedia.org/wiki/Volume_ray_casting
+
+*/
+
+quaternion mul(quaternion q1, quaternion q2) {
+    quaternion q3;
     q3.w = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z;
     q3.x = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y; 
     q3.y = q1.w*q2.y + q1.y*q2.w + q1.z*q2.x - q1.x*q2.z; 
@@ -28,55 +52,46 @@ vec4 quaternionMultiply(vec4 q1, vec4 q2) {
     return q3; 
 }
 
-vec4 quaternionConjugate(vec4 r) {
-    return vec4(-r.x, -r.y, -r.z, r.w);
+quaternion conj(quaternion r) {
+    return quaternion(-r.x, -r.y, -r.z, r.w);
 }
 
-vec4 rotate(vec4 x, vec4 r) {
-    vec4 xr = quaternionMultiply(x, r);
-    vec4 rInv = quaternionConjugate(r);
-    vec4 x2 = quaternionMultiply(rInv, xr);
+quaternion rotate(quaternion x, quaternion r) {
+    quaternion xr = mul(x, r);
+    quaternion rInv = conj(r);
+    quaternion x2 = mul(rInv, xr);
     x2.w = 1.0;
     return x2; 
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
-    int width2D = texelDimensions2D[0];
-    int height2D = texelDimensions2D[1];
-    int width3D = texelDimensions3D[0];
-    int height3D = texelDimensions3D[1];
     int length3D = texelDimensions3D[2];
-    float wStack = float(width2D)/float(width3D);
-    float hStack = float(height2D)/float(height3D);
-    float wIndex = floor(uv[1]*hStack)*wStack + floor(uv[0]*wStack);
-    return vec3(mod(uv[0]*wStack, 1.0), mod(uv[1]*hStack, 1.0),
-                (wIndex + 0.5)/float(length3D));
+    float u = mod(uv[0]*float(length3D), 1.0);
+    float v = uv[1];
+    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
+    return vec3(u, v, w);
 }
 
 vec2 to2DTextureCoordinates(vec3 position) {
     int width2D = texelDimensions2D[0];
-    int height2D = texelDimensions2D[1];
     int width3D = texelDimensions3D[0];
-    int height3D = texelDimensions3D[1];
     int length3D = texelDimensions3D[2];
-    float wStack = float(width2D)/float(width3D);
-    float hStack = float(height2D)/float(height3D);
-    float u = position.x;
-    float v = position.y;
-    float w = position.z;
-    float wRatio = 1.0/wStack;
-    float hRatio = 1.0/hStack;
-    float wIndex = w*float(length3D) - 0.5;
-    vec2 wPosition = vec2(mod(wIndex, wStack)/wStack,
-                          floor(wIndex/wStack)/hStack);
-    return wPosition + vec2(u*wRatio, v*hRatio);
+    float xIndex = float(width3D)*mod(position.x, 1.0);
+    float zIndex = float(length3D)*mod(position.z, 1.0);
+    float uIndex = floor(zIndex)*float(width3D) + xIndex; 
+    return vec2(uIndex/float(width2D), position.y);
 }
+
+// void main() {
+//     fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+// }
+
 
 void main() {
     vec3 r = to3DTextureCoordinates(UV);
     vec2 uv2 = to2DTextureCoordinates(r);
-    vec3 normal = rotate(vec4(0.0, 0.0, 1.0, 1.0),
-                         quaternionConjugate(rotation)).xyz;
+    vec3 normal = rotate(quaternion(0.0, 0.0, 1.0, 1.0),
+                         conj(rotation)).xyz;
     vec3 grad = texture2D(gradientTex, uv2).xyz;
     vec4 density = texture2D(densityTex, uv2);
     vec4 pix = density;
@@ -102,5 +117,6 @@ void main() {
     // fragColor = 4.0*pix;
     float a = dot(normal, normalize(grad));
     if (a <= 0.0) discard;
-    fragColor = vec4(a*normalize(density.rgb) , a);
+    fragColor = vec4(a*normalize(density.rgb), a);
+    // fragColor = vec4(1.0);
 }

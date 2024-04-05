@@ -14,6 +14,8 @@
 #include <ctime>
 #include "bitmap.h"
 #include "summation.h"
+#include "render.hpp"
+#include "interactor.hpp"
 #include <GLES3/gl3.h>
 
 #ifdef __EMSCRIPTEN__
@@ -30,21 +32,23 @@ static void main_loop() {
 
 /* Finite difference waves simulation using
 second order centred difference in time.*/
-int waves(GLFWwindow *window, frame_id main_frame) {
+int waves(Renderer *renderer) {
     int exit_status = 0;
     int window_width = 0, window_height = 0;
+    GLFWwindow *window = renderer->window;
+    frame_id main_frame = renderer->main_frame;
     window_dimensions(window, &window_width, &window_height);
     int NX = window_width, NY = window_height;
     int view_program = make_quad_program("./shaders/view.frag");
     Texture2DData x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
     Texture2DData y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     auto w1 = 10.0*exp(-0.5*(x*x + y*y)/(0.01*0.01));
-    w1 = w1 + 10.0*exp((-0.5/(0.01*0.01))*((x-0.3)*(x-0.3)
+    /* w1 = w1 + 10.0*exp((-0.5/(0.01*0.01))*((x-0.3)*(x-0.3)
          + (y+0.1)*(y+0.1)));
     w1 = w1 + 10.0*exp((-0.5/(0.01*0.01))*((x+0.3)*(x+0.3)
          + (y-0.3)*(y-0.3)));
     w1 = w1 + 10.0*exp((-0.5/(0.01*0.01))*((x+0.1)*(x+0.1)
-         + (y+0.3)*(y+0.3)));
+         + (y+0.3)*(y+0.3)));*/
     // w1 = w1.cast_to(COMPLEX, Channel::NONE, Channel::X);
     auto w2 = w1;
     auto w3 = w2;
@@ -72,6 +76,18 @@ int waves(GLFWwindow *window, frame_id main_frame) {
         w1.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
+        Interactor interactor(window);
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            DVec2 left_click = interactor.get_mouse_position();
+            // std::cout << left_click.x << std::endl;
+            double bx = left_click.x - 0.5;
+            double by = left_click.y - 0.5;
+            auto u = 3.0*exp((-0.5/(0.01*0.01))
+                                            *((x-bx)*(x-bx) + (y-by)*(y-by)));
+            w1 = w1 + u;
+            w2 = w2 + u;
+        }
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

@@ -1,5 +1,6 @@
 #include "gl_wrappers/gl_wrappers.h"
 #include "texture_data.hpp"
+#include "quaternions.hpp"
 
 class VectorFieldView3D {
     frame_id frame;
@@ -12,13 +13,13 @@ class VectorFieldView3D {
     Texture2DData render(const Texture2DData &col, // Texture to dictate colour of each vector
                          const Texture2DData &vec, // Contains actual vector field texture data
                          float view_scale, // Scale the view
-                         struct Vec4 rotation // Rotate the view.
+                         Quaternion rotation // Rotate the view.
                         ) const;
 
-    ~VectorFieldView3D() {
+    /* ~VectorFieldView3D() {
         free(vertices);
     }
     VectorFieldView3D(const VectorFieldView3D &v); // TODO!
-    VectorFieldView3D& operator=(const VectorFieldView3D &v); // TODO!
+    VectorFieldView3D& operator=(const VectorFieldView3D &v); // TODO!*/
 
 };

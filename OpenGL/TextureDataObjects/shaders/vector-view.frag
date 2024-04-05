@@ -11,7 +11,7 @@ precision highp float;
 #endif
  
 #if __VERSION__ <= 120
-varying highp vec4 COLOUR;
+varying vec4 COLOUR;
 #define fragColor gl_FragColor
 #else
 in vec4 COLOUR;
@@ -20,6 +20,7 @@ out vec4 fragColor;
 
 
 void main() {
+    // if (length(COLOUR.rgb) < 0.01) discard;
     if (COLOUR.a <= 0.01) discard;
     fragColor = COLOUR;
 }

@@ -13,6 +13,58 @@ struct Path {
     }
 };
 
+class Drawer;
+
+class Uniform {
+    enum {
+        BOOL,
+        FLOAT, FLOAT2, FLOAT3, FLOAT4,
+        INT, INT2, INT3, INT4,
+        DOUBLE, DOUBLE2,
+        TEX,
+    };
+    int type;
+    union {
+        union {
+            union {
+                int i32;
+                float f32;
+                int b32;
+            };
+            struct IVec2 ivec2;
+            struct Vec2 vec2;
+            double f64;
+            const Texture2DData *tex;
+        };
+        Vec3 vec3;
+        IVec3 ivec3;
+        Vec4 vec4;
+        IVec4 ivec4;
+    };
+    friend Drawer;
+    public:
+    Uniform(bool b):b32(b) {type=Uniform::BOOL;}
+    Uniform(int i):i32(i) {type=Uniform::INT;}
+    Uniform(float f):f32(f) {type=Uniform::FLOAT;}
+    Uniform(double d):f64(d) {type=Uniform::DOUBLE;}
+    Uniform(struct Vec2 v):vec2(v) {type=Uniform::FLOAT2;}
+    Uniform(struct IVec2 v):ivec2(v) {type=Uniform::INT2;}
+    Uniform(struct Vec3 v):vec3(v) {type=Uniform::FLOAT3;}
+    Uniform(struct IVec3 v):ivec3(v) {type=Uniform::INT3;}
+    Uniform(struct Vec4 v):vec4(v) {type=Uniform::FLOAT4;}
+    Uniform(struct IVec4 v):ivec4(v) {type=Uniform::INT4;}
+    Uniform(const Texture2DData *t):tex(t) {type=Uniform::TEX;}
+};
+
+
+class Drawer {
+    int program = 0;
+    public:
+    Drawer(const struct Path &path);
+    void draw(const Texture2DData &dst, 
+              std::map<std::string, const Uniform &>) const;
+};
+
 class DrawTexture2DData {
     int program = 0;
     std::map<std::string, float> float_uniforms {};

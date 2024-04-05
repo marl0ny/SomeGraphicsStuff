@@ -6,6 +6,9 @@
 *.files
 *.includes
 .*
+imgui.ini
+/**/imgui/
+*.zip
 !.gitignore
 *.o
 *.so

@@ -72,6 +72,7 @@ struct IVec2 {
         struct { int32_t i, j; };
         struct { int32_t u, v; };
         struct { int32_t s, t; };
+        struct { int32_t width, height; };
         struct { int32_t ind[2]; };
     };
 };
@@ -81,6 +82,7 @@ struct UVec2 {
         struct { uint32_t x, y; };
         struct { uint32_t u, v; };
         struct { uint32_t s, t; };
+        struct { uint32_t width, height; };
         struct { uint32_t ind[2]; };
     };
 };
@@ -100,6 +102,7 @@ struct IVec3 {
         struct { int32_t i, j, k; };
         struct { int32_t r, g, b; };
         struct { int32_t s, t, p; };
+        struct { int32_t width, height, length; };
         struct { int32_t ind[3]; };
     };
 };

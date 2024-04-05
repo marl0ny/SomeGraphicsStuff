@@ -35,6 +35,8 @@
 #include "isf_splitstep.hpp"
 #include "sph.hpp"
 #include "electrodynamics_3d.hpp"
+#include "pauli_leapfrog_3d.hpp"
+#include "render.hpp"
 
 
 int main(int argc, char **argv) {
@@ -60,11 +62,11 @@ int main(int argc, char **argv) {
     init_fft_programs();
     init_summation_programs();
     frame_id main_frame = new_quad(NULL);
-    std::vector<int (*)(GLFWwindow *, frame_id)> functions {
-        reduction_to_1d, // Doesn't work
-        summation_stuff,
-        waves,
-        particles_coulomb, // Slow
+    std::vector<int (*)(Renderer *renderer)> functions {
+        // reduction_to_1d, // Doesn't work
+        // summation_stuff,
+        // waves,
+        /* particles_coulomb, // Slow
         stable_fluids,
         isf_splitstep,
         // For the above there is extreme lag and doesn't work for older systems
@@ -75,18 +77,19 @@ int main(int argc, char **argv) {
         // through the server (see run.py). Also got a warning about blocking
         // in the main thread.
         schrod_leapfrog,
-        schrod_leapfrog_3d,
-        schrod_splitstep,
-        schrod_splitstep_3d,
-        dirac_leapfrog, // Slow and doesn't work properly for  older systems
+        schrod_leapfrog_3d,*/
+        // pauli_leapfrog_3d,
+        // schrod_splitstep,
+        // schrod_splitstep_3d,
+        // dirac_leapfrog, // Slow and doesn't work properly for  older systems
         dirac_splitstep_3d,
-        #ifndef __EMSCRIPTEN__
+        /* #ifndef __EMSCRIPTEN__
         schrod_splitstep_image_potential,
         #endif
         // Above will not work since it requires reading a png file,
         // and the png library appears to not be available for emscripten.
         gray_scott_reaction_diffusion,
-        electrodynamics_3d,
+        electrodynamics_3d,*/
     };
     int which_function = 0;
     if (argc > 1)
@@ -94,8 +97,12 @@ int main(int argc, char **argv) {
             which_function = std::stoi(argv[1]) % functions.size();
         } catch (std::exception &e) {
     }
+    struct Renderer renderer;
+    renderer.window = window;
+    renderer.main_frame = main_frame;
     for (int n = which_function; n < functions.size(); n++) {
-        int exit_status = functions[n](window, main_frame);
+        int exit_status = functions[n](&renderer);
+        // int exit_status = functions[n](window, main_frame);
         delete_all_frames();
         printf("\n");
         if (exit_status != 0) break;

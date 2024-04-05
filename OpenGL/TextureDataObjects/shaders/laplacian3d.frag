@@ -26,6 +26,16 @@ uniform ivec2 texelDimensions2D;
 uniform vec3 dr; // Spartial step sizes
 uniform vec3 dimensions3D; // Dimensions of simulation
 
+
+/* Table of finite difference stencils:
+
+ - Fornberg, B. (1988).
+ Generation of Finite Difference Formulas on Arbitrarily Spaced Grids.
+ Mathematics of Computation, 51(184), 699-706.
+ https://doi.org/10.1090/S0025-5718-1988-0935077-0
+
+*/
+
 vec2 to2DTextureCoordinates(vec3 position) {
     int width2D = texelDimensions2D[0];
     int width3D = texelDimensions3D[0];
@@ -141,12 +151,12 @@ vec4 zLaplacian4thOrder5Point(sampler2D tex) {
 }
 
 void main() {
-    vec4 d2Texdx2 = xLaplacian2ndOrder3Point(tex);
+    /* vec4 d2Texdx2 = xLaplacian2ndOrder3Point(tex);
     vec4 d2Texdy2 = yLaplacian2ndOrder3Point(tex);
-    vec4 d2Texdz2 = zLaplacian2ndOrder3Point(tex);
-    /* vec4 d2Texdx2 = xLaplacian4thOrder5Point(tex);
+    vec4 d2Texdz2 = zLaplacian2ndOrder3Point(tex);*/
+    vec4 d2Texdx2 = xLaplacian4thOrder5Point(tex);
     vec4 d2Texdy2 = yLaplacian4thOrder5Point(tex);
-    vec4 d2Texdz2 = zLaplacian4thOrder5Point(tex);*/
+    vec4 d2Texdz2 = zLaplacian4thOrder5Point(tex);
     // fragColor = texture2D(tex, UV);
     fragColor = d2Texdx2 + d2Texdy2 + d2Texdz2;
 }

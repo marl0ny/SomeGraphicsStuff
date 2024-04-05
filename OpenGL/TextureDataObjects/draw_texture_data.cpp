@@ -1,5 +1,69 @@
 #include "draw_texture_data.hpp"
 
+
+Drawer::Drawer(const struct Path &path) {
+    this->program = make_quad_program(path.path.c_str());
+}
+
+void Drawer::draw(const Texture2DData &dst,
+                  std::map<std::string, const Uniform &> uniforms) const {
+    bind_quad(dst.get_frame_id(), this->program);
+    for (auto &e: uniforms) {
+        switch(e.second.type) {
+            case Uniform::BOOL:
+            set_int_uniform((char *)&e.first[0], e.second.b32);
+            case Uniform::INT:
+            set_int_uniform((char *)&e.first[0], e.second.i32);
+            break;
+            case Uniform::INT2:
+            set_ivec2_uniform(
+                (char *)&e.first[0],
+                e.second.ivec2.x, e.second.ivec2.y);
+            break;
+            case Uniform::INT3:
+            set_ivec3_uniform(
+                (char *)&e.first[0], 
+                e.second.ivec3.x, e.second.ivec3.y, e.second.ivec3.z);
+            break;
+            /* case Uniform::INT4:
+            set_ivec4_uniform(
+                (char *)&e.first[0], 
+                e.second.ivec4.x, e.second.ivec4.y,
+                e.second.ivec4.z, e.second.ivec4.w);
+            break;*/
+            case Uniform::FLOAT:
+            set_float_uniform((char *)&e.first[0], e.second.f32);
+            break;
+            case Uniform::FLOAT2:
+            set_vec2_uniform(
+                (char *)&e.first[0], e.second.vec2.x, e.second.vec2.y);
+            break;
+            case Uniform::FLOAT3:
+            set_vec3_uniform(
+                (char *)&e.first[0], 
+                e.second.vec3.x, e.second.vec3.y, e.second.vec3.z);
+            break;
+            case Uniform::FLOAT4:
+            set_vec4_uniform(
+                (char *)&e.first[0], 
+                e.second.vec4.x, e.second.vec4.y, 
+                e.second.vec4.z, e.second.vec4.w);
+            break;
+            /* case Uniform::DOUBLE:
+            set_int_uniform((char *)&e.first[0], e.second.i32);
+            break;
+            case Uniform::DOUBLE2:
+            set_int_uniform((char *)&e.first[0], e.second.i32);
+            break;*/
+            case Uniform::TEX:
+            set_sampler2D_uniform(
+                (char *)&e.first[0], e.second.tex->get_frame_id());
+            break;
+        }
+    }
+    draw_unbind_quad();
+}
+
 DrawTexture2DData::DrawTexture2DData(int program) {
     this->program = program;
 }

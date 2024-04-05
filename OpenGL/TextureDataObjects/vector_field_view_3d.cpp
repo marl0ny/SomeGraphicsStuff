@@ -1,4 +1,5 @@
 #include "vector_field_view_3d.hpp"
+#include "quaternions.hpp"
 
 
 static const char ATTRIBUTE_NAME[] = "inputData";
@@ -21,7 +22,7 @@ VectorFieldView3D::VectorFieldView3D(IVec2 view_dimensions,
         .height=this->view_dimensions.y,
         .generate_mipmap=1,
         .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
-        .mag_filter=GL_NEAREST, .min_filter=GL_NEAREST,
+        .min_filter=GL_NEAREST, .mag_filter=GL_NEAREST,
     };
     int sizeof_vertices = 2*sizeof(struct Vec4)*w*h;
     this->vertices = (struct Vec4 *)malloc(sizeof_vertices);
@@ -39,11 +40,12 @@ VectorFieldView3D::VectorFieldView3D(IVec2 view_dimensions,
     }
     this->frame = new_frame(&tex_params,
          (float *)vertices, sizeof_vertices, NULL, -1);
+    free(vertices);
 }
 
 Texture2DData VectorFieldView3D::render(const Texture2DData &col,
                                         const Texture2DData &vec,
-                                        float view_scale, struct Vec4 rotation
+                                        float view_scale, Quaternion rotation
                                         ) const {
     // std::fprintf(stdout, "%d,%d,%g\n", view_width, view_height, view_scale);
     // std::fprintf(stdout, "%g,%g,%g,%g\n", 
@@ -52,6 +54,8 @@ Texture2DData VectorFieldView3D::render(const Texture2DData &col,
     GLboolean depth_test_prev_enabled = glIsEnabled(GL_DEPTH_TEST);
     if (!depth_test_prev_enabled)
         glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     bind_frame(this->frame, this->program);
     struct VertexParam vertex_params[2] = {
         {.name=(char *)&ATTRIBUTE_NAME[0], .size=4, .type=GL_FLOAT, 
@@ -76,11 +80,12 @@ Texture2DData VectorFieldView3D::render(const Texture2DData &col,
                  2*this->vector_dimensions.x
                  *this->vector_dimensions.y*this->vector_dimensions.z);
     unbind();
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glClear(GL_STENCIL_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_DEPTH_BUFFER_BIT);
+    // glClear(GL_STENCIL_BUFFER_BIT);
     if (!depth_test_prev_enabled)
         glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
     Texture2DData t = Texture2DData(FLOAT4, 
         this->view_dimensions.x, this->view_dimensions.y,
     true, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);

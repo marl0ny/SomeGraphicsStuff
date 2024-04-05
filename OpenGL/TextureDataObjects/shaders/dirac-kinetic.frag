@@ -19,16 +19,16 @@ out vec4 fragColor;
 #endif
 
 /* The Dirac equation using an arbitrary four-vector potential and
-with constants like c and hbar still explicitly shown is written
+with constants like c and hbar explicitly written out can be found
 on pg 566 (eq. 20.2.2) of Principles of Quantum Mechanics by Shankar.
 
- The momentum space propagator for the Dirac equation using the 
- split operator method in the Dirac representation is derived in 
- II.3 of this article by Bauke and Keitel: https://arxiv.org/abs/1012.3911.
- To derive the momentum space propagator for the Weyl representation,
+ The Split Operator momentum space propagator for the Dirac equation 
+ in the Dirac representation is derived in II.3 of this article
+ by Bauke and Keitel: https://arxiv.org/abs/1012.3911.
+ To derive the momentum space propagator in the Weyl representation,
  the gamma matrices as given on (3.25) in pg. 41 of 
- An Introduction to Quantum Field Theory by Michael Peskin and Daniel Schoeder
- are used.
+ An Introduction to Quantum Field Theory 
+ by Michael Peskin and Daniel Schroeder are used.
 */
 uniform int numberOfDimensions;
 uniform ivec2 texelDimensions2D;
@@ -315,7 +315,7 @@ void main() {
     float p = sqrt(p2);
     float mc = m*c;
 
-    // Get the eigenvectors of the Pauli matrix that is
+    // Get the eigenvectors of that Pauli matrix that is
     // orientated in the same direction as the momentum
     complex2 up = getSpinUpState(pVec, p);
     complex2 down = getSpinDownState(pVec, p);
@@ -351,6 +351,9 @@ void main() {
 
 
     } else if (representation == ORIGINAL_DIRAC_IMPLEMENTATION) {
+        /* This is an older implementation of the momentum propagator
+        using the Dirac representation. It should be equivalent 
+        to the new implementation. */
 
         float omega = sqrt(mc*mc + p2);
         float den1 = p*sqrt((mc - omega)*(mc - omega) + p2);
