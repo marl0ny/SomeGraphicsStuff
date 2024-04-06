@@ -11,8 +11,8 @@ VectorFieldView2D::VectorFieldView2D(
     this->view_width = view_width;
     this->view_height = view_height;
     this->program
-         = make_program("./shaders/vector-view.vert",
-          "./shaders/vector-view.frag");
+         = make_program("./shaders/vec-render/view.vert",
+          "./shaders/vec-render/view.frag");
     struct TextureParams tex_params = {
         .format=GL_RGBA32F,
         .width=this->view_width, .height=this->view_height,

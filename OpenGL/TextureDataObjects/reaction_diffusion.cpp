@@ -44,8 +44,9 @@ The following projects were used as references:
 	 //Projects_2020/projekt_schulz_kaefer/
 
 */
-int gray_scott_reaction_diffusion(GLFWwindow *window,
-                                   frame_id main_frame) {
+int gray_scott_reaction_diffusion(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);

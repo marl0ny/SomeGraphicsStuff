@@ -131,7 +131,10 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
 
 void main() {
     vec4 viewPosition = vec4(to3DTextureCoordinates(UV) - vec3(0.5), 1.0);
-    vec3 r = rotate(viewPosition, conj(rotation)).xyz/viewScale + vec3(0.5);
+    // float viewScaleAdj = max(viewScale, 2.0);
+    float viewScaleAdj = viewScale;
+    vec3 r = rotate(viewPosition, conj(rotation)).xyz/viewScaleAdj
+         + vec3(0.5);
     // This check needs to be done to avoid a repeating effect
     // caused by sampling beyond the initial boundary.
     if (r.x < 0.0 || r.x >= 1.0 ||

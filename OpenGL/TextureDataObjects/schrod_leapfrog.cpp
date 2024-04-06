@@ -49,8 +49,9 @@ static void main_loop() {
 
 
 */
-int schrod_leapfrog(GLFWwindow *window,
-                    frame_id main_frame) {
+int schrod_leapfrog(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
@@ -65,10 +66,10 @@ int schrod_leapfrog(GLFWwindow *window,
     double height = ((double)NX/512.0)*91.0;
     double dx = width/(float)NX, dy = height/(float)NY;
     int view_program = make_quad_program("./shaders/view.frag");
-    int copy_program = make_quad_program("./shaders/copy.frag");
+    int copy_program = make_quad_program("./shaders/util/copy.frag");
     glViewport(0, 0, NX, NY);
     auto command
-        = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
+        = DrawTexture2DData(Path("./shaders/wavepacket/init.frag"));
     command.set_float_uniforms({{"amplitude", 5.0},
 				{"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.2, .y=0.2}}, });

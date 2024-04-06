@@ -14,8 +14,8 @@ VectorFieldView3D::VectorFieldView3D(IVec2 view_dimensions,
     int w = vector_dimensions.x*vector_dimensions.z;
     int h = vector_dimensions.y;
     this->program
-         = make_program("./shaders/vector-view3d.vert",
-          "./shaders/vector-view.frag");
+         = make_program("./shaders/vec-render/view3d.vert",
+          "./shaders/vec-render/view.frag");
     struct TextureParams tex_params = {
         .format=GL_RGBA32F,
         .width=this->view_dimensions.x,

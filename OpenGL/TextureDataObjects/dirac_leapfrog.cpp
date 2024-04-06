@@ -43,7 +43,9 @@ References:
    https://doi.org/10.1016/j.cpc.2013.08.013
 
 */
-int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
+int dirac_leapfrog(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
@@ -63,7 +65,7 @@ int dirac_leapfrog(GLFWwindow *window, frame_id main_frame) {
     auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
     auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     auto command
-        = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
+        = DrawTexture2DData(Path("./shaders/wavepacket/init.frag"));
     command.set_float_uniforms({{"amplitude", 5.0},
                                 {"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}}, });

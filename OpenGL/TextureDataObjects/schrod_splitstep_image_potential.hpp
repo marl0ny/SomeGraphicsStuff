@@ -1,6 +1,6 @@
 #include <GLFW/glfw3.h>
 #include "gl_wrappers/gl_wrappers.h"
+#include "render.hpp"
 
-
-int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame);
+int schrod_splitstep_image_potential(Renderer *renderer);
 

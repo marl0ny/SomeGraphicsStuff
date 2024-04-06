@@ -167,7 +167,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
 
     // Laplacian program
     auto laplacian_command
-         = DrawTexture2DData(Path("./shaders/laplacian3d.frag"));
+         = DrawTexture2DData(Path("./shaders/laplacian/laplacian3d.frag"));
     laplacian_command.set_ivec2_uniforms({
         {"texelDimensions2D", {sim_params.nx*sim_params.nz, sim_params.ny}},
     });
@@ -185,7 +185,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
               (float)sim_params.nz}},
     });
 
-    auto gradient_procedure = Drawer({"./shaders/gradient3d.frag"});
+    auto gradient_procedure = Drawer({"./shaders/gradient/gradient3d.frag"});
 
     auto h_psi_func = [&](Texture2DData &psi, Texture2DData &pot) {
         double hbar = sim_params.hbar;

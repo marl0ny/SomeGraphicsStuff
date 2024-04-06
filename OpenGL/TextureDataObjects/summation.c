@@ -23,13 +23,13 @@ static struct {
 void init_summation_programs() {
     if (!s_summation_programs.is_initialized) {
         s_summation_programs.scale_program
-             = make_quad_program("./shaders/scale.frag");
+             = make_quad_program("./shaders/util/scale.frag");
         s_summation_programs.squared_program
-             = make_quad_program("./shaders/squared.frag");
+             = make_quad_program("./shaders/util/squared.frag");
         s_summation_programs.reduce_2d_to_1d_program
-             = make_quad_program("./shaders/reduce-2d-to-1d.frag");
+             = make_quad_program("./shaders/reduce/to-1d.frag");
         s_summation_programs.reduce_to_single_channel_program
-            = make_quad_program("./shaders/reduce-to-single-channel.frag");
+            = make_quad_program("./shaders/reduce/to-single-channel.frag");
     }
 }
 

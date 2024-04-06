@@ -126,7 +126,11 @@ References:
    https://en.wikipedia.org/wiki/Finite-difference_time-domain_method
 
 */
-int electrodynamics_3d(GLFWwindow *window, frame_id main_frame) {
+int electrodynamics_3d(Renderer *renderer) {
+
+    GLFWwindow *window = renderer->window;
+    int main_frame = renderer->main_frame;
+
 
     int exit_status = 0;
 
@@ -151,7 +155,7 @@ int electrodynamics_3d(GLFWwindow *window, frame_id main_frame) {
     // sim_params.init_wave_packet.ax = 50.0;
 
     auto charge_draw 
-        = DrawTexture2DData(Path("./shaders/oscillating-charge.frag"));
+        = DrawTexture2DData(Path("./shaders/fdtd/oscillating-charge.frag"));
     charge_draw.set_float_uniform("phi", 0.0);
     charge_draw.set_float_uniform("omega", 0.1*1.0/sim_params.dt);
     charge_draw.set_float_uniform("chargeAmplitude", 3.0);
@@ -163,7 +167,7 @@ int electrodynamics_3d(GLFWwindow *window, frame_id main_frame) {
     charge_draw.set_ivec3_uniform("texelDimensions3D", 
         {sim_params.nx, sim_params.ny, sim_params.nz});
 
-    auto curl_draw = DrawTexture2DData(Path("./shaders/curl3d.frag"));
+    auto curl_draw = DrawTexture2DData(Path("./shaders/curl/curl3d.frag"));
     curl_draw.set_ivec2_uniform(
         "texelDimensions2D", {sim_params.nx*sim_params.nz, sim_params.ny});
     curl_draw.set_ivec3_uniform("texelDimensions3D",
@@ -179,13 +183,15 @@ int electrodynamics_3d(GLFWwindow *window, frame_id main_frame) {
     curl_draw.set_int_uniform("orderOfAccuracy", 4);
     // curl_draw.set_int_uniform("samplerOffset", 0);
 
-    auto e_draw = DrawTexture2DData(Path("./shaders/electric3d.frag"));
+    auto e_draw 
+        = DrawTexture2DData(Path("./shaders/fdtd/electric3d.frag"));
     e_draw.set_float_uniforms(
         {{"dt", sim_params.dt},
          {"epsilon", sim_params.epsilon}, 
          {"sigma", sim_params.sigma}});
 
-    auto b_draw = DrawTexture2DData(Path("./shaders/magnetic3d.frag"));
+    auto b_draw 
+        = DrawTexture2DData(Path("./shaders/fdtd/magnetic3d.frag"));
     b_draw.set_float_uniforms(
         {{"dt", sim_params.dt},
          {"mu", sim_params.mu}, 
@@ -209,7 +215,7 @@ int electrodynamics_3d(GLFWwindow *window, frame_id main_frame) {
     auto b_field1 = 0.0*b_field0;
     auto j = 0.0*e_field0;
 
-    frame_id copy_program = make_quad_program("./shaders/copy.frag");
+    frame_id copy_program = make_quad_program("./shaders/util/copy.frag");
     
 
 

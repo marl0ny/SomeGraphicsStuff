@@ -44,7 +44,11 @@ References:
    https://cseweb.ucsd.edu/~alchern/projects/PhDThesis/thesis_reduced.pdf
 
 */
-int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
+int isf_splitstep(Renderer *renderer) {
+
+    GLFWwindow *window = renderer->window;
+    int main_frame = renderer->main_frame;
+
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
@@ -57,9 +61,9 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
     auto init_current_command
-         = DrawTexture2DData(Path("./shaders/isf-init.frag"));
+         = DrawTexture2DData(Path("./shaders/fluids/isf/init.frag"));
     auto init_dist_command
-         = DrawTexture2DData(Path("./shaders/isf-init-dist.frag"));
+         = DrawTexture2DData(Path("./shaders/fluids/init-dist.frag"));
     init_current_command.set_float_uniforms({{"amplitude", 1.0},
                                              {"radius", 0.1}});
     init_current_command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}}});
@@ -85,11 +89,11 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
                                             GL_REPEAT, GL_REPEAT,
                                             GL_LINEAR, GL_LINEAR);
     auto advect_command
-        = DrawTexture2DData(Path("./shaders/isf-bw-advect.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/bw-advect.frag"));
     advect_command.set_float_uniforms({{"width", width}, {"height", height},
                                        {"dt", dt}});
     auto advect_higher_or_com
-        = DrawTexture2DData(Path("./shaders/advect-higher-or.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/advect-higher-or.frag"));
     advect_higher_or_com.set_float_uniforms({{"width", width},
                                              {"height", height},
                                              {"dx", dx}, {"dy", dy},
@@ -116,7 +120,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
         return -1.0*funcs2D::ifft(funcs2D::fft(rho/(laplace_eigval)));
     };
     auto laplacian_solve_command
-        = DrawTexture2DData(Path("./shaders/poisson-jacobi.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/poisson-jacobi.frag"));
 
     auto poisson_func_iterative = [&](Texture2DData &rho,
                                       Texture2DData &x0,
@@ -161,7 +165,7 @@ int isf_splitstep(GLFWwindow *window, frame_id main_frame) {
         return poisson_func_fft(grad_dot_j);
     };
     auto div_j_command
-        = DrawTexture2DData(Path("./shaders/isf-div-j.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/isf/div-j.frag"));
     auto pressure_func2 = [&](Texture2DData &psi_u,
                               Texture2DData &psi_d,
                               Texture2DData &pressure) -> Texture2DData {

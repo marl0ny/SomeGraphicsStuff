@@ -54,7 +54,9 @@ static double time_difference_in_ms(const struct timespec *t1,
  *    http://dx.doi.org/10.1119/1.4901185
  *
  * */
-int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
+int particles_lennard_jones(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
@@ -65,7 +67,7 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
     // double dt = 0.00000001;
     // double dt = 0.0;
     frame_id view_program
-        = make_quad_program("./shaders/copy.frag");
+        = make_quad_program("./shaders/util/copy.frag");
 
     auto p0_arr = std::vector<struct Vec2> {};
     auto v0_arr = std::vector<struct Vec2> {};
@@ -91,7 +93,7 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
     auto v = Texture2DData((struct Vec2 *)&v0_arr[0], N_PARTICLES, 1);
 
     auto energy_force_for_com
-        = DrawTexture2DData(Path("./shaders/lennard-jones-for.frag"));
+        = DrawTexture2DData(Path("./shaders/mol-dynamics/lennard-jones-for.frag"));
     energy_force_for_com.set_float_uniforms({{"sigma", sigma},
                                              {"epsilon", epsilon},
                                              {"nParticles", (float)N_PARTICLES},
@@ -124,8 +126,8 @@ int particles_lennard_jones(GLFWwindow *window, frame_id main_frame) {
 
     // Particles view
     int particles_program = make_program(
-        "./shaders/particle-vert.vert",
-        "./shaders/colour.frag");
+        "./shaders/particles/particles.vert",
+        "./shaders/util/colour.frag");
     std::string uvIndexStr ("uvIndex");
     struct VertexParam vertex_params[1] = {{
         .name=&uvIndexStr[0], .size=2, .type=GL_FLOAT,

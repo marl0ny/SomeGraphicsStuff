@@ -288,11 +288,13 @@ static double time_difference_in_ms(const struct timespec *t1,
  *   https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/\
  *   www/pthreads.html.
  */
-int sph_mt(GLFWwindow *window, frame_id main_frame) {
+int sph_mt(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
-    frame_id view_program = make_quad_program("./shaders/copy.frag");
+    frame_id view_program = make_quad_program("./shaders/util/copy.frag");
 
     // Variables used by the simulation directly
     double t = 0.0; // Simulation time elapsed
@@ -521,9 +523,9 @@ int sph_mt(GLFWwindow *window, frame_id main_frame) {
     };
 
     // Particles view
-    int particles_program = make_program(
-                                         "./shaders/particle-vert.vert",
-                                         "./shaders/colour.frag");
+    int particles_program
+         = make_program("./shaders/particles/particles.vert",
+                        "./shaders/util/colour.frag");
     std::string uvIndexStr ("uvIndex");
     struct VertexParam vertex_params[1] = {{
             .name=&uvIndexStr[0], .size=2, .type=GL_FLOAT,

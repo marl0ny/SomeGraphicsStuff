@@ -28,10 +28,10 @@ uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
 
 /* The variable UV from the previous shader contains 
-the 2D texture coordinate representation of the volume render,
-which is used for sampling the gradient and density textures.
-Next the sampled gradient and density data for this pixel determines
-how it should be displayed.
+the 2D texture coordinate representation of the volume render.
+It is 2D so that the gradient and density uniform textures are
+properly sampled. These sampled gradient and density data points are used
+together to determine how the pixel should be displayed.
 
 This corresponds to the shading step as given on the Wikipedia
 page for Volume ray casting.
@@ -98,19 +98,19 @@ void main() {
     float dx = 1.0/float(texelDimensions3D[0]);
     float dy = 1.0/float(texelDimensions3D[1]);
     float dz = 1.0/float(texelDimensions3D[2]);
-    vec2 zF = to2DTextureCoordinates(vec3(r.x, r.y, r.z + dz));
+    /* vec2 zF = to2DTextureCoordinates(vec3(r.x, r.y, r.z + dz));
     vec2 zB = to2DTextureCoordinates(vec3(r.x, r.y, r.z - dz));
     vec2 xF = to2DTextureCoordinates(vec3(r.x + dx, r.y, r.z));
     vec2 xB = to2DTextureCoordinates(vec3(r.x - dx, r.y, r.z));
     vec2 yF = to2DTextureCoordinates(vec3(r.x, r.y + dy, r.z));
     vec2 yB = to2DTextureCoordinates(vec3(r.x, r.y - dy, r.z));
-    /* density = (texture2D(densityTex, zF)
+    density = (texture2D(densityTex, zF)
                  + texture2D(densityTex, zB)
-                + texture2D(densityTex, xF)
-                + texture2D(densityTex, xB)
+                 + texture2D(densityTex, xF)
+                 + texture2D(densityTex, xB)
                 + texture2D(densityTex, yF)
                 + texture2D(densityTex, yB)
-                + density)/5.0;*/
+                 + density);*/
     // pix.a = pix.b;
     // lf (length(grad) < 0.0000001) discard;
     if (pix.a < 0.01) discard;

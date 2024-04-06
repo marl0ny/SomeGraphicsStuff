@@ -40,7 +40,9 @@ static void main_loop() {
    https://doi.org/10.1063/1.168415
 
 */
-int schrod_leapfrog_3d(GLFWwindow *window, frame_id main_frame) {
+int schrod_leapfrog_3d(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
 
     int exit_status = 0;
 
@@ -82,31 +84,6 @@ int schrod_leapfrog_3d(GLFWwindow *window, frame_id main_frame) {
     auto psi1 = 
         10.0*exp(i_tau*(xs + ys + zs))
         *exp(-0.5*(xs*xs/(sx*sx) + ys*ys/(sy*sy) + zs*zs/(sz*sz)));
-
-
-    // Initialize a wave packet and store it in the above texture
-    /* glViewport(0, 0, NX*NZ, NY);
-    auto wavepacket_command
-        = DrawTexture2DData(Path("./shaders/init-wavepacket-3d.frag"));
-    wavepacket_command.set_float_uniforms({
-        {"amplitude0", 2.0}, 
-        {"amplitude1", 0.0},
-        });
-    wavepacket_command.set_vec3_uniforms({
-        {"r0", {0.5, 0.5, 0.5}}, 
-        {"r1", {0.5, 0.5, 0.5}},
-        {"sigma0", {0.5, 0.5, 0.5}}, 
-        {"sigma1", {0.05, 0.05, 0.05}},
-        {"wavenumber0", {0.0, 0.0,8.0}},
-        {"wavenumber1", {0.0, 0.0, 0.0}},
-        });
-    wavepacket_command.set_ivec2_uniforms({
-        {"texelDimensions2D", {NX*NZ, NY}},
-    });
-    wavepacket_command.set_ivec3_uniforms({
-        {"texelDimensions3D", {NX, NY, NZ}},
-    });
-    wavepacket_command.draw(psi1);*/
 
     // Create a texture that will store the Laplacian of psi
     auto laplacian_psi = funcs3D::zeroes(COMPLEX2, NX, NY, NZ);

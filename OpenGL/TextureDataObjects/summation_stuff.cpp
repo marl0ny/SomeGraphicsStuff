@@ -30,8 +30,9 @@ static void main_loop() {
 
 
 /* Sum through all elements in a texture. */
-int summation_stuff(GLFWwindow *window,
-                    frame_id main_frame) {
+int summation_stuff(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);

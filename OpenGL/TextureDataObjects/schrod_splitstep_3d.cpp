@@ -50,7 +50,9 @@ static double time_difference_in_ms(const struct timespec *t1,
    https://en.wikipedia.org/wiki/Split-step_method.
    
 */
-int schrod_splitstep_3d(GLFWwindow *window, frame_id main_frame) {
+int schrod_splitstep_3d(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
 
     int exit_status = 0;
 

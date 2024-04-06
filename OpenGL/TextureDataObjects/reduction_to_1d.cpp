@@ -30,13 +30,14 @@ static void main_loop() {
 
 /* Reduce a 2D texture to 1D by summing over either the rows or columns.
 */
-int reduction_to_1d(GLFWwindow *window,
-                    frame_id main_frame) {
+int reduction_to_1d(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
     int NX = window_width, NY = window_height;
-    int view_program = make_quad_program("./shaders/copy.frag");
+    int view_program = make_quad_program("./shaders/util/copy.frag");
     auto *data = new Vec4[NX*NY] {0.,};
     struct FillDataRet {
         DVec4 elementwise_red_1d[0x1000];

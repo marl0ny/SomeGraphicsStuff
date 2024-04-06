@@ -35,17 +35,17 @@ static struct {
 
 void init_fft_programs() {
     if (!s_fft_programs.is_initialized) {
-        s_fft_programs.fft = make_quad_program("./shaders/fft-iter.frag");
+        s_fft_programs.fft = make_quad_program("./shaders/fft/fft-iter.frag");
         s_fft_programs.rev_bit_sort2
-            = make_quad_program("./shaders/rev-bit-sort2.frag");
+            = make_quad_program("./shaders/fft/rev-bit-sort2.frag");
         s_fft_programs.fftshift
-            = make_quad_program("./shaders/fftshift.frag");
+            = make_quad_program("./shaders/fft/fftshift.frag");
         s_fft_programs.fft_3d
-            = make_quad_program("./shaders/fft-iter3d.frag");
+            = make_quad_program("./shaders/fft/fft-iter3d.frag");
         s_fft_programs.rev_bit_sort2_3d
-            = make_quad_program("./shaders/rev-bit-sort2-3d.frag");
+            = make_quad_program("./shaders/fft/rev-bit-sort2-3d.frag");
         s_fft_programs.fftshift_3d
-            = make_quad_program("./shaders/fftshift3d.frag");
+            = make_quad_program("./shaders/fft/fftshift3d.frag");
     }
     s_fft_programs.is_initialized = TRUE;
 }

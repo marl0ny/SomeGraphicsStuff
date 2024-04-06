@@ -24,7 +24,9 @@
  * - Wikipedia contributors. (2023, March 9). Poisson's equation.
  *   In Wikipedia, The Free Encyclopedia.
  */
-int poisson(GLFWwindow *window, frame_id main_frame) {
+int poisson(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);

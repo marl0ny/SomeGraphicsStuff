@@ -44,7 +44,9 @@ static double time_difference_in_ms(const struct timespec *t1,
    - Wikipedia contributors. (2021, May 6). Split-step method.
    In Wikipedia, The Free Encyclopedia.
    https://en.wikipedia.org/wiki/Split-step_method.*/
-int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
+int schrod_splitstep(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int NX = 256, NY = 256;
     int window_width = 0, window_height = 0;
@@ -61,7 +63,7 @@ int schrod_splitstep(GLFWwindow *window,frame_id main_frame) {
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
     auto command
-        = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
+        = DrawTexture2DData(Path("./shaders/wavepacket/init.frag"));
     command.set_float_uniforms({{"amplitude", 5.0},
                                 {"sigmaX", 0.05}, {"sigmaY", 0.05}});
     command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}}, });

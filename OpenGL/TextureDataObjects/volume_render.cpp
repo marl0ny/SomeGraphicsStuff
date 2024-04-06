@@ -213,15 +213,15 @@ void VolumeRender::init_programs() {
     // Program for sampling from the texture
     // that stores the 3D data
     this->programs.sample_volume = make_quad_program(
-        "./shaders/sample-vol3d.frag"
+        "./shaders/vol-render/sample.frag"
     );
     // Program for showing the volume data
     this->programs.show_volume = make_program(
-        "./shaders/show-vol3d.vert", 
-        "./shaders/show-vol3d.frag");
+        "./shaders/vol-render/display.vert", 
+        "./shaders/vol-render/display.frag");
 
     this->programs.gradient = make_quad_program(
-        "./shaders/gradient3d.frag"
+        "./shaders/gradient/gradient3d.frag"
     );
 }
 
@@ -439,6 +439,7 @@ static void show_sampled_vol(frame_id dst,
                              int sizeof_elements,
                              const Quaternion &rotation,
                              const Quaternion &debug_rotation,
+                             double scale,
                              const IVec3 &render_texel_dimensions_3d,
                              const IVec2 &render_texel_dimensions_2d) {
     bind_frame(dst, show_vol_program);
@@ -454,7 +455,7 @@ static void show_sampled_vol(frame_id dst,
                      debug_rotation.y,
                      debug_rotation.z,
                      debug_rotation.w);
-    set_float_uniform("scale", 1.0);
+    set_float_uniform("scale", scale);
     set_ivec3_uniform("texelDimensions3D",
                       render_texel_dimensions_3d.width,
                       render_texel_dimensions_3d.height,
@@ -553,6 +554,7 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
                         this->sizeof_elements,
                         rotation,
                         this->debug_rotation,
+                        view_scale,
                         render_texel_dimensions_3d, 
                         render_texel_dimensions_2d);
 

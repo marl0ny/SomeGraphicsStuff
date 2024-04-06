@@ -175,7 +175,9 @@ static double time_difference_in_ms(const struct timespec *t1,
  *     //www/pthreads.html.
  *
  * */
-int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
+int particles_lennard_jones_mt(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
@@ -188,7 +190,7 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
     // double dt = 0.000000001;
     // double dt = 0.0;
     frame_id view_program
-        = make_quad_program("./shaders/copy.frag");
+        = make_quad_program("./shaders/util/copy.frag");
 
     auto p0_arr = std::vector<struct Vec2> {};
     auto v0_arr = std::vector<struct Vec2> {};
@@ -330,8 +332,8 @@ int particles_lennard_jones_mt(GLFWwindow *window, frame_id main_frame) {
 
     // Particles view
     int particles_program = make_program(
-        "./shaders/particle-vert.vert",
-        "./shaders/colour.frag");
+        "./shaders/particles/particles.vert",
+        "./shaders/util/colour.frag");
     std::string uvIndexStr ("uvIndex");
     struct VertexParam vertex_params[1] = {{
         .name=&uvIndexStr[0], .size=2, .type=GL_FLOAT,

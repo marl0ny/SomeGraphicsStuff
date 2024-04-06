@@ -39,14 +39,16 @@ static void main_loop() {
  *  Verlet integration. In Wikipedia, The Free Encyclopedia.
  * 
  */
-int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
+int particles_coulomb(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width {}, window_height {};
     window_dimensions(window, &window_width, &window_height);
     int N_PARTICLES = 2048;
     double dt = 0.000003;
     frame_id view_program
-        = make_quad_program("./shaders/copy.frag");
+        = make_quad_program("./shaders/util/copy.frag");
 
     auto p0_arr = std::vector<struct Vec2> {};
     auto v0_arr = std::vector<struct Vec2> {};
@@ -63,9 +65,10 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
 
 
     auto force_com
-        = DrawTexture2DData(Path("./shaders/particles-force-coulomb.frag"));
+        = DrawTexture2DData(Path("./shaders/particles/force-coulomb.frag"));
     auto energy_int_com
-        = DrawTexture2DData(Path("./shaders/energy-int-coulomb.frag"));
+        = DrawTexture2DData(
+            Path("./shaders/particles/energy-int-coulomb.frag"));
     Texture2DData force_pairs0 = funcs2D::zeroes(FLOAT2, 
         N_PARTICLES, N_PARTICLES);
     Texture2DData force_pairs1 = funcs2D::zeroes(FLOAT2, 
@@ -98,8 +101,8 @@ int particles_coulomb(GLFWwindow *window, frame_id main_frame) {
 
     // Particles view
     int particles_program = make_program(
-        "./shaders/particle-vert.vert",
-        "./shaders/colour.frag");
+        "./shaders/particles/particles.vert",
+        "./shaders/util/colour.frag");
     std::string uvIndexStr ("uvIndex");
     struct VertexParam vertex_params[1] = {{
         .name=&uvIndexStr[0], .size=2, .type=GL_FLOAT,

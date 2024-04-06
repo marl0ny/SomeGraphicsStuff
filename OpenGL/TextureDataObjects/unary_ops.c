@@ -21,32 +21,34 @@ static struct {
 
 void init_unary_ops_programs() {
     if (!s_unary_ops_programs.is_initialized) {
-        s_unary_ops_programs.copy = make_quad_program("./shaders/copy.frag");
-        s_unary_ops_programs.zero = make_quad_program("./shaders/zero.frag");
+        s_unary_ops_programs.copy 
+            = make_quad_program("./shaders/util/copy.frag");
+        s_unary_ops_programs.zero 
+            = make_quad_program("./shaders/util/zero.frag");
         s_unary_ops_programs.scale
-             = make_quad_program("./shaders/scale.frag");
+             = make_quad_program("./shaders/util/scale.frag");
         s_unary_ops_programs.functions
-            = make_quad_program("./shaders/funcs.frag");
+            = make_quad_program("./shaders/util/funcs.frag");
         s_unary_ops_programs.pow
-            = make_quad_program("./shaders/pow.frag");
+            = make_quad_program("./shaders/util/pow.frag");
         s_unary_ops_programs.gradient
-            = make_quad_program("./shaders/gradient.frag");
+            = make_quad_program("./shaders/gradient/gradient.frag");
         s_unary_ops_programs.laplacian
-            = make_quad_program("./shaders/laplacian.frag");
+            = make_quad_program("./shaders/laplacian/laplacian.frag");
         s_unary_ops_programs.bilinear
-            = make_quad_program("./shaders/bilinear.frag");
+            = make_quad_program("./shaders/util/bilinear.frag");
         s_unary_ops_programs.trilinear
-            = make_quad_program("./shaders/trilinear.frag");
+            = make_quad_program("./shaders/util/trilinear.frag");
         s_unary_ops_programs.swizzle
-            = make_quad_program("./shaders/swizzle.frag");
+            = make_quad_program("./shaders/util/swizzle.frag");
         s_unary_ops_programs.conj
-            = make_quad_program("./shaders/conj.frag");
+            = make_quad_program("./shaders/util/conj.frag");
         s_unary_ops_programs.roll
-            = make_quad_program("./shaders/roll.frag");
+            = make_quad_program("./shaders/util/roll.frag");
         s_unary_ops_programs.float_substitute
-            = make_quad_program("./shaders/float-substitute.frag");
+            = make_quad_program("./shaders/util/float-substitute.frag");
         s_unary_ops_programs.transpose
-            = make_quad_program("./shaders/transpose.frag");
+            = make_quad_program("./shaders/util/transpose.frag");
         s_unary_ops_programs.is_initialized = TRUE;
     }
 }

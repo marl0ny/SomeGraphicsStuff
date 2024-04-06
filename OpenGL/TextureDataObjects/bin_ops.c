@@ -13,17 +13,17 @@ static struct {
 void init_bin_ops_programs() {
     if (!s_bin_ops_programs.is_initialized) {
         s_bin_ops_programs.tex
-            = make_quad_program("./shaders/tex-bin-ops.frag");
+            = make_quad_program("./shaders/bin-ops/tex-tex.frag");
         s_bin_ops_programs.tex_float
-            = make_quad_program("./shaders/tex-float-bin-ops.frag");
+            = make_quad_program("./shaders/bin-ops/tex-float.frag");
         s_bin_ops_programs.tex_vec2
-            = make_quad_program("./shaders/tex-vec2-bin-ops.frag");
+            = make_quad_program("./shaders/bin-ops/tex-vec2.frag");
         s_bin_ops_programs.tex_vec3
-            = make_quad_program("./shaders/tex-vec3-bin-ops.frag");
+            = make_quad_program("./shaders/bin-ops/tex-vec3.frag");
         s_bin_ops_programs.tex_vec4
-            = make_quad_program("./shaders/tex-vec4-bin-ops.frag");
+            = make_quad_program("./shaders/bin-ops/tex-vec4.frag");
         s_bin_ops_programs.swizzle
-            = make_quad_program("./shaders/swizzle2.frag");
+            = make_quad_program("./shaders/bin-ops/swizzle2.frag");
         s_bin_ops_programs.is_initialized = TRUE;
     }
 }

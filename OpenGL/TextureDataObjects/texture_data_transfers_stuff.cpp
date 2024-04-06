@@ -17,7 +17,9 @@
 #include <GLES3/gl3.h>
 
 
-int substitute_data_from_cpu(GLFWwindow *window, frame_id main_frame) {
+int substitute_data_from_cpu(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
@@ -49,7 +51,9 @@ int substitute_data_from_cpu(GLFWwindow *window, frame_id main_frame) {
     return exit_status;
 }
 
-int copy_data_for_cpu(GLFWwindow *window, frame_id main_frame) {
+int copy_data_for_cpu(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);

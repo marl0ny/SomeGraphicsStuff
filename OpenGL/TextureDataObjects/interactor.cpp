@@ -36,6 +36,8 @@ void Interactor::click_update(Renderer *renderer) {
 void Interactor::scroll_callback(GLFWwindow *window, double x, double y) {
     // std::cout << "Value of y: " << y << std::endl;
     Interactor::scroll += y;
+    if (Interactor::scroll < 0)
+        Interactor::scroll = 0.0;
 }
 
 void Interactor::attach_scroll_callback(GLFWwindow *window) {

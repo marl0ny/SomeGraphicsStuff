@@ -56,12 +56,13 @@ quaternion rotate(quaternion x, quaternion r) {
 }
 
 vec4 project(vec4 x) {
-    vec4 y;
+    return vec4(x.x, x.y, x.z, 1.0);
+    /* vec4 y;
     y[0] = x[0]*5.0/(x[2] + 5.0);
     y[1] = x[1]*5.0/(x[2] + 5.0);
     y[2] = x[2];
     y[3] = 1.0;
-    return y;
+    return y;*/
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
@@ -75,7 +76,9 @@ vec3 to3DTextureCoordinates(vec2 uv) {
 void main() {
     UV = uvIndex.xy;
     // gl_Position = vec4(UV, 0.0, 1.0);
+    // float scaleAdj = min(scale, 2.0);
+    float scaleAdj = scale;
     vec4 viewPos = vec4(to3DTextureCoordinates(UV), 1.0)
                    - vec4(0.5, 0.5, 0.5, 0.0);
-    gl_Position = project(2.0*scale*rotate(viewPos, debugRotation));
+    gl_Position = project(2.0*scaleAdj*rotate(viewPos, debugRotation));
 }

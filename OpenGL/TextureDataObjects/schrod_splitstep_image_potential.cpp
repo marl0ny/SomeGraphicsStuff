@@ -74,7 +74,9 @@ References:
    https://en.wikipedia.org/wiki/Split-step_method.
 
 */
-int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
+int schrod_splitstep_image_potential(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     // int NX = 2048, NY = 1024;
     int NX = 1024, NY = 512;
@@ -112,7 +114,7 @@ int schrod_splitstep_image_potential(GLFWwindow *window,frame_id main_frame) {
     auto potential_image_tex
         = (0.45/255.0)*Texture2DData(&potential_data[0], NX, NY);
     auto command
-        = DrawTexture2DData(Path("./shaders/init-gaussian.frag"));
+        = DrawTexture2DData(Path("./shaders/wavepacket/init.frag"));
     command.set_float_uniforms({{"amplitude", 5.0},
                                 {"sigmaX", 0.05}, {"sigmaY", 0.1}});
     command.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.35}}, });

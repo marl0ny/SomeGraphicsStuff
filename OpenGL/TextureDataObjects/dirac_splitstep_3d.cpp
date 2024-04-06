@@ -66,11 +66,12 @@ static struct SimulationParams {
     float fps = 0.0;
     IVec3 texel_dimensions3d;
     Vec3 dimensions3d;
+    int init_new_wavepacket;
     struct InitWavePacket {
         double a = 10.0;
         double sx = 0.07, sy = 0.07, sz = 0.07;
-        double bx = 0.5, by = 0.5, bz = 0.5;
-        double nx = 0.0, ny = 10.0, nz = 0.0;
+        float bx = 0.5, by = 0.5, bz = 0.5;
+        int nx = 0, ny = 10, nz = 0;
     } init_wave_packet;
 } sim_params;
 
@@ -238,48 +239,24 @@ static void time_step(const Texture2DData &u, const Texture2DData &v,
     );
 };
 
-/* static void time_step(Texture2DData &u, Texture2DData &v,
-                      const Texture2DData &potential1,
-                      const Texture2DData &potential2,
-                      DrawTexture2DData &kinetic_prop_drawer,
-                      DrawTexture2DData &spatial_prop_drawer,
-                      const struct SimulationParams &sim_params) {
-    // Apply the position space propagator first pass
-    spatial_prop_drawer.set_int_uniform("spinorIndex", 0);
-    auto u1 = funcs3D::zeroes(
-        COMPLEX2, sim_params.nx, sim_params.ny, sim_params.nz);
-    spatial_prop_drawer.draw(u1, 
-                        "uTex", u, "vTex", v, "potentialTex", potential1);
-    spatial_prop_drawer.set_int_uniform("spinorIndex", 1);
-    auto v1 = funcs3D::zeroes(
-        COMPLEX2, sim_params.nx, sim_params.ny, sim_params.nz);
-    spatial_prop_drawer.draw(v1, 
-                        "uTex", u, "vTex", v, "potentialTex", potential1);
-    // Fourier transform to momentum space
-    auto u2 = funcs3D::fft(u1);
-    auto v2 = funcs3D::fft(v1);
-    // Apply the kinetic propagator
-    kinetic_prop_drawer.set_int_uniform("spinorIndex", 0);
-    auto u3 = funcs3D::zeroes(
-        COMPLEX2, sim_params.nx, sim_params.ny, sim_params.nz);
-    kinetic_prop_drawer.draw(u3, 
-                        "uTex", u2, "vTex", v2);
-    kinetic_prop_drawer.set_int_uniform("spinorIndex", 1);
-    auto v3 = funcs3D::zeroes(
-        COMPLEX2, sim_params.nx, sim_params.ny, sim_params.nz);
-    kinetic_prop_drawer.draw(v3, 
-                        "uTex", u2, "vTex", v2);
-    // Inverse fourier transform back to position space
-    auto u4 = funcs3D::ifft(u3);
-    auto v4 = funcs3D::ifft(v3);
-    // Position space propagator final pass
-    spatial_prop_drawer.set_int_uniform("spinorIndex", 0);
-    spatial_prop_drawer.draw(u, 
-                        "uTex", u4, "vTex", v4, "potentialTex", potential2);
-    spatial_prop_drawer.set_int_uniform("spinorIndex", 1);
-    spatial_prop_drawer.draw(v, 
-                        "uTex", u4, "vTex", v4, "potentialTex", potential2);
-}*/
+static void slice_of_3d(Drawer &drawer, int orientation, int slice,
+                        IVec2 slice_tex_dimensions,
+                        IVec2 input_tex_dimensions_2d,
+                        IVec3 input_tex_dimensions_3d,
+                        const Texture2DData &out,
+                        const Texture2DData &in) {
+    drawer.draw(
+        out,
+        {
+            {"orientation", {int(orientation)}},
+            {"slice", {int(slice)}},
+            {"sliceTexelDimensions2D", {slice_tex_dimensions}},
+            {"inputTexelDimensions2D", {input_tex_dimensions_2d}},
+            {"inputTexelDimensions3D", {input_tex_dimensions_3d}},
+            {"tex", {&in}}
+        }
+    );
+}
 
 static Texture2DData get_texture_coordinate(
     int orientation_index, SimulationParams sim_params) {
@@ -340,53 +317,20 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
     auto imag_unit = std::complex<double>(0.0, 1.0);
 
-    auto kinetic_procedure = Drawer(Path("./shaders/dirac-kinetic.frag"));
-    auto spatial_procedure = Drawer(Path("./shaders/dirac-potential.frag"));
-    auto current_procedure = Drawer(Path("./shaders/dirac-current.frag"));
+    auto kinetic_procedure 
+        = Drawer(Path("./shaders/dirac/split-step-momentum3d.frag"));
+    auto spatial_procedure 
+        = Drawer(Path("./shaders/dirac/split-step-spatial.frag"));
+    auto current_procedure = Drawer(Path("./shaders/dirac/current.frag"));
     auto pseudocurrent_procedure 
-        = Drawer(Path("./shaders/dirac-pseudocurrent.frag"));
-    auto scalar_procedure = Drawer(Path("./shaders/dirac-scalar.frag"));
-    auto pseudoscalar_procedure 
-        = Drawer(Path("./shaders/dirac-pseudoscalar.frag"));
-    auto gradient3d_procedure = Drawer(Path("./shaders/gradient3d.frag"));
+        = Drawer(Path("./shaders/dirac/pseudocurrent.frag"));
+    auto scalar_procedure = Drawer(Path("./shaders/dirac/scalar.frag"));
+    /* auto pseudoscalar_procedure 
+        = Drawer(Path("./shaders/dirac-pseudoscalar.frag"));*/
+    auto slice_of_3d_procedure
+        = Drawer(
+            Path("./shaders/planes-projection-render/slice-of-3d.frag"));
 
-    /* auto kinetic_prop_drawer 
-        = DrawTexture2DData(Path("./shaders/dirac-kinetic.frag"));
-    kinetic_prop_drawer.set_int_uniform("numberOfDimensions", 3);
-    kinetic_prop_drawer.set_ivec3_uniform(
-        "texelDimensions3D", 
-        {{{.x=sim_params.nx, .y=sim_params.ny, .z=sim_params.nz}}});
-    kinetic_prop_drawer.set_vec3_uniform(
-        "dimensions3D", 
-        {{{.x=(float)sim_params.width, 
-                .y=(float)sim_params.height, 
-                .z=(float)sim_params.length}}});
-    kinetic_prop_drawer.set_float_uniform("dt", sim_params.dt);
-    kinetic_prop_drawer.set_float_uniform("m", sim_params.m);
-    kinetic_prop_drawer.set_int_uniform("representation", 0);
-
-    auto spatial_prop_drawer
-        = DrawTexture2DData(Path("./shaders/dirac-potential.frag"));
-    spatial_prop_drawer.set_float_uniform("dt", sim_params.dt/2.0);
-
-    {
-        auto drawers = {&kinetic_prop_drawer, &spatial_prop_drawer};
-        for (auto &e: drawers) {
-            e->set_float_uniform("c", sim_params.c);
-            e->set_float_uniform("hbar", sim_params.hbar);
-        }
-    }
-
-    auto current_drawer
-        = DrawTexture2DData(Path("./shaders/dirac-current.frag"));
-    current_drawer.set_vec4_uniform("sigmaX", {{{0.0, 0.0, 1.0, 0.0}}});
-    current_drawer.set_vec4_uniform("sigmaY", {{{0.0, 0.0, 0.0, -1.0}}});
-    current_drawer.set_vec4_uniform("sigmaZ", {{{1.0, -1.0, 0.0, 0.0}}});
-    current_drawer.set_int_uniform("representation", 0);
-
-    auto scalar_drawer
-        = DrawTexture2DData(Path("./shaders/dirac-scalar.frag"));
-    scalar_drawer.set_int_uniform("representation", 0);*/
 
     glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
 
@@ -418,7 +362,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
     auto pz = funcs3D::fftshift(2.0*PI*z);*/
 
     int view_program = make_quad_program("./shaders/view.frag");
-    int copy_program = make_quad_program("./shaders/copy.frag");
+    int copy_program = make_quad_program("./shaders/util/copy.frag");
 
     int k = 0;
     bool exit_loop = false;
@@ -441,7 +385,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
     auto vol = VolumeRender(
         {{{window_width, window_height}}}, 
-        {{{128, 128, 128}}},
+        {{{128, 128, 64}}},
         {{{sim_params.nx, sim_params.ny, sim_params.nz}}}
         );
     // char a;
@@ -453,6 +397,11 @@ int dirac_splitstep_3d(Renderer *renderer) {
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
 
         glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+        if (sim_params.init_new_wavepacket) {
+            u = get_initial_wavepacket(x, y, z, sim_params);
+            v = 0.0*u;
+            sim_params.init_new_wavepacket = 0;
+        }
         for (int i = 0; i < sim_params.steps_per_frame; i++) {
             time_step(u, v, pot, pot, kinetic_procedure, spatial_procedure, sim_params);
             /* time_step(u, v, pot, pot, 
@@ -489,7 +438,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
         auto j0_2 = j0.cast_to(FLOAT4, X, NONE, NONE, X);*/
         double scroll = 2.0*Interactor::get_scroll()/25.0;
         // std::cout << scroll << std::endl;
-        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1};
+        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2};
         if (sim_params.display_option == SHOW_VECTOR_FIELD) {
             auto vec_display = vec_view.render(
             scalar_vec_display*sim_params.brightness, 
@@ -498,7 +447,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
             bind_quad(main_frame, copy_program);
             vec_display.set_as_sampler2D_uniform("tex");
             draw_unbind_quad();
-        } else {
+        } else if (sim_params.display_option == VOL_DISPLAY) {
             auto vol_display = vol.render(
             scalar_vol_display*sim_params.brightness, scroll, rotation);
             auto debug_grad = 10.0*vol.debug_get_grad_half_precision();
@@ -510,6 +459,20 @@ int dirac_splitstep_3d(Renderer *renderer) {
             // set_sampler2D_uniform("tex", vol_display.get_frame_id());
             set_sampler2D_uniform("tex", vol_display.get_frame_id());
             // vol_display.set_as_sampler2D_uniform("tex");
+            draw_unbind_quad();
+        } else if (sim_params.display_option == SLICE_XY) {
+            auto xy_slice
+                 = funcs2D::zeroes(FLOAT4, sim_params.nx, sim_params.ny);
+            glViewport(0, 0, sim_params.nx, sim_params.ny);
+            slice_of_3d(slice_of_3d_procedure, 0, 64/2, 
+                        {sim_params.nx, sim_params.ny},
+                        {sim_params.nx*sim_params.nz, sim_params.ny},
+                        {sim_params.nx, sim_params.ny, sim_params.nz},
+                        xy_slice,
+                        scalar_vol_display);
+            glViewport(0, 0, window_width, window_height);
+            bind_quad(main_frame, copy_program);
+            set_sampler2D_uniform("tex", xy_slice.get_frame_id());
             draw_unbind_quad();
         }
 
@@ -531,8 +494,36 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 "Vector Length", &sim_params.vec_length, 0.0, 2.0);
             ImGui::SliderFloat("Brightness",
                 &sim_params.brightness, 0.0, 2.0);
+            int s = 0;
+            s += ImGui::SliderInt("nx", 
+                &sim_params.init_wave_packet.nx, -20, 20);
+            s += ImGui::SliderInt("ny", 
+                &sim_params.init_wave_packet.ny, -20, 20);
+            s += ImGui::SliderInt("nz", 
+                &sim_params.init_wave_packet.nz, -20, 20);
+            s += ImGui::SliderFloat("rx", 
+                &sim_params.init_wave_packet.bx, 0.0, 1.0);
+            s += ImGui::SliderFloat("ry", 
+                &sim_params.init_wave_packet.by, 0.0, 1.0);
+            s += ImGui::SliderFloat("rz", 
+                &sim_params.init_wave_packet.bz, 0.0, 1.0);
+            sim_params.init_new_wavepacket = s;
+
             ImGui::InputText("Text input", (char *)&text[0], 500);
-            ImGui::Checkbox("Show Volume Render", (bool *)&sim_params.display_option);
+            // ImGui::Checkbox("Show Volume Render", (bool *)&sim_params.display_option);
+            if (ImGui::BeginMenu("Visualization")) {
+                if (ImGui::MenuItem("Vector field view", "")) {
+                    sim_params.display_option = SHOW_VECTOR_FIELD;
+                }
+                if (ImGui::MenuItem("Volume Render", "")) {
+                    sim_params.display_option = VOL_DISPLAY;
+                }
+                if (ImGui::MenuItem("XY slice", "")) {
+                    sim_params.display_option = SLICE_XY;
+                }
+                ImGui::EndMenu();
+            }
+            // ImGui::EndMenuBar();
             ImGui::Text("fps: %f\n", (double)sim_params.fps);
             ImGui::Text("%s\n", (char *)text);
             // kinetic_prop_drawer.set_float_uniform("m", sim_params.m);

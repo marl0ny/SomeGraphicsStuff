@@ -47,7 +47,9 @@ References:
    part-v-physics-simulation/
    chapter-30-real-time-simulation-and-rendering-3d-fluids
 */
-int stable_fluids(GLFWwindow *window, frame_id main_frame) {
+int stable_fluids(Renderer *renderer) {
+    int main_frame = renderer->main_frame;
+    GLFWwindow *window = renderer->window;
     int exit_status = 0;
     int window_width = 0, window_height = 0;
     window_dimensions(window, &window_width, &window_height);
@@ -57,20 +59,21 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
     double dx = width/(double)NX, dy = height/(double)NY;
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
-    auto advect_com = DrawTexture2DData(Path("./shaders/isf-bw-advect.frag"));
+    auto advect_com 
+        = DrawTexture2DData(Path("./shaders/fluids/bw-advect.frag"));
     advect_com.set_float_uniforms({{"width", width}, {"height", height}});
     auto advect_higher_or_com
-        = DrawTexture2DData(Path("./shaders/advect-higher-or.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/advect-higher-or.frag"));
     advect_higher_or_com.set_float_uniforms({{"width", width},
                                              {"height", height},
                                              {"dx", dx}, {"dy", dy},
                                              {"dt", dt}});
     // getchar();
     auto poisson_solve_com
-        = DrawTexture2DData(Path("./shaders/poisson-jacobi.frag"));
+        = DrawTexture2DData(Path("./shaders/fluids/poisson-jacobi.frag"));
 
     auto init_dist_com
-         = DrawTexture2DData(Path("./shaders/isf-init-dist.frag"));
+         = DrawTexture2DData(Path("./shaders/fluids/init-dist.frag"));
 
     init_dist_com.set_float_uniforms({{"amplitude", 3.0},
                                       {"sigma", 0.1}});
@@ -78,7 +81,7 @@ int stable_fluids(GLFWwindow *window, frame_id main_frame) {
     auto dist0 = init_dist_com.create(FLOAT, NX, NY);
 
     auto init_vel_com
-         = DrawTexture2DData(Path("./shaders/stable-fluids-init-vel.frag"));
+         = DrawTexture2DData(Path("./shaders/fluids/init-vel.frag"));
     init_vel_com.set_float_uniforms({{"amplitude", 5.0},
                                       {"sigma", 0.07}});
     init_vel_com.set_vec2_uniforms({{"r0", {.x=0.25, .y=0.25}},
