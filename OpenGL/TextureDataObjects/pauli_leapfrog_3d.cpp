@@ -1,9 +1,14 @@
 #include "pauli_leapfrog_3d.hpp"
 
 // #include <OpenGL/OpenGL.h>
+#include <GL/gl.h>
 #include <cstdlib>
 #include <new>
 #define GL_SILENCE_DEPRECATION
+
+#include "render.hpp"
+#include "interactor.hpp"
+#include "quaternions.hpp"
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
@@ -18,10 +23,20 @@
 #include "vector_field_view_3d.hpp"
 #include <GLES3/gl3.h>
 
+#include "volume_render.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 #include <functional>
+
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
+
+
+// #include "imgui/imgui.h"
+// #include "imgui/backends/imgui_impl_glfw.h"
+// #include "imgui/backends/imgui_impl_opengl3.h"
 
 static std::function <void()> loop;
 #ifdef __EMSCRIPTEN__
@@ -158,6 +173,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
     auto z = get_texture_coordinate(2, sim_params);
 
     auto gradient = 0.0*x;
+    fprintf(stdout, "Max texture size %d\n", GL_MAX_TEXTURE_SIZE);
 
     auto pot = 4.0*((x-0.5)*(x-0.5) + (y-0.5)*(y-0.5) + (z-0.5)*(z-0.5));
 
@@ -200,13 +216,36 @@ int pauli_leapfrog_3d(Renderer *renderer) {
 
     auto vec_view = VectorFieldView3D(
         {window_width, window_height}, 
-        {sim_params.nx, sim_params.ny, sim_params.nz});
+       {sim_params.nx, sim_params.ny, sim_params.nz});
 
 
     int view_program = make_quad_program("./shaders/view.frag");
 
+    glViewport(0, 0, window_width, window_height);
+    IVec2 view_dimensions {window_width, window_height};
+    IVec3 render_dimensions {128, 128, 64};
+    IVec3 sample_dimensions {sim_params.nx, sim_params.ny, sim_params.nz};
+    auto vol = VolumeRender(view_dimensions, render_dimensions, sample_dimensions);
+
     int k = 0;
     bool exit_loop = false;
+
+    Quaternion rotation {0.0, 0.0, 0.0, 1.0};
+    Interactor interactor {window};
+
+    // Initialize imgui
+    bool show_controls_window = true;
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    // ImGui::StyleColorsClassic();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    #ifndef __EMSCRIPTEN__
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+    #else
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+    #endif
+
     loop = [&] {
 
         glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
@@ -237,13 +276,47 @@ int pauli_leapfrog_3d(Renderer *renderer) {
              });
         gradient = gradient*0.25;
         // vec_view.render(conj(psi1)*psi1, j, 1.0, {0.0, 0.0, 0.0, 1.0});
+        auto abs_psi_display = abs_psi1.cast_to(FLOAT4, X, NONE, NONE, X);
         glViewport(0, 0, window_width, window_height);
         // tex_copy(main_frame, gradient.get_frame_id());
+        // Quaternion rot0 = {0.0, 1.0, 0.0, 1.0};
+        // auto rot = rot0.normalized();
+        double scroll = 2.0*Interactor::get_scroll()/25.0;
+        auto vol_display = vol.render(abs_psi_display, scroll, rotation);
         bind_quad(main_frame, view_program);
-        psi1.set_as_sampler2D_uniform("tex");
+        vol_display.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
-
+        
         glfwPollEvents();
+
+         // Process input for ImGui
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        {
+            ImGui::Begin("Controls", &show_controls_window);
+            ImGui::Text("WIP AND INCOMPLETE");
+            ImGui::End();
+            
+        }
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            double angle = 4.0*interactor.get_mouse_abs_delta();
+            auto vel = interactor.get_mouse_delta();
+            Quaternion vel_q {.x=-vel.x, .y=-vel.y, .z=0.0, .w=0.0};
+            Quaternion to_camera {.x=0.0, .y=0.0, .z=1.0, .w=0.0};
+            Quaternion unorm_axis = vel_q*to_camera;
+            Quaternion axis = unorm_axis.normalized();
+            if (unorm_axis.length() > 0.0) {
+                Quaternion r = rotator(angle, axis.x, axis.y, axis.z);
+                rotation = rotation*r;
+            }
+        }
+
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
         gray_scott_reaction_diffusion,
         electrodynamics_3d,
     };
-    int which_function = 0;
+    int which_function = 15;
     if (argc > 1)
         try {
             which_function = std::stoi(argv[1]) % functions.size();

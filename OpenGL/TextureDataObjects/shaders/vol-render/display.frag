@@ -24,8 +24,8 @@ uniform vec4 rotation;
 uniform sampler2D gradientTex;
 uniform sampler2D densityTex;
 
-uniform ivec3 texelDimensions3D;
-uniform ivec2 texelDimensions2D;
+uniform ivec3 fragmentTexelDimensions3D;
+uniform ivec2 fragmentTexelDimensions2D;
 
 /* The variable UV from the previous shader contains 
 the 2D texture coordinate representation of the volume render.
@@ -65,7 +65,7 @@ quaternion rotate(quaternion x, quaternion r) {
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
-    int length3D = texelDimensions3D[2];
+    int length3D = fragmentTexelDimensions3D[2];
     float u = mod(uv[0]*float(length3D), 1.0);
     float v = uv[1];
     float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
@@ -73,6 +73,8 @@ vec3 to3DTextureCoordinates(vec2 uv) {
 }
 
 vec2 to2DTextureCoordinates(vec3 position) {
+    ivec2 texelDimensions2D = fragmentTexelDimensions2D;
+    ivec3 texelDimensions3D = fragmentTexelDimensions3D;
     int width2D = texelDimensions2D[0];
     int width3D = texelDimensions3D[0];
     int length3D = texelDimensions3D[2];
@@ -97,6 +99,7 @@ void main() {
     vec3 grad = texture2D(gradientTex, uv2).xyz;
     vec4 density = texture2D(densityTex, uv2);
     vec4 pix = density;
+    ivec3 texelDimensions3D = fragmentTexelDimensions3D;
     float dx = 1.0/float(texelDimensions3D[0]);
     float dy = 1.0/float(texelDimensions3D[1]);
     float dz = 1.0/float(texelDimensions3D[2]);

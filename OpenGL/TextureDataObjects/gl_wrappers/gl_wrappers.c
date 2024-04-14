@@ -408,6 +408,13 @@ void quad_init_texture(const struct TextureParams *params) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     s_current_frame->texture = texture;
+    // if (params->format < 0 || to_base(params->format) > 0xfffff || to_base(params->format) < 0
+    //     || to_type(params->format) > 0xfffff || to_type(params->format) < 0) {
+    //     fprintf(stdout, "%d\n", params->format);
+    //     fprintf(stdout, "%d\n", to_base(params->format));
+    //     fprintf(stdout, "%d\n", to_type(params->format));
+    // }
+    fprintf(stdout, "new_quad: %x\n", params->format);
     glTexImage2D(GL_TEXTURE_2D, 0, params->format,
                  params->width, params->height, 0, 
                  to_base(params->format),
@@ -492,6 +499,7 @@ int new_frame(const struct TextureParams *texture_params,
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     s_current_frame->texture = texture;
+    fprintf(stdout, "new_frame: %x\n", texture_params->format);
     glTexImage2D(GL_TEXTURE_2D, 0, texture_params->format,
                  texture_params->width, texture_params->height, 0,
                  to_base(texture_params->format),
@@ -520,12 +528,12 @@ int new_frame(const struct TextureParams *texture_params,
     glBindBuffer(GL_ARRAY_BUFFER, *vbo_ptr);
     glBufferData(GL_ARRAY_BUFFER, sizeof_vertices,
                  vertices, GL_STATIC_DRAW);
-    // if (elements != NULL) {
+    if (elements != NULL) {
         glGenBuffers(1, ebo_ptr);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *ebo_ptr);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof_elements,
                      elements, GL_STATIC_DRAW);
-        // }
+    }
     if (s_current_frame_id != 0) {
         glGenFramebuffers(1, fbo_ptr);
         glBindFramebuffer(GL_FRAMEBUFFER, *fbo_ptr);

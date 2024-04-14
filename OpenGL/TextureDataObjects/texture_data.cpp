@@ -956,14 +956,14 @@ Texture2DData pow(const Texture2DData &x, double n) {
 }
 
 Texture2DData min(double a, const Texture2DData &v) {
-    if (is_scalar_type(v.type)) {
+    // if (is_scalar_type(v.type)) {
         frame_id new_frame = activate_frame(&v.tex_params);
         tex_float_min_tex(new_frame, a, v.frame);
         return Texture2DData(v.type, new_frame, v.dimensions, v.tex_params);
-    } else {
-        int size = size_of_type(v.type);
+    /*} else {
+        int size = size_of_Texture2DData maxtype(v.type);
         // TODO!
-    }
+    }*/
 }
 
 Texture2DData min(const Texture2DData &v, double a) {
@@ -971,14 +971,14 @@ Texture2DData min(const Texture2DData &v, double a) {
 }
 
 Texture2DData max(double a, const Texture2DData &v) {
-    if (is_scalar_type(v.type)) {
+    // if (is_scalar_type(v.type)) {
         frame_id new_frame = activate_frame(&v.tex_params);
         tex_float_max_tex(new_frame, a, v.frame);
         return Texture2DData(v.type, new_frame, v.dimensions, v.tex_params);
-    } else {
+    /* } else {
         int size = size_of_type(v.type);
         // TODO!
-    }
+    }*/
 }
 
 Texture2DData max(const Texture2DData &v, double a) {

@@ -458,7 +458,12 @@ int dirac_splitstep_3d(Renderer *renderer) {
     ImGuiIO& io = ImGui::GetIO();
     // ImGui::StyleColorsClassic();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
+    // ImGui_ImplGlfw_InitForOpenGL(window, true);
+    #ifndef __EMSCRIPTEN__
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+    #else
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+    #endif
 
     // int show_controls_window = 1;
 
@@ -466,14 +471,16 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
     auto vol = VolumeRender(
         {{{window_width, window_height}}}, 
-        {{{128, 128, 128}}},
+        {{{128, 128, 64}}},
         {{{sim_params.nx, sim_params.ny, sim_params.nz}}}
         );
     // char a;
     // std::cin >> a;
 
     struct timespec frame_times[2] = {{}, {}};
+    // #ifndef __EMSCRIPTEN__
     clock_gettime(CLOCK_MONOTONIC_RAW, &frame_times[0]);
+    // #endif
     loop = [&] {
 
         glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
@@ -513,10 +520,12 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 {"uTex", {&u}}, 
                 {"vTex", {&v}}
                 });
+        // puts("This is reached.");
         auto scalar_alpha 
             = sqrt(scalar*scalar).cast_to(FLOAT4, NONE, NONE, NONE, X);
         auto scalar_red 
             = max(scalar.cast_to(FLOAT4, X, NONE, NONE, NONE), 0.0);
+        // puts("This is reached.");
         auto scalar_blue 
             = max(0.0 - scalar.cast_to(FLOAT4, NONE, NONE, X, NONE), 0.0);
         auto scalar_vec_display = scalar_red + scalar_blue + scalar_alpha;
@@ -632,6 +641,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
             ImGui::End();
         }
         ImGui::Render();
+        // ImGui_
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         interactor.click_update(renderer);
@@ -656,6 +666,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
         k++;
         glfwSwapBuffers(window);
+        // #ifndef __EMSCRIPTEN__
         clock_gettime(CLOCK_MONOTONIC_RAW, &frame_times[1]);
         // if (k % 2 == 0 && k != 0) {
             double delta_t = time_difference_in_ms(&frame_times[0], &frame_times[1]);
@@ -666,6 +677,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
                       << std::endl;*/
         // }
         std::swap(frame_times[1], frame_times[0]);
+        // #endif
     };
 
     #ifdef __EMSCRIPTEN__

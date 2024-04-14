@@ -3,183 +3,13 @@
 #include <GLES3/gl3.h>
 
 #include <vector>
-#include <type_traits>
-
-enum {Z_ORIENTATION=0, X_ORIENTATION=1, Y_ORIENTATION=2};
-
-
-/* Given the index used for accessing the 3D array, get its 1D counterpart.
-*/
-static size_t to_1d_index(Uint64Vec3 index_3d,
-                          IVec3 texel_dimensions_3d) {
-    /* This assumes that the data is stacked in columns.
-    */
-    size_t i = index_3d.i;
-    size_t j = index_3d.j;
-    size_t k = index_3d.k;
-    size_t width = size_t(texel_dimensions_3d.width);
-    size_t height = size_t(texel_dimensions_3d.height);
-    return i*height + j + k*width*height;
-}
 
 typedef unsigned int element_type;
 
-/* Write the elements for a single face. This returns the total
- number of elements used for making this face.
-
- elements - pointer location for the elements of a single face
- k - the index of which face to write the elements to.
- orientation - the direction where the faces are stacked
- texel_dimensions_2d - dimensions of the 2D texture
- texel_dimensions_3d - dimensions of the 3D array of data for the texture
-*/
-static size_t single_face(element_type *elements,
-                          size_t k, size_t orientation,
-                          IVec3 texel_dimensions_3d) {
-    
-    size_t horizontal_iter, vertical_iter;
-    switch(orientation) {
-        case Z_ORIENTATION:
-        horizontal_iter = texel_dimensions_3d.height - 1;
-        vertical_iter = texel_dimensions_3d.width - 2;
-        case Y_ORIENTATION:
-        horizontal_iter = texel_dimensions_3d.length - 1;
-        vertical_iter = texel_dimensions_3d.width - 2;
-        case X_ORIENTATION:
-        horizontal_iter = texel_dimensions_3d.width - 1;
-        vertical_iter = texel_dimensions_3d.height - 2;
-    }
-    int64_t inc = 1;
-    size_t j = 0;
-    size_t elem_index = 0;
-    /* By default, each square is constructed on top of each
-    other, using the final upper left vertex from the last square
-    as the first bottom left vertex for the next square. Once i
-    reaches vertical_iter, start doing the next column by incrementing
-    j, where the squares are constructed from top to bottom. 
-
-    */
-    for (size_t i = 0; j < horizontal_iter; i += inc) {
-        // if (k == 0)
-        //     fprintf(stdout, "%d, %d\n", i, j);
-        Uint64Vec3 bottom_left = {0, 0, 0}, bottom_right = {0, 0, 0};
-        Uint64Vec3 upper_left = {0, 0, 0}, upper_right = {0, 0, 0};
-        switch(orientation) {
-            case Z_ORIENTATION:
-            bottom_left = {.x=i, .y=j, .z=k};
-            bottom_right = {.x=i+1, .y=j, .z=k};
-            upper_right = {.x=i+1, .y=j+1, .z=k};
-            upper_left = {.x=i, .y=j+1, .z=k};
-            break;
-            case Y_ORIENTATION:
-            bottom_left = {.x=i, .y=k, .z=j};
-            bottom_right = {.x=i+1, .y=k, .z=j};
-            upper_right = {.x=i+1, .y=k, .z=j+1};
-            upper_left = {.x=i, .y=k, .z=j+1};
-            break;
-            case X_ORIENTATION:
-            bottom_left = {.x=k, .y=i, .z=j};
-            bottom_right = {.x=k, .y=i+1, .z=j};
-            upper_right = {.x=k, .y=i+1, .z=j+1};
-            upper_left = {.x=k, .y=i, .z=j+1};
-            break;
-        }
-        elements[elem_index++] 
-            = element_type(to_1d_index(bottom_left, texel_dimensions_3d));
-        elements[elem_index++]
-            = element_type(to_1d_index(bottom_right, texel_dimensions_3d));
-        elements[elem_index++] 
-            = element_type(to_1d_index(upper_right, texel_dimensions_3d));
-        elements[elem_index++]
-            = element_type(to_1d_index(upper_right, texel_dimensions_3d));
-        elements[elem_index++]
-            = element_type(to_1d_index(bottom_left, texel_dimensions_3d));
-        elements[elem_index++]
-            = element_type(to_1d_index(upper_left, texel_dimensions_3d));
-        if (i == 0) {
-            if (inc == -1) {
-                inc = 0;
-                j++;
-            } else if (inc == 0) {
-                inc = 1;
-            }
-        } else if (i == vertical_iter) {
-            if (inc == 1) {
-                inc = 0;
-                j++;
-            } else if (inc == 0) {
-                inc = -1;
-            }
-        } 
-    }
-    return elem_index;
-}
-
-/* Create the array of element indices for the entire
-volume. This function writes the total number of bytes
-used for the elements array to the location given
-in the argument ptr_sizeof_elements.
-*/
-static std::vector<element_type> new_elements(
-    size_t *ptr_sizeof_elements, IVec2 render_texel_dimensions_2d,
-    IVec3 render_texel_dimensions_3d) {
-    if (!ptr_sizeof_elements) {
-        fprintf(stderr, "new_elements: invalid ptr_sizepf_elements.");
-        return {};
-    }
-    // The variables width_3d and height_3d denotes the dimensions
-    // of each face in terms of the number of vertices,and length_3d
-    // denotes the total number of faces, stacked along the
-    // z direction.
-    // Each element except for the first connects with the preceding element.
-    // For each face there are 6*(width_3d-1)*(height_3d-1) total elements,
-    // since a face with width_3d*height_3d number of vertices requires
-    // (width_3d-1)*(height_3d-1) squares, where each square is constructed
-    // from two triangles which each consists of three vertices.
-    // There are length_3d total faces in total, where a single
-    // infinitely thin triangle must connect each face. Thus there are
-    // 6*(width_3d-1)*(height_3d-1)*length_3d + 3*length_3d total elements.
-    size_t number_of_elements = 6*(render_texel_dimensions_3d.width - 1)
-                                *(render_texel_dimensions_3d.height - 1)
-                                *render_texel_dimensions_3d.length
-                                + 3*render_texel_dimensions_3d.length;
-    *ptr_sizeof_elements = sizeof(element_type)*number_of_elements;
-    // fprintf(stdout, "Number of elements: %d\n", number_of_elements);
-    auto elements = std::vector<element_type> (number_of_elements);
-    // fprintf(stdout, "Elements address %x\n", elements);
-    size_t elem_index = 0;
-    size_t length = render_texel_dimensions_3d.length;
-    /* Currently the faces are only built along the z direction,    
-    where the backmost face is done first. */
-    for (int k = length - 1;  k >= 0; k--) {
-        // fprintf(stdout, "%d\n", elem_index);
-        // std::cout << elem_index << std::endl;
-        elem_index += single_face(&elements[elem_index],
-                                  size_t(k), 
-                                  Z_ORIENTATION, 
-                                  render_texel_dimensions_3d);
-        size_t index = elements[elem_index - 1];
-        // Construct the triangle that connects each face.
-        elements[elem_index++] = index;
-        elements[elem_index++] = index;
-        size_t z_index = (k < 0)? (length - 1): ((k-1) % length); 
-        Uint64Vec3 indices = {{{0, 0, size_t(z_index)}}};
-        elements[elem_index++] = element_type(to_1d_index(indices, 
-                                              render_texel_dimensions_3d));
-    }
-    return elements;
-}
 
 static std::vector<Vec2> new_vertices(size_t &sizeof_vertices, 
                                       IVec2 render_texel_dimensions_2d,
                                       IVec3 render_texel_dimensions_3d) {
-    /*auto to_3d_texel_coordinates = [&](Vec2 uv) -> Vec3 {
-        int length_3d = render_texel_dimensions_3d.ind[2];
-        float u = fmod(uv.ind[0]*float(length_3d), 1.0);
-        float v = uv.ind[1];
-        float w = (floor(uv.ind[0]*float(length_3d)) + 0.5)/float(length_3d);
-        return {u, v, w};
-    };*/
     size_t s = 6;
     size_t number_of_vertices = s*render_texel_dimensions_3d.length;
     sizeof_vertices = number_of_vertices*sizeof(Vec2);
@@ -207,62 +37,9 @@ static std::vector<Vec2> new_vertices(size_t &sizeof_vertices,
         vertices[s*j+4].y = 1.0;
         vertices[s*j+5].x = i*w_ratio;
         vertices[s*j+5].y = 0.0;
-
-        /* auto r = to_3d_texel_coordinates(vertices[s*i]);
-        fprintf(stdout, "%d: %g, %g, %g\n", 0, r.x, r.y, r.z);
-        r = to_3d_texel_coordinates(vertices[s*i+1]);
-        fprintf(stdout, "%d: %g, %g, %g\n", 1, r.x, r.y, r.z);
-        r = to_3d_texel_coordinates(vertices[s*i+2]);
-        fprintf(stdout, "%d: %g, %g, %g\n", 2, r.x, r.y, r.z);*/
-
-        /* int length_3d = render_texel_dimensions_3d.length;
-        vertices[s*i+6].x = float((float)i*w_ratio);
-        vertices[s*i+6].y = 0.0;
-        vertices[s*i+7].x = float((float)((i+2) % length_3d)*w_ratio);
-        vertices[s*i+7].y = 1.0;
-        vertices[s*i+8].x = float((float)((i+2) % length_3d)*w_ratio);
-        vertices[s*i+8].y = 0.0;*/
     }
-    // for (int i = 0; i < number_of_vertices; i++)
-    //      fprintf(stdout, "%g, %g\n", vertices[i].x, vertices[i].y);
     return vertices;
-
 }
-/* Construct the array of vertices for the volume render frame.
-These vertices are given in 2D texture coordinate form, which will
-be transformed to the 3D coordinates of the volume frame in the shaders.
-The total number of bytes used for constructing the array is written
-to the location given in the ptr_sizeof_vertices argument.
-*/
-/*static std::vector<Vec2> new_vertices(size_t *ptr_sizeof_vertices,
-                                      IVec2 render_texel_dimensions_2d) {
-    if (!ptr_sizeof_vertices) {
-        fprintf(stderr, "new_vertices: invalid ptr_sizeof_vertices.");
-        return {};
-    }
-    size_t number_of_vertices = render_texel_dimensions_2d.width
-                                *render_texel_dimensions_2d.height;
-    *ptr_sizeof_vertices = number_of_vertices*sizeof(Vec2);
-    auto vertices = std::vector<Vec2> (number_of_vertices);
-    // In terms of the 2D texture, vertices are ordered as a stack of
-    // ascending columns, starting from the origin and 
-    // ending at the upper right corner. 
-    for (size_t i = 0; i < render_texel_dimensions_2d.width; i++) {
-        for (size_t j = 0; j < render_texel_dimensions_2d.height; j++) {
-            size_t w = render_texel_dimensions_2d.width;
-            size_t h = render_texel_dimensions_2d.height;
-            float x = ((float)i + 0.5)/(float)w;
-            float y = ((float)j + 0.5)/(float)h;
-            // if (i == 255*64)
-            //     fprintf(stdout, "%f, %f\n", x, y);
-            vertices[j + i*h].x = x;
-            vertices[j + i*h].y = y;
-            // vertices[j + i*h].z = 0.0;
-            // vertices[j + i*h].w = 1.0;
-        }
-    }
-    return vertices;
-}*/
 
 /* Initialize the programs. */
 void VolumeRender::init_programs() {
@@ -293,6 +70,7 @@ void VolumeRender::init_frames() {
         .width=this->sample_texel_dimensions_2d.width,
         .height=this->sample_texel_dimensions_2d.height,
         .generate_mipmap=1,
+        // .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
         .wrap_s=GL_REPEAT, .wrap_t=GL_REPEAT,
         .min_filter=GL_LINEAR, .mag_filter=GL_LINEAR,
     };
@@ -357,8 +135,13 @@ void VolumeRender::init_frames() {
         .height=this->view_dimensions.height,
         .generate_mipmap=1,
         .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
-        .min_filter=GL_LINEAR_MIPMAP_LINEAR, 
-        .mag_filter=GL_LINEAR_MIPMAP_LINEAR,
+        // #ifdef __EMSCRIPTEN__
+        .min_filter=GL_LINEAR,
+        .mag_filter=GL_LINEAR,
+        // #else
+        // .min_filter=GL_LINEAR_MIPMAP_LINEAR, 
+        // .mag_filter=GL_LINEAR_MIPMAP_LINEAR,
+        // #endif
     };
     /*this->frames.out = new_frame(&tex_params_view_16f_mipmap_filter, 
                                  (float *)&vertices[0],
@@ -369,7 +152,7 @@ void VolumeRender::init_frames() {
     this->frames.out = new_frame(&tex_params_view_16f_mipmap_filter, 
                                  (float *)&vertices[0],
                                  (int)sizeof_vertices,
-                                 NULL, -1);
+                                 NULL, 0);
 
 }
 
@@ -515,11 +298,18 @@ static void show_sampled_vol(frame_id dst,
                       render_texel_dimensions_3d.width,
                       render_texel_dimensions_3d.height,
                       render_texel_dimensions_3d.length);
-    set_ivec2_uniform("texelDimensions2D",
+    set_ivec3_uniform("fragmentTexelDimensions3D",
+                      render_texel_dimensions_3d.width,
+                      render_texel_dimensions_3d.height,
+                      render_texel_dimensions_3d.length);
+    /* set_ivec2_uniform("texelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);*/
+    set_ivec2_uniform("fragmentTexelDimensions2D",
                       render_texel_dimensions_2d.width,
                       render_texel_dimensions_2d.height);
     // Set fragment uniforms
-    set_int_uniform("debugShow2DTexture", 0);
+    // set_int_uniform("debugShow2DTexture", 0);
     set_vec4_uniform("rotation", rotation.x, rotation.y,
                      rotation.z, rotation.w);
     set_sampler2D_uniform("gradientTex", sample_grad);
@@ -536,14 +326,6 @@ static void show_sampled_vol(frame_id dst,
     set_float_uniform("scale", scale);
     glDrawArrays(GL_TRIANGLES, 0, 
                  6*render_texel_dimensions_3d.length);
-    unbind();*/
-
-    // https://en.cppreference.com/w/cpp/types/is_same
-    /*if (std::is_same<element_type, unsigned short>::value) {
-        glDrawElements(GL_TRIANGLES, sizeof_elements, GL_UNSIGNED_SHORT, 0);
-    } else {
-        glDrawElements(GL_TRIANGLES, sizeof_elements, GL_UNSIGNED_INT, 0);
-    }
     unbind();*/
 }
 
@@ -645,11 +427,11 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
 
 
     Texture2DData t = Texture2DData(
-        BYTE4, 
+        HALF_FLOAT4, 
         this->view_dimensions.width, 
         this->view_dimensions.height,
         false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
-        GL_NEAREST, GL_NEAREST);
+        GL_LINEAR, GL_LINEAR);
     tex_copy(t.get_frame_id(), this->frames.out);
     return t;
 }

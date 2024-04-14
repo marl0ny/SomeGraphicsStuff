@@ -22,21 +22,21 @@ LIBS = -ldl -L/opt/homebrew/lib -L/usr/local/include -lglfw\
 endif
 
 
-TARGET = ${PWD}/program
-FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
-FLAGS_NO_OPT = -O0 -g -Wall 
-# FLAGS = -O0 -g -Wall
-C_COMPILE = clang 
-CPP_COMPILE = clang++ -std=c++11
+# TARGET = ${PWD}/program
+# FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
+# FLAGS_NO_OPT = -O0 -g -Wall 
+# # FLAGS = -O0 -g -Wall
+# C_COMPILE = clang 
+# CPP_COMPILE = clang++ -std=c++11
 
-# TARGET = main.js
-# CPP_COMPILE = emcc
-# C_COMPILE = emcc
-# FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
-# 	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
-# FLAGS_NO_OPT = ${FLAGS}
-# LIBS =
-# INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
+TARGET = main.js
+CPP_COMPILE = EMCC_DEBUG=1 emcc
+C_COMPILE = EMCC_DEBUG=1 emcc
+FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
+	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+FLAGS_NO_OPT = ${FLAGS}
+LIBS =
+INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
 
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
              unary_ops.c fft.c bitmap.c summation.c write_to_png.c \

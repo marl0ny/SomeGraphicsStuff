@@ -25,7 +25,7 @@ uniform bool debugShow2DTexture;
 uniform float scale;
 
 uniform ivec3 texelDimensions3D;
-uniform ivec2 texelDimensions2D;
+// uniform ivec2 texelDimensions2D;
 
 /* The attribute or input uvIndex contains the 2D coordinates represetation
 of the volume render frame, which is then converted to 3D coordinates
