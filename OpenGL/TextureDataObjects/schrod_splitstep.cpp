@@ -33,6 +33,28 @@ static double time_difference_in_ms(const struct timespec *t1,
                                     const struct timespec *t2);
 
 
+
+float p(int i, float len) {
+    return 2.0*3.14159*float(i)/len;
+}
+
+void init_wavepacket_in_momentum_space(const Texture2DData &t) {
+    auto init_wavepacket_proc = Drawer(
+        Path("./shaders/wavepacket/init-in-momentum-space.frag"));
+    init_wavepacket_proc.draw(
+        t,
+        {
+            {"position", {Vec3 {0.25, 0.25, 0.0}}},
+            {"sigma", {Vec3 {p(50, 1.0), p(50, 1.0), 1.0}}},
+            {"momentum", {Vec3 {p(20, 1.0), p(20, 1.0), 0}}},
+            {"dimensions", {Vec3 {1.0, 1.0, 0.0}}},
+            {"texelDimensions", {IVec3 {256, 256, 0}}},
+            {"spinor", {Vec4 {1.0, 0.0, 0.0, 0.0}}},
+        }
+    );
+}
+
+
 /* Split operator implementation for the Schrodinger equation.
 
    References:
@@ -72,9 +94,16 @@ int schrod_splitstep(Renderer *renderer) {
                                      GL_REPEAT, GL_REPEAT,
                                      GL_LINEAR, GL_LINEAR);
     auto psi {psi_unnorm*(100.0/sqrt(psi_unnorm.squared_norm().as_double))};
+
+    /* auto psi_p = 1.0*psi;
+    // psi = psi_p;
+    init_wavepacket_in_momentum_space(psi_p);
+    // psi = psi_p;
+    psi = funcs2D::ifft(psi_p);*/
+
     auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NX;
     auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY) - 0.5/(double)NY;
-    Texture2DData pot = (0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
+    Texture2DData pot = 1.0*(0.6*(x*x + y*y)).cast_to(COMPLEX, X, NONE);
     Texture2DData x_propagator = exp((-imag_unit*(dt/2.0)/hbar)*pot);
     Texture2DData px = funcs2D::fftshift(2.0*pi*x).cast_to(COMPLEX, X, NONE);
     Texture2DData py = funcs2D::fftshift(2.0*pi*y).cast_to(COMPLEX, X, NONE);
@@ -94,7 +123,7 @@ int schrod_splitstep(Renderer *renderer) {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
         glViewport(0, 0, NX, NY);
-        int steps_per_frame = 2;
+        int steps_per_frame = 1;
         for (int i = 0; i < steps_per_frame; i++) {
             psi = h_psi_func(psi);
             psi = psi*(100.0/sqrt(psi.squared_norm().as_double));

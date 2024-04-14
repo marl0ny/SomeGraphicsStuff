@@ -40,7 +40,7 @@ class VolumeRender {
     
     // Vec3 translate;
     struct { // Perhaps this should be static?
-        GLuint gradient, sample_volume, show_volume;
+        GLuint gradient, sample_volume, show_volume, cube;
     } programs;
     struct {
         // frame_id draw;
@@ -54,7 +54,7 @@ class VolumeRender {
         // frame_id sub_view1, sub_view2;
         // frame_id sub_view3, sub_view4;
     } frames;
-    int sizeof_elements;
+    size_t sizeof_elements;
     enum {
         Z_ORIENTATION=0, X_ORIENTATION=1, Y_ORIENTATION=2
     };

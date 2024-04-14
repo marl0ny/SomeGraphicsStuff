@@ -50,36 +50,50 @@ static struct SimulationParams {
     int nz = 64;
     double hbar = 1.0;
     float m = 1.0;
-    float dt  = 0.000028;
     double width = 2.0;
     double height = 2.0;
     double length = 2.0;
     double c = 137.036;
-    double dx;
-    double dy;
-    double dz;
+    double dx() {
+        return this->width/float(this->nx);
+    }
+    double dy() {
+        return this->height/float(this->ny);
+    }
+    double dz() {
+        return this->length/float(this->nz);
+    }
+    float max_time_step() {
+        float dx = std::min(this->dx(), std::min(this->dy(), this->dz()));
+        return dx/this->c;
+    }
+    float dt = max_time_step();
     float vec_length = 0.1;
     float brightness = 1.0;
     int steps_per_frame = 1;
     int representation = 0;
-    int display_option = 0;
+    int display_option = 1;
     float fps = 0.0;
-    IVec3 texel_dimensions3d;
-    Vec3 dimensions3d;
-    int init_new_wavepacket;
+    IVec3 texel_dimensions3d {this->nx, this->ny, this->nz};
+    Vec3 dimensions3d {float(this->width), 
+                       float(this->height), 
+                       float(this->length)};
+    bool init_new_wavepacket = false;
     struct InitWavePacket {
         double a = 10.0;
         double sx = 0.07, sy = 0.07, sz = 0.07;
+        // double sx = 0.25, sy = 0.25, sz = 0.25;
         float bx = 0.5, by = 0.5, bz = 0.5;
-        int nx = 0, ny = 10, nz = 0;
+        int nx = 20, ny = 20, nz = 20;
     } init_wave_packet;
 } sim_params;
 
 static double time_difference_in_ms(const struct timespec *t1,
                                     const struct timespec *t2) {
+    double ns_in_ms = 1000000.0;
     if (t2->tv_nsec >= t1->tv_nsec)
-        return (double)(t2->tv_nsec - t1->tv_nsec)/1000000.0;
-    return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/1000000.0;
+        return (double)(t2->tv_nsec - t1->tv_nsec)/ns_in_ms;
+    return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/ns_in_ms;
 }
 
 /* Numerically solve the Dirac equation in 3D using the split-operator method.
@@ -271,6 +285,73 @@ static Texture2DData get_texture_coordinate(
         ).cast_to(COMPLEX2, X, NONE, X, NONE);
 }
 
+void get_initial_momentum_wavepacket(
+    Texture2DData &u,
+    Texture2DData &v,
+    std::complex<float> u_p,
+    std::complex<float> d_p,
+    std::complex<float> u_n,
+    std::complex<float> d_n,
+    const Drawer &drawer,
+    const SimulationParams &params
+) {
+    auto p = [](int i, float len) -> double {
+        return 2.0*3.14159*float(i)/len;
+    };
+    double a = sim_params.init_wave_packet.a;
+    double sx = sim_params.init_wave_packet.sx;
+    double sy = sim_params.init_wave_packet.sy;
+    double sz = sim_params.init_wave_packet.sz;
+    double bx = sim_params.init_wave_packet.bx;
+    double by = sim_params.init_wave_packet.by;
+    double bz = sim_params.init_wave_packet.bz;
+    double nx = sim_params.init_wave_packet.nx;
+    double ny = sim_params.init_wave_packet.ny;
+    double nz = sim_params.init_wave_packet.nz;
+    Vec3 position {.x=float(bx*sim_params.width),
+                   .y=float(by*sim_params.height),
+                   .z=float(bz*sim_params.length)};
+    Vec3 momentum {.x=float(p(int(nx), sim_params.width)), 
+                   .y=float(p(int(ny), sim_params.height)),
+                   .z=float(p(int(nz), sim_params.length))};
+    Vec3 sigma {.x=float(p(int(0.15*sim_params.nx), sim_params.width)),
+                .y=float(p(int(0.15*sim_params.ny), sim_params.height)),
+                .z=float(p(int(0.15*sim_params.nz), sim_params.length))
+                };
+    auto w = funcs3D::zeroes(
+        FLOAT4, 
+        sim_params.nx, sim_params.ny, sim_params.nz);
+    for (auto &i: {0, 1}) {
+        drawer.draw(
+            w,
+            {
+                {"dimensions", 
+                {Vec3 {float(sim_params.width), 
+                        float(sim_params.height),
+                        float(sim_params.length)}}},
+                {"texelDimensions", 
+                {IVec3 {sim_params.nx, sim_params.ny, sim_params.nz}}},
+                {"position", {position}},
+                {"momentum", {momentum}},
+                {"sigma", {sigma}},
+                {"m", {float(sim_params.m)}},
+                {"c", {float(sim_params.c)}},
+                {"spinorIndex", {int(i)}},
+                {"representation", {int(sim_params.representation)}},
+                {"uPosECoeff", {Vec2 {u_p.real(), u_p.imag()}}},
+                {"dPosECoeff", {Vec2 {d_p.real(), d_p.imag()}}},
+                {"uNegECoeff", {Vec2 {u_n.real(), u_n.imag()}}},
+                {"dNegECoeff", {Vec2 {d_n.real(), d_n.imag()}}},
+            }
+        );
+        float factor = 0.05*float(sim_params.nx*sim_params.ny*sim_params.nz);
+        if (i == 0)
+            u = funcs3D::ifft(factor*w);
+        else
+            v = funcs3D::ifft(factor*w);
+    }
+}
+
 static Texture2DData get_initial_wavepacket(const Texture2DData &x, 
                                             const Texture2DData &y,
                                             const Texture2DData &z, 
@@ -313,8 +394,6 @@ int dirac_splitstep_3d(Renderer *renderer) {
     sim_params.texel_dimensions3d.ind[1] = sim_params.ny;
     sim_params.texel_dimensions3d.ind[2] = sim_params.nz;
 
-    sim_params.representation = 0;
-
     auto imag_unit = std::complex<double>(0.0, 1.0);
 
     auto kinetic_procedure 
@@ -330,6 +409,8 @@ int dirac_splitstep_3d(Renderer *renderer) {
     auto slice_of_3d_procedure
         = Drawer(
             Path("./shaders/planes-projection-render/slice-of-3d.frag"));
+    auto wavepacket_drawer
+        = Drawer(Path("./shaders/dirac/init-momentum-wavepacket.frag"));
 
 
     glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
@@ -339,7 +420,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
     auto z = get_texture_coordinate(2, sim_params);
 
     auto pot 
-        = 100.0*powf(64.0F/(float)sim_params.nz, 2.0)
+        = 0.0*100.0*powf(64.0F/(float)sim_params.nz, 2.0)
             *((x - 0.5)*(x - 0.5) 
               + (y - 0.5)*(y - 0.5) 
               + (z - 0.5)*(z - 0.5)
@@ -385,27 +466,36 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
     auto vol = VolumeRender(
         {{{window_width, window_height}}}, 
-        {{{128, 128, 64}}},
+        {{{128, 128, 128}}},
         {{{sim_params.nx, sim_params.ny, sim_params.nz}}}
         );
     // char a;
     // std::cin >> a;
 
+    struct timespec frame_times[2] = {{}, {}};
+    clock_gettime(CLOCK_MONOTONIC_RAW, &frame_times[0]);
     loop = [&] {
 
-        struct timespec frame_start, frame_end;
-        clock_gettime(CLOCK_MONOTONIC, &frame_start);
-
         glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
-        if (sim_params.init_new_wavepacket) {
-            u = get_initial_wavepacket(x, y, z, sim_params);
-            v = 0.0*u;
-            sim_params.init_new_wavepacket = 0;
-        }
         for (int i = 0; i < sim_params.steps_per_frame; i++) {
-            time_step(u, v, pot, pot, kinetic_procedure, spatial_procedure, sim_params);
+            if (!sim_params.init_new_wavepacket)
+                time_step(u, v, 
+                          pot, pot, 
+                          kinetic_procedure, spatial_procedure,
+                          sim_params);
             /* time_step(u, v, pot, pot, 
                       kinetic_prop_drawer, spatial_prop_drawer, sim_params);*/
+        }
+        if (sim_params.init_new_wavepacket) {
+            get_initial_momentum_wavepacket(u, v, 
+                {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
+                 wavepacket_drawer, sim_params);
+            get_initial_momentum_wavepacket(u, v,
+                {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, 
+                wavepacket_drawer, sim_params);
+            // u = get_initial_wavepacket(x, y, z, sim_params);
+            // v = 0.0*u;
+            sim_params.init_new_wavepacket = 0;
         }
 
         current_procedure.draw(
@@ -438,7 +528,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
         auto j0_2 = j0.cast_to(FLOAT4, X, NONE, NONE, X);*/
         double scroll = 2.0*Interactor::get_scroll()/25.0;
         // std::cout << scroll << std::endl;
-        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2};
+        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2, SLICE_ZY=3, SLICE_XZ=4};
         if (sim_params.display_option == SHOW_VECTOR_FIELD) {
             auto vec_display = vec_view.render(
             scalar_vec_display*sim_params.brightness, 
@@ -460,11 +550,13 @@ int dirac_splitstep_3d(Renderer *renderer) {
             set_sampler2D_uniform("tex", vol_display.get_frame_id());
             // vol_display.set_as_sampler2D_uniform("tex");
             draw_unbind_quad();
-        } else if (sim_params.display_option == SLICE_XY) {
+        } else if (sim_params.display_option == SLICE_XY 
+                    || sim_params.display_option == SLICE_XZ
+                    || sim_params.display_option == SLICE_ZY) {
             auto xy_slice
                  = funcs2D::zeroes(FLOAT4, sim_params.nx, sim_params.ny);
             glViewport(0, 0, sim_params.nx, sim_params.ny);
-            slice_of_3d(slice_of_3d_procedure, 0, 64/2, 
+            slice_of_3d(slice_of_3d_procedure, sim_params.display_option - 2, 64/2, 
                         {sim_params.nx, sim_params.ny},
                         {sim_params.nx*sim_params.nz, sim_params.ny},
                         {sim_params.nx, sim_params.ny, sim_params.nz},
@@ -487,7 +579,9 @@ int dirac_splitstep_3d(Renderer *renderer) {
             ImGui::Text("WIP AND INCOMPLETE");
             ImGui::SliderFloat("Mass", &sim_params.m, 0.0, 2.0);
             ImGui::SliderFloat(
-                "Time Step", &sim_params.dt, -0.000028, 0.000028, "%g");
+                "Time Step", &sim_params.dt, 
+                -sim_params.max_time_step(), sim_params.max_time_step(), 
+                "%g");
             ImGui::SliderInt(
                 "Steps/Frame", &sim_params.steps_per_frame, 0, 10);
             ImGui::SliderFloat(
@@ -520,6 +614,12 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 }
                 if (ImGui::MenuItem("XY slice", "")) {
                     sim_params.display_option = SLICE_XY;
+                }
+                if (ImGui::MenuItem("ZY slice", "")) {
+                    sim_params.display_option = SLICE_ZY;
+                }
+                if (ImGui::MenuItem("ZY slice", "")) {
+                    sim_params.display_option = SLICE_XZ;
                 }
                 ImGui::EndMenu();
             }
@@ -556,15 +656,16 @@ int dirac_splitstep_3d(Renderer *renderer) {
 
         k++;
         glfwSwapBuffers(window);
-        clock_gettime(CLOCK_MONOTONIC, &frame_end);
-        if (k % 10 == 0 && k != 0) {
-            double delta_t = time_difference_in_ms(&frame_start, &frame_end);
+        clock_gettime(CLOCK_MONOTONIC_RAW, &frame_times[1]);
+        // if (k % 2 == 0 && k != 0) {
+            double delta_t = time_difference_in_ms(&frame_times[0], &frame_times[1]);
             sim_params.fps = 1000.0/delta_t;
 	    // std::cout << psi2.sum_reduction().as_dvec4.x << std::endl;
             /*std::cout << "frames/s: " << (1000.0/delta_t) << std::endl;
             std::cout << "steps/s: " << (1000.0/delta_t)*sim_params.steps_per_frame
                       << std::endl;*/
-        }
+        // }
+        std::swap(frame_times[1], frame_times[0]);
     };
 
     #ifdef __EMSCRIPTEN__

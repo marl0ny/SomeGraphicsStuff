@@ -141,4 +141,5 @@ void main() {
         r.y < 0.0 || r.y >= 1.0 ||
         r.z < 0.0 || r.z >= 1.0) discard;
     fragColor = sample2DTextureAs3D(tex, r);
+    // fragColor = vec4(1.0);
 }

@@ -23,7 +23,7 @@ static const char QUAD_VERTEX_SHADER_SOURCE[] = ""
     "    UV = position.xy/2.0 + vec2(0.5, 0.5);\n"
     "}\n";
 
-enum FRAME_TYPES {QUAD=0, GENERAL_2D_FRAME};
+enum FRAME_TYPES {QUAD=0, GENERAL_SINGLE_2D_FRAME};
 
 struct Frame {
     int frame_type;
@@ -37,6 +37,10 @@ struct Frame {
     // int vertex_count;
     // int element_count;
     // int draw_type;
+};
+
+struct MultiFrame {
+
 };
 
 static int s_quad_vertex_shader_ref = -1;
@@ -385,6 +389,18 @@ void quad_init_texture(const struct TextureParams *params) {
                         GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
                         GL_LINEAR);
+        /* {
+            glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
+            GLuint texture;
+            glGenTextures(1, &texture);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            s_current_frame->texture = texture;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8UI,
+                        512, 512, 0, 
+                        to_base(GL_RGBA8UI),
+                        to_type(GL_RGBA8UI),
+                        NULL);
+        }*/
         return;
     }
     glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
@@ -451,7 +467,7 @@ int pop_frame() {
 
 int new_frame(const struct TextureParams *texture_params,
               float *vertices, int sizeof_vertices,
-              int *elements, int sizeof_elements) {
+              void *elements, int sizeof_elements) {
     if (s_current_frame != NULL) {
         fprintf(stderr, ERR_FRAME_ACTIVE);
         return -1;
@@ -572,6 +588,15 @@ void bind_frame(int frame2d_id, GLuint program) {
         glBindRenderbuffer(GL_RENDERBUFFER, s_current_frame->rbo);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
+}
+
+void change_program(GLuint program) {
+    if (s_current_frame == NULL) {
+        fprintf(stderr, ERR_NO_FRAME_ACTIVE);
+        return;
+    }
+    s_current_frame->program = program;
+    glUseProgram(program);
 }
 
 void set_vertex_attributes(const struct VertexParam *vertex_parameters,
@@ -707,6 +732,18 @@ void set_ivec3_uniform(const char *name, int v0, int v1, int v2) {
         GLuint loc = glGetUniformLocation(program, name);
         check_uniform_name_is_valid(name, loc);
         glUniform3i(loc, v0, v1, v2);
+        return;
+    }
+    if (s_err_msg_counter < 32) fprintf(stderr, ERR_NO_FRAME_ACTIVE);
+    s_err_msg_counter++;
+}
+
+void set_ivec4_uniform(const char *name, int v0, int v1, int v2, int v3) {
+    if (s_current_frame != NULL) {
+        GLuint program = s_current_frame->program;
+        GLuint loc = glGetUniformLocation(program, name);
+        check_uniform_name_is_valid(name, loc);
+        glUniform4i(loc, v0, v1, v2, v3);
         return;
     }
     if (s_err_msg_counter < 32) fprintf(stderr, ERR_NO_FRAME_ACTIVE);

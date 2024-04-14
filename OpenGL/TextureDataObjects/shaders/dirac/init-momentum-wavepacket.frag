@@ -18,30 +18,25 @@ in vec2 UV;
 out vec4 fragColor;
 #endif
 
-/* The Dirac equation using an arbitrary four-vector potential and
-with constants like c and hbar explicitly written out can be found
-on pg 566 (eq. 20.2.2) of Principles of Quantum Mechanics by Shankar.
-
- The Split Operator momentum space propagator for the Dirac equation 
- in the Dirac representation is derived in II.3 of this article
- by Bauke and Keitel: https://arxiv.org/abs/1012.3911.
- To derive the momentum space propagator in the Weyl representation,
- the gamma matrices as given on (3.25) in pg. 41 of 
- An Introduction to Quantum Field Theory 
- by Michael Peskin and Daniel Schroeder are used.
+/* Initialiize a wavepacket in momentum space.
+The wavepacket is expressed in terms of the free periodic
+solutions of the Dirac equation, which are also used
+in the split-step-momentum3d.frag shader.
 */
-uniform int numberOfDimensions;
-uniform ivec2 texelDimensions2D;
-uniform vec2 dimensions2D;
-uniform ivec3 texelDimensions3D;
-uniform vec3 dimensions3D;
 
-uniform sampler2D uTex;
-uniform sampler2D vTex;
-uniform float dt;
+// Dimensions
+uniform vec3 dimensions;
+uniform ivec3 texelDimensions;
+
+// Wavepacket expectation values.
+uniform vec3 position;
+uniform vec3 momentum;
+
+// Standard deviation (momentum space)
+uniform vec3 sigma;
+
 uniform float m;
 uniform float c;
-uniform float hbar;
 
 uniform int spinorIndex;
 const int TOP = 0;
@@ -49,22 +44,20 @@ const int BOTTOM = 1;
 
 const int DIRAC_REP = 0;
 const int WEYL_REP = 1;
-const int ORIGINAL_DIRAC_IMPLEMENTATION = 2;
 uniform int representation;
 
 #define complex vec2
 #define complex2 vec4
 
+const int BY_SPINOR = 0;
+const int BY_ENERGY = 1;
+uniform int initializationMode;
+uniform complex uPosECoeff; // up positive
+uniform complex dPosECoeff; // down positive
+uniform complex uNegECoeff; // up negative
+uniform complex dNegECoeff; // down negative
+
 const float PI = 3.141592653589793;
-
-
-vec3 to3DTextureCoordinates(vec2 uv) {
-    int length3D = texelDimensions3D[2];
-    float u = mod(uv[0]*float(length3D), 1.0);
-    float v = uv[1];
-    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
-    return vec3(u, v, w);
-}
 
 complex mul(complex z1, complex z2) {
     return complex(z1.x*z2.x - z1.y*z2.y, 
@@ -86,44 +79,44 @@ complex2 c1C2(complex z, complex2 z2) {
                     complex(z.x*b.x - z.y*b.y, z.x*b.y + z.y*b.x));
 }
 
-
 complex frac(complex z1, complex z2) {
     complex invZ2 = conj(z2)/(z2.x*z2.x + z2.y*z2.y);
     return mul(z1, invZ2);
+}
+
+float pow2(float val) {
+    return val*val;
+}
+
+vec3 to3DTextureCoordinates(vec2 uv) {
+    int length3D = texelDimensions[2];
+    float u = mod(uv[0]*float(length3D), 1.0);
+    float v = uv[1];
+    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
+    return vec3(u, v, w);
 }
 
 vec3 getMomentum() {
     float u, v, w;
     float width, height, length_;
     int texelWidth, texelHeight, texelLength;
-    if (numberOfDimensions == 3) {
-        width = dimensions3D[0];
-        height = dimensions3D[1];
-        length_ = dimensions3D[2];
-        texelWidth = texelDimensions3D[0];
-        texelHeight = texelDimensions3D[1];
-        texelLength = texelDimensions3D[2];
+    width = dimensions[0];
+    height = dimensions[1];
+    length_ = dimensions[2];
+    texelWidth = texelDimensions[0];
+    texelHeight = texelDimensions[1];
+    texelLength = texelDimensions[2];
+    if (texelDimensions.z != 0) {
         vec3 uvw = to3DTextureCoordinates(UV);
         u = uvw[0], v = uvw[1], w = uvw[2];
     } else {
-        width = dimensions2D[0];
-        height = dimensions2D[1];
-        length_ = 0.0;
-        texelWidth = texelDimensions2D[0];
-        texelHeight = texelDimensions2D[1];
-        texelLength = 0;
-        u = UV[0], v = UV[1], w = 0.0;
+        u = UV[0], v = UV[1];
     }
     float freqU = ((u < 0.5)? u: -1.0 + u)*float(texelWidth) - 0.5;
     float freqV = ((v < 0.5)? v: -1.0 + v)*float(texelHeight) - 0.5;
     float freqW = ((w < 0.5)? w: -1.0 + w)*float(texelLength) - 0.5;
-    if (representation == ORIGINAL_DIRAC_IMPLEMENTATION) {
-        if (freqU == 0.0) freqU += 5e-8;
-        if (freqV == 0.0) freqV += 5e-8;
-        if (freqW == 0.0) freqW += 5e-8;
-    }
     return vec3(2.0*PI*freqU/width, 2.0*PI*freqV/height, 
-                2.0*PI*freqW/length_);
+                (texelDimensions.z != 0)? 2.0*PI*freqW/length_: 0.0);
 }
 
 /*Compute the spin up eigenvector for a Pauli matrix oriented in an
@@ -178,10 +171,6 @@ complex2 getSpinDownState(vec3 orientation, float len) {
         return complex2(az, bz);
     return complex2(a, b);
 }
-
-float pow2(float val) {
-    return val*val;
-} 
 
 /*
 Find the eigenvalues of a real symmetric 2x2 matrix.
@@ -287,33 +276,24 @@ vec2 eigenvectorRealSymmetric2x2(int i, float d0, float d1, float nd) {
         );
 }
 
-void main() {
 
+void main() {
+    
     vec3 pVec = getMomentum();
+
     float px = pVec.x, py = pVec.y, pz = pVec.z;
     float p2 = px*px + py*py + pz*pz;
     float p = sqrt(p2);
     float mc = m*c;
 
-    // Get the eigenvectors of that Pauli matrix that is
-    // orientated in the same direction as the momentum
     complex2 up = getSpinUpState(pVec, p);
     complex2 down = getSpinDownState(pVec, p);
 
-    // Scaled eigenvalues of the kinetic energy matrix for the given momenta.
+    // - + - +
     float e0, e1, e2, e3;
-
     vec2 vUp0, vUp1, vDown0, vDown1;
-    // These will be used to compute the actual corresponding eigenvectors
-    // of the eigenvalues declared previously.
 
     if (representation == DIRAC_REP) {
-
-        // Suggestion: note that for the second and third arguments 
-        // of the function eigenvalueRealSymmetric2x2, d0 and d1,
-        // the relation d0 + d1 = 0 always holds for this system.
-        // Use this to do some further simplifications to the problem
-        // at hand.
         e0 = eigenvalueRealSymmetric2x2(0, mc, -mc, p);
         vUp0 = eigenvectorRealSymmetric2x2(0, mc, -mc, p);
         e1 = eigenvalueRealSymmetric2x2(1, mc, -mc, p);
@@ -322,9 +302,7 @@ void main() {
         vDown0 = eigenvectorRealSymmetric2x2(0, mc, -mc, -p);
         e3 = eigenvalueRealSymmetric2x2(1, mc, -mc, -p);
         vDown1 = eigenvectorRealSymmetric2x2(1, mc, -mc, -p);
-
     } else if (representation == WEYL_REP) {
-
         e0 = eigenvalueRealSymmetric2x2(0, -p, p, mc);
         vUp0 = eigenvectorRealSymmetric2x2(0, -p, p, mc);
         e1 = eigenvalueRealSymmetric2x2(1, -p, p, mc);
@@ -333,139 +311,41 @@ void main() {
         vDown0 = eigenvectorRealSymmetric2x2(0, p, -p, mc);
         e3 = eigenvalueRealSymmetric2x2(1, p, -p, mc);
         vDown1 = eigenvectorRealSymmetric2x2(1, p, -p, mc);
-
-
-    } else if (representation == ORIGINAL_DIRAC_IMPLEMENTATION) {
-        /* This is an older implementation of the momentum propagator
-        using the Dirac representation. It should be equivalent 
-        to the new implementation. */
-
-        float omega = sqrt(mc*mc + p2);
-        float den1 = p*sqrt((mc - omega)*(mc - omega) + p2);
-        float den2 = p*sqrt((mc + omega)*(mc + omega) + p2);
-
-        // The matrix U for the momentum step, where U e^{E} U^{\dagger}.
-        // This is found by diagonalizing the matrix involving the mass
-        // and momentum terms using a computer algebra system like Sympy,
-        // which can be expressed as  U E inv(U), where E is the diagonal
-        // matrix of eigenvalues and U is the matrix of eigenvectors. 
-        // This is following what is similarly done in II.3 of this
-        // article by Bauke and Keitel:
-        // https://arxiv.org/abs/1012.3911
-
-        float   matUDag00 = pz*(mc - omega)/den1;
-        complex matUDag01 = complex(px, -py)*(mc - omega)/den1;
-        float   matUDag02 = p2/den1;
-        float   matUDag03 = 0.0;
-        complex matUDag10 = complex(px, py)*(mc - omega)/den1;
-        float   matUDag11 = -pz*(mc - omega)/den1;
-        float   matUDag12 = 0.0;
-        float   matUDag13 = p2/den1;
-        float   matUDag20 = pz*(mc + omega)/den2;
-        complex matUDag21 = complex(px, -py)*(mc + omega)/den2;
-        float   matUDag22 = p2/den2;
-        float   matUDag23 = 0.0;
-        complex matUDag30 = complex(px, py)*(mc + omega)/den2;
-        float   matUDag31 = -pz*(mc + omega)/den2;
-        float   matUDag32 = 0.0;
-        float   matUDag33 = p2/den2;
-
-        float   matU00 = matUDag00;
-        complex matU01 = conj(matUDag10);
-        float   matU02 = matUDag20;
-        complex matU03 = conj(matUDag30);
-        complex matU10 = conj(matUDag01);
-        float   matU11 = matUDag11;
-        complex matU12 = conj(matUDag21);
-        float   matU13 = matUDag31;
-        float   matU20 = matUDag02;
-        float   matU21 = matUDag12;
-        float   matU22 = matUDag22;
-        float   matU23 = matUDag32;
-        float   matU30 = matUDag03;
-        float   matU31 = matUDag13;
-        float   matU32 = matUDag23;
-        float   matU33 = matUDag33;
-        
-        complex2 u = texture2D(uTex, UV);
-        complex2 v = texture2D(vTex, UV);
-        complex psi0 = u.xy;
-        complex psi1 = u.zw;
-        complex psi2 = v.xy;
-        complex psi3 = v.zw;
-
-        float cos_val = cos(omega*c*dt/hbar);
-        float sin_val = sin(omega*c*dt/hbar); 
-        complex e1 = complex(cos_val, sin_val); 
-        complex e2 = complex(cos_val, -sin_val);
-
-        complex phi0 = matUDag00*psi0 + mul(matUDag01, psi1)
-                        + matUDag02*psi2 + matUDag03*psi3;
-        complex phi1 = mul(matUDag10, psi0) + matUDag11*psi1
-                        + matUDag12*psi2 + matUDag13*psi3;
-        complex phi2 = matUDag20*psi0 + mul(matUDag21, psi1)
-                        + matUDag22*psi2 + matUDag23*psi3;
-        complex phi3 = mul(matUDag30, psi0) + matUDag31*psi1
-                        + matUDag32*psi2 + matUDag33*psi3;
-        
-        complex e1Phi0 = mul(e1, phi0);
-        complex e1Phi1 = mul(e1, phi1);
-        complex e2Phi2 = mul(e2, phi2);
-        complex e2Phi3 = mul(e2, phi3);
-
-        psi0 = matU00*e1Phi0 + mul(matU01, e1Phi1)
-                + matU02*e2Phi2 + mul(matU03, e2Phi3);
-        psi1 = mul(matU10, e1Phi0) + matU11*e1Phi1
-                + mul(matU12, e2Phi2) + matU13*e2Phi3;
-        psi2 = matU20*e1Phi0 + matU21*e1Phi1
-                + matU22*e2Phi2 + matU23*e2Phi3;
-        psi3 = matU30*e1Phi0 + matU31*e1Phi1
-                + matU32*e2Phi2 + matU33*e2Phi3;
-        
-        complex2 psi01 = complex2(psi0, psi1);
-        complex2 psi23 = complex2(psi2, psi3);
-
-        fragColor = (spinorIndex == TOP)? psi01: psi23;
-        return;
-
     }
 
-    // Compute the eigenvectors of the kinetic energy matrix for
-    // the given momenta
+    // -
     complex2 v00 = vUp0[0]*up;
     complex2 v01 = vUp0[1]*up; 
-
+    // +
     complex2 v10 = vUp1[0]*up;
     complex2 v11 = vUp1[1]*up;
-
+    // -
     complex2 v20 = vDown0[0]*down;
     complex2 v21 = vDown0[1]*down;
-
+    // +
     complex2 v30 = vDown1[0]*down;
     complex2 v31 = vDown1[1]*down;
 
-    // Get each spinor component of the wave function
-    complex2 s0 = texture2D(uTex, UV);
-    complex2 s1 = texture2D(vTex, UV);
+    complex2 s0, s1;
+    if (initializationMode == BY_ENERGY) {
+        s0 = c1C2(uNegECoeff, v00) + c1C2(uPosECoeff, v10)
+             + c1C2(dNegECoeff, v20) + c1C2(dPosECoeff, v30);
+        s1 = c1C2(uNegECoeff, v01) + c1C2(uPosECoeff, v11)
+             + c1C2(dNegECoeff, v21) + c1C2(dPosECoeff, v31);
+    } else {
+        s0 = complex2(1.0, 0.0, 0.0, 0.0);
+        s1 = complex2(0.0, 0.0, 0.0, 0.0);
+    }
 
-    // Get the diagonal form of the wave function with respect to
-    // the Kinetic energy matrix at the given momenta
-    complex d0 = innerProd(v00, s0) + innerProd(v01, s1);
-    complex d1 = innerProd(v10, s0) + innerProd(v11, s1);
-    complex d2 = innerProd(v20, s0) + innerProd(v21, s1);
-    complex d3 = innerProd(v30, s0) + innerProd(v31, s1);
+    vec3 xVec = position;
+    vec3 p0Vec = momentum;
+    vec3 s = vec3(sigma.x, sigma.y, sigma.z);
+    // For 2D sigma.z will not have an effect on the distribution
+    // as long as it is non-zero, which this check ensures.
+    // s.z = (texelDimensions.z == 0 && sigma.z == 0.0)? 1.0: sigma.z;
+    float dist = exp(-0.5*dot((pVec - p0Vec)/s, (pVec - p0Vec)/s));
+    complex e = complex(cos(dot(pVec, xVec)), sin(dot(pVec, xVec)));
 
-    // Advance the wave function in time
-    d0 = mul(complex(cos(e0*c*dt/hbar), -sin(e0*c*dt/hbar)), d0);
-    d1 = mul(complex(cos(e1*c*dt/hbar), -sin(e1*c*dt/hbar)), d1);
-    d2 = mul(complex(cos(e2*c*dt/hbar), -sin(e2*c*dt/hbar)), d2);
-    d3 = mul(complex(cos(e3*c*dt/hbar), -sin(e3*c*dt/hbar)), d3); 
-
-    // Transform the wave function back to its initial representation
-    s0 = c1C2(d0, v00) + c1C2(d1, v10) + c1C2(d2, v20) + c1C2(d3, v30);
-    s1 = c1C2(d0, v01) + c1C2(d1, v11) + c1C2(d2, v21) + c1C2(d3, v31);
-
-    fragColor = (spinorIndex == TOP)? s0: s1;
+    fragColor = dist*c1C2(conj(e), ((spinorIndex == TOP)? s0: s1));
 
 }
-

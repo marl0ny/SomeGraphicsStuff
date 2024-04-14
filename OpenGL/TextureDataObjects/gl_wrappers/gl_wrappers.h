@@ -87,6 +87,17 @@ struct UVec2 {
     };
 };
 
+struct Uint64Vec2 {
+    union {
+        struct { uint64_t x, y; };
+        struct { uint64_t u, v; };
+        struct { uint64_t s, t; };
+        struct { uint64_t width, height; };
+        struct { uint64_t ind[2]; };
+    };
+};
+
+
 struct Vec3 {
     union {
         struct { float x, y, z; };
@@ -113,6 +124,17 @@ struct DVec3 {
         struct { double r, g, b; };
         struct { double s, t, p; };
         struct { double ind[3]; };
+    };
+};
+
+struct Uint64Vec3 {
+    union {
+        struct { uint64_t x, y, z; };
+        struct { uint64_t i, j, k; };
+        struct { uint64_t r, g, b; };
+        struct { uint64_t s, t, p; };
+        struct { uint64_t width, height, length; };
+        struct { uint64_t ind[3]; };
     };
 };
 
@@ -162,6 +184,7 @@ struct Uint8Vec4 {
     };
 };
 
+
 struct PixelData {
     union {
         char bytes[256];
@@ -196,11 +219,13 @@ GLuint make_quad_program_from_string_source(const char *src);
 
 int new_frame(const struct TextureParams *texture_params,
               float *vertices, int sizeof_vertices,
-              int *elements, int sizeof_elements);
+              void *elements, int sizeof_elements);
 
 frame_id new_quad(const struct TextureParams *texture_params);
 
 void bind_frame(int frame2d_id, GLuint program);
+
+void change_program(GLuint program);
 
 void set_vertex_attributes(const struct VertexParam *vertex_params,
                            int n);
@@ -223,6 +248,8 @@ void set_vec4_uniform(const char *name,
 void set_ivec2_uniform(const char *name, int v0, int v1);
 
 void set_ivec3_uniform(const char *name, int v0, int v1, int v2);
+
+void set_ivec4_uniform(const char *name, int v0, int v1, int v2, int v3);
 
 void print_user_defined_uniforms();
 

@@ -41,26 +41,25 @@ vec3 to3DTextureCoordinates(vec2 uv) {
 }
 
 void main() {
-    if (orientation == XY_SLICE) {
-        float mx = (float(sliceTexelDimensions2D[0])
+    float mx = (float(sliceTexelDimensions2D[0])
                     / float(inputTexelDimensions2D[0]));
+    if (orientation == XY_SLICE) {
+        // uv2 are the coordinates for sampling the input texture.
         vec2 uv2 = vec2(mx*UV[0] 
                         + float(slice)/float(inputTexelDimensions3D[2]),
                         UV[1]);
         fragColor = texture2D(tex, uv2);
     } else if (orientation == ZY_SLICE) {
-        float mx = (float(sliceTexelDimensions2D[0])
-                    / float(inputTexelDimensions2D[0]));
-        vec2 uv2 = vec2(mx*UV[0] 
-                        + float(slice)/float(inputTexelDimensions3D[2]),
+        vec2 uv2 = vec2((UV[0] - 0.5/float(sliceTexelDimensions2D[0]))
+                         + (float(slice) + 0.5)
+                         /float(inputTexelDimensions2D[0]),
                         UV[1]);
         fragColor = texture2D(tex, uv2);
     } else if (orientation == XZ_SLICE) {
-        float mx = (float(sliceTexelDimensions2D[0])
-                    / float(inputTexelDimensions2D[0]));
         vec2 uv2 = vec2(mx*UV[0] 
-                        + UV[1],
-                        UV[1]);
+                        + (UV[1] - 0.5/float(sliceTexelDimensions2D[0])),
+                        (float(slice) + 0.5)/
+                        float(inputTexelDimensions2D[1]));
         fragColor = texture2D(tex, uv2);
     }
 }

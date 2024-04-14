@@ -24,6 +24,11 @@ void Drawer::draw(const Texture2DData &dst,
             set_ivec3_uniform(
                 (char *)&e.first[0], 
                 e.second.ivec3.x, e.second.ivec3.y, e.second.ivec3.z);
+            case Uniform::INT4:
+            set_ivec4_uniform(
+                (char *)&e.first[0], 
+                e.second.ivec4.x, e.second.ivec4.y,
+                e.second.ivec4.z, e.second.ivec4.w);
             break;
             /* case Uniform::INT4:
             set_ivec4_uniform(

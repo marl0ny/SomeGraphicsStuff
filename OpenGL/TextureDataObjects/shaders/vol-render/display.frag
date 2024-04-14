@@ -83,7 +83,9 @@ vec2 to2DTextureCoordinates(vec3 position) {
 }
 
 // void main() {
-//     fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+//     vec3 r = to3DTextureCoordinates(UV);
+//     vec2 uv2 = to2DTextureCoordinates(r);
+//     fragColor = vec4(r.z, r.z, r.z, length(r));
 // }
 
 
@@ -113,10 +115,10 @@ void main() {
                  + density);*/
     // pix.a = pix.b;
     // lf (length(grad) < 0.0000001) discard;
-    if (pix.a < 0.01) discard;
+    if (pix.a < 0.05) discard;
     // fragColor = 4.0*pix;
     float a = dot(normal, normalize(grad));
     if (a <= 0.0) discard;
-    fragColor = vec4(a*normalize(density.rgb), a);
+    fragColor = vec4(a*normalize(density.rgb), 0.15*a);
     // fragColor = vec4(1.0);
 }
