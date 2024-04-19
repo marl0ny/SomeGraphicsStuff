@@ -40,7 +40,8 @@ class VolumeRender {
     
     // Vec3 translate;
     struct { // Perhaps this should be static?
-        GLuint gradient, sample_volume, show_volume, cube;
+        GLuint gradient, sample_volume;
+        GLuint show_volume, sample_show_volume, cube, colour;
     } programs;
     struct {
         // frame_id draw;
@@ -70,6 +71,7 @@ class VolumeRender {
     Texture2DData debug_get_grad_half_precision() const;
     Texture2DData debug_get_sample_grad() const;
     Texture2DData debug_get_sample_vol() const;
+    Texture2DData debug_get_volume_render_wireframe() const;
 
 };
 

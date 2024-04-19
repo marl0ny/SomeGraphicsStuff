@@ -20,18 +20,25 @@ out vec4 fragColor;
 
 #define quaternion vec4
 
-uniform sampler2D tex;
 uniform float viewScale;
+
 uniform vec4 rotation;
-uniform ivec3 renderTexelDimensions3D;
-uniform ivec2 renderTexelDimensions2D;
+uniform sampler2D gradientTex;
+uniform sampler2D densityTex;
+
 uniform ivec3 sampleTexelDimensions3D;
 uniform ivec2 sampleTexelDimensions2D;
+uniform ivec3 viewTexelDimensions3D;
+uniform ivec2 viewTexelDimensions2D;
 
-/* Sample and interpolate data points from the texture containing the 
-initial raw 3D volumetric data to points on volume render frame.
-This corresponds to the sampling step given in the Wikipedia page
-for volume ray casting.
+/* The variable UV from the previous shader contains 
+the 2D texture coordinate representation of the volume render.
+It is 2D so that the gradient and density uniform textures are
+properly sampled. These sampled gradient and density data points are used
+together to determine how the pixel should be displayed.
+
+This corresponds to the shading step as given on the Wikipedia
+page for Volume ray casting.
 
 References:
 
@@ -50,7 +57,7 @@ quaternion mul(quaternion q1, quaternion q2) {
 }
 
 quaternion conj(quaternion r) {
-    return vec4(-r.x, -r.y, -r.z, r.w);
+    return quaternion(-r.x, -r.y, -r.z, r.w);
 }
 
 quaternion rotate(quaternion x, quaternion r) {
@@ -60,6 +67,18 @@ quaternion rotate(quaternion x, quaternion r) {
     x2.w = 1.0;
     return x2; 
 }
+
+/* Sample and interpolate data points from the texture containing the 
+initial raw 3D volumetric data to points on volume render frame.
+This corresponds to the sampling step given in the Wikipedia page
+for volume ray casting.
+
+References:
+
+Volume ray casting - Wikipedia
+https://en.wikipedia.org/wiki/Volume_ray_casting
+
+*/
 
 vec2 to2DSampleTextureCoordinates(vec3 uvw) {
     int width2D = sampleTexelDimensions2D[0];
@@ -77,20 +96,6 @@ vec2 to2DSampleTextureCoordinates(vec3 uvw) {
     return vec2(uIndex/float(width2D), vIndex/float(height2D));
 }
 
-vec3 to3DRenderTextureCoordinates(vec2 uv) {
-    int width3D = renderTexelDimensions3D[0];
-    int height3D = renderTexelDimensions3D[1];
-    int length3D = renderTexelDimensions3D[2];
-    int width2D = renderTexelDimensions2D[0];
-    int height2D = renderTexelDimensions2D[1];
-    float wStack = float(width2D)/float(width3D);
-    float hStack = float(height2D)/float(height3D);
-    float u = mod(uv[0]*wStack, 1.0);
-    float v = mod(uv[1]*hStack, 1.0);
-    float w = (floor(uv[1]*hStack)*wStack
-               + floor(uv[0]*wStack) + 0.5)/float(length3D);
-    return vec3(u, v, w);
-}
 
 // bilinear interpolation
 vec4 blI(vec2 r, float x0, float y0, float x1, float y1,
@@ -143,18 +148,46 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     return mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }
 
+vec3 to3DTextureCoordinates(vec2 uv) {
+    int width3D = viewTexelDimensions3D[0];
+    int height3D = viewTexelDimensions3D[1];
+    int length3D = viewTexelDimensions3D[2];
+    int width2D = viewTexelDimensions2D[0];
+    int height2D = viewTexelDimensions2D[1];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float u = mod(uv[0]*wStack, 1.0);
+    float v = mod(uv[1]*hStack, 1.0);
+    float w = (floor(uv[1]*hStack)*wStack
+               + floor(uv[0]*wStack) + 0.5)/float(length3D);
+    return vec3(u, v, w);
+}
+
+
 void main() {
-    vec4 viewPosition 
-        = vec4(to3DRenderTextureCoordinates(UV) - vec3(0.5), 1.0);
     // float viewScaleAdj = max(viewScale, 2.0);
-    float viewScaleAdj = viewScale;
-    vec3 r = rotate(viewPosition, conj(rotation)).xyz/viewScaleAdj
-         + vec3(0.5);
+    vec3 r = to3DTextureCoordinates(UV);
+    vec3 rSampler = rotate(quaternion(r - vec3(0.5), 1.0), 
+                           conj(rotation)).xyz/viewScale + vec3(0.5);
+
     // This check needs to be done to avoid a repeating effect
     // caused by sampling beyond the initial boundary.
-    if (r.x < 0.0 || r.x >= 1.0 ||
-        r.y < 0.0 || r.y >= 1.0 ||
-        r.z < 0.0 || r.z >= 1.0) discard;
-    fragColor = sample2DTextureAs3D(tex, r);
-    // fragColor = vec4(1.0);
+    if (rSampler.x < 0.0 || rSampler.x >= 1.0 ||
+        rSampler.y < 0.0 || rSampler.y >= 1.0 ||
+        rSampler.z < 0.0 || rSampler.z >= 1.0) 
+        discard;
+
+    vec3 grad = sample2DTextureAs3D(gradientTex, rSampler).xyz;
+    vec4 density = sample2DTextureAs3D(densityTex, rSampler);
+    if (density.a < 0.05)
+        discard;
+    if (dot(grad, grad) == 0.0)
+        discard;
+
+    vec3 normal = rotate(quaternion(0.0, 0.0, 1.0, 1.0),
+                         conj(rotation)).xyz;
+    float a = dot(normal, normalize(grad));
+    if (a <= 0.0)
+        discard;
+    fragColor = vec4(normalize(density.rgb), 0.1*a);
 }

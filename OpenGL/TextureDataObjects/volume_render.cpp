@@ -14,14 +14,61 @@ static std::vector<Vec2> new_vertices(size_t &sizeof_vertices,
     size_t number_of_vertices = s*render_texel_dimensions_3d.length;
     sizeof_vertices = number_of_vertices*sizeof(Vec2);
     auto vertices = std::vector<Vec2> (number_of_vertices);
-    for (int i = 0; i < render_texel_dimensions_3d.length; i++) {
+    int width = render_texel_dimensions_3d.width;
+    int height = render_texel_dimensions_3d.height;
+    int length = render_texel_dimensions_3d.length;
+    for (int i = 0; i < length; i++) {
         /* Note that each of the slices need to be constructed from
         back to front since this is the direction of blending.
         */
-        int j = render_texel_dimensions_3d.length - i - 1;
-        int width_3d = render_texel_dimensions_3d.width;
-        int width_2d = render_texel_dimensions_2d.width;
-        double w_ratio = double(width_3d)/double(width_2d);
+        int j = length - i - 1;
+        // 3D texture coordinates, bottom left
+        Vec3 uvw_bl {{{0.5F/(float)width, 
+                       0.5F/(float)height,
+                       ((float)i + 0.5F)/(float)length}}};
+        // bottom right
+        Vec3 uvw_br {{{((float)width - 0.5F)/(float)width, 
+                       0.5F/(float)height, 
+                       ((float)i + 0.5F)/(float)length}}};
+        // upper right
+        Vec3 uvw_ur {{{((float)width - 0.5F)/(float)width, 
+                       ((float)height - 0.5F)/(float)height, 
+                       ((float)i + 0.5F)/(float)length}}};
+        // upper left
+        Vec3 uvw_ul {{{0.5F/(float)width, 
+                       ((float)height - 0.5F)/(float)height,
+                       ((float)i + 0.5F)/(float)length}}};
+        Vec2 uv_bl = get_2d_from_3d_texture_coordinates(
+            &uvw_bl, 
+            &render_texel_dimensions_2d, 
+            &render_texel_dimensions_3d);
+        Vec2 uv_br = get_2d_from_3d_texture_coordinates(
+            &uvw_br, 
+            &render_texel_dimensions_2d, 
+            &render_texel_dimensions_3d);
+        Vec2 uv_ur = get_2d_from_3d_texture_coordinates(
+            &uvw_ur,
+            &render_texel_dimensions_2d, 
+            &render_texel_dimensions_3d);
+        Vec2 uv_ul = get_2d_from_3d_texture_coordinates(
+            &uvw_ul, 
+            &render_texel_dimensions_2d, 
+            &render_texel_dimensions_3d);
+        vertices[s*j] = uv_bl;
+        vertices[s*j+1] = uv_br;
+        vertices[s*j+2] = uv_ur;
+        vertices[s*j+3] = uv_ur;
+        vertices[s*j+4] = uv_ul;
+        vertices[s*j+5] = uv_bl;
+        /*for (int k = 0; k < 6; k++) {
+            fprintf(stdout, "%g, %g, %g\n",
+                    uvw_bl.x, uvw_bl.y, uvw_bl.z);
+            fprintf(stdout, "%g, %g\n",
+                *((float *)&vertices[s*j] + 2*k),
+                *((float *)&vertices[s*j] + 2*k + 1));
+        }*/
+        // puts("");
+        /* double w_ratio = double(width_3d)/double(width_2d);
         double edge = double(width_3d-1)/double(width_2d);
         // fprintf(stdout, "%g\n", i*w_ratio);
         vertices[s*j].x = i*w_ratio;
@@ -36,7 +83,7 @@ static std::vector<Vec2> new_vertices(size_t &sizeof_vertices,
         vertices[s*j+4].x = i*w_ratio;
         vertices[s*j+4].y = 1.0;
         vertices[s*j+5].x = i*w_ratio;
-        vertices[s*j+5].y = 0.0;
+        vertices[s*j+5].y = 0.0;*/
     }
     return vertices;
 }
@@ -52,10 +99,14 @@ void VolumeRender::init_programs() {
     this->programs.show_volume = make_program(
         "./shaders/vol-render/display.vert", 
         "./shaders/vol-render/display.frag");
+    this->programs.sample_show_volume
+        = make_program("./shaders/vol-render/display.vert",
+                       "./shaders/vol-render/sample-display.frag");
 
     this->programs.gradient = make_quad_program(
         "./shaders/gradient/gradient3d.frag"
     );
+    this->programs.colour = make_quad_program("./shaders/util/colour.frag");
     this->programs.cube = make_program(
         "./shaders/util/shape.vert",
         "./shaders/util/colour.frag");
@@ -143,13 +194,27 @@ void VolumeRender::init_frames() {
         // .mag_filter=GL_LINEAR_MIPMAP_LINEAR,
         // #endif
     };
+    struct TextureParams tex_params_view_8ui_mipmap_filter {
+        .format=GL_RGBA8, 
+        .width=this->view_dimensions.width,
+        .height=this->view_dimensions.height,
+        .generate_mipmap=1,
+        .wrap_s=GL_CLAMP_TO_EDGE, .wrap_t=GL_CLAMP_TO_EDGE,
+        // #ifdef __EMSCRIPTEN__
+        .min_filter=GL_LINEAR,
+        .mag_filter=GL_LINEAR,
+        // #else
+        // .min_filter=GL_LINEAR_MIPMAP_LINEAR, 
+        // .mag_filter=GL_LINEAR_MIPMAP_LINEAR,
+        // #endif
+    };
     /*this->frames.out = new_frame(&tex_params_view_16f_mipmap_filter, 
                                  (float *)&vertices[0],
                                  sizeof_vertices,
                                  (element_type *)&elements[0],
                                  this->sizeof_elements);*/
     // fprintf(stdout, "%d\n", (int)sizeof_vertices);
-    this->frames.out = new_frame(&tex_params_view_16f_mipmap_filter, 
+    this->frames.out = new_frame(&tex_params_view_16f_mipmap_filter,
                                  (float *)&vertices[0],
                                  (int)sizeof_vertices,
                                  NULL, 0);
@@ -166,12 +231,10 @@ VolumeRender::VolumeRender(IVec2 view_dimensions,
         this->sample_texel_dimensions_3d.ind[i] = sample_dimensions.ind[i];
         this->render_texel_dimensions_3d.ind[i] = render_dimensions.ind[i];
     }
-    this->sample_texel_dimensions_2d.width
-        = sample_dimensions.width*sample_dimensions.length;
-    this->sample_texel_dimensions_2d.height = sample_dimensions.height;
-    this->render_texel_dimensions_2d.width
-         = render_dimensions.width*render_dimensions.length;
-    this->render_texel_dimensions_2d.height = render_dimensions.height;
+    this->sample_texel_dimensions_2d
+         = get_2d_from_3d_dimensions(&sample_dimensions);
+    this->render_texel_dimensions_2d
+         = get_2d_from_3d_dimensions(&render_dimensions); 
 
     init_programs();
     init_frames();
@@ -233,6 +296,7 @@ static void sample_volume_data(frame_id dst, frame_id volume_tex,
                                double view_scale,
                                Quaternion &rotation,
                                const struct IVec3 &render_texel_dimensions_3d,
+                               const struct IVec2 &render_texel_dimensions_2d,
                                const struct IVec3 &sample_texel_dimensions_3d,
                                const struct IVec2 &sample_texel_dimensions_2d
                                ) {
@@ -246,6 +310,9 @@ static void sample_volume_data(frame_id dst, frame_id volume_tex,
                       render_texel_dimensions_3d.width,
                       render_texel_dimensions_3d.height,
                       render_texel_dimensions_3d.length);
+    set_ivec2_uniform("renderTexelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);
     set_ivec3_uniform("sampleTexelDimensions3D",
                       sample_texel_dimensions_3d.width,
                       sample_texel_dimensions_3d.height,
@@ -293,7 +360,13 @@ static void show_sampled_vol(frame_id dst,
                      debug_rotation.y,
                      debug_rotation.z,
                      debug_rotation.w);
-    set_float_uniform("scale", scale);
+    // set_float_uniform("scale", 1.0);
+    set_ivec2_uniform("texelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);
+    set_ivec2_uniform("fragmentTexelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);
     set_ivec3_uniform("texelDimensions3D",
                       render_texel_dimensions_3d.width,
                       render_texel_dimensions_3d.height,
@@ -305,15 +378,83 @@ static void show_sampled_vol(frame_id dst,
     /* set_ivec2_uniform("texelDimensions2D",
                       render_texel_dimensions_2d.width,
                       render_texel_dimensions_2d.height);*/
-    set_ivec2_uniform("fragmentTexelDimensions2D",
-                      render_texel_dimensions_2d.width,
-                      render_texel_dimensions_2d.height);
     // Set fragment uniforms
     // set_int_uniform("debugShow2DTexture", 0);
     set_vec4_uniform("rotation", rotation.x, rotation.y,
                      rotation.z, rotation.w);
     set_sampler2D_uniform("gradientTex", sample_grad);
     set_sampler2D_uniform("densityTex", sample_vol);
+    glDrawArrays(GL_TRIANGLES, 0, 
+                 6*render_texel_dimensions_3d.length);
+    unbind();
+
+    // glDisable(GL_BLEND);
+    /* bind_frame(dst, cube_program);
+    set_vertex_attributes(vertex_params, 1);
+    set_vec4_uniform("rotation", rotation.x, rotation.y,
+                     rotation.z, rotation.w);
+    set_float_uniform("scale", scale);
+    glDrawArrays(GL_TRIANGLES, 0, 
+                 6*render_texel_dimensions_3d.length);
+    unbind();*/
+}
+
+static void sample_show_vol(frame_id dst,
+                            frame_id grad, frame_id vol,
+                            int sample_show_vol_program,
+                            int cube_program,
+                            int sizeof_elements,
+                            const Quaternion &rotation,
+                            const Quaternion &debug_rotation,
+                            double scale,
+                            const IVec3 &render_texel_dimensions_3d,
+                            const IVec2 &render_texel_dimensions_2d,
+                            const IVec3 &sample_texel_dimensions_3d,
+                            const IVec2 &sample_texel_dimensions_2d) {
+    bind_frame(dst, sample_show_vol_program);
+    struct VertexParam vertex_params[2] = {
+        {.name=(char *)"uvIndex", .size=2, .type=GL_FLOAT, 
+        .normalized=GL_FALSE,
+        .stride=0, .offset=0}
+    };
+    set_vertex_attributes(vertex_params, 1);
+    // Set vertex uniforms
+    set_vec4_uniform("debugRotation",
+                     debug_rotation.x,
+                     debug_rotation.y,
+                     debug_rotation.z,
+                     debug_rotation.w);
+    set_float_uniform("viewScale", scale);
+    set_ivec2_uniform("texelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);
+    set_ivec2_uniform("viewTexelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);
+    set_ivec2_uniform("sampleTexelDimensions2D",
+                      sample_texel_dimensions_2d.width,
+                      sample_texel_dimensions_2d.height);
+    set_ivec3_uniform("texelDimensions3D",
+                      render_texel_dimensions_3d.width,
+                      render_texel_dimensions_3d.height,
+                      render_texel_dimensions_3d.length);
+    set_ivec3_uniform("viewTexelDimensions3D",
+                      render_texel_dimensions_3d.width,
+                      render_texel_dimensions_3d.height,
+                      render_texel_dimensions_3d.length);
+    set_ivec3_uniform("sampleTexelDimensions3D",
+                      sample_texel_dimensions_3d.width,
+                      sample_texel_dimensions_3d.height,
+                      sample_texel_dimensions_3d.length);
+    /* set_ivec2_uniform("texelDimensions2D",
+                      render_texel_dimensions_2d.width,
+                      render_texel_dimensions_2d.height);*/
+    // Set fragment uniforms
+    // set_int_uniform("debugShow2DTexture", 0);
+    set_vec4_uniform("rotation", rotation.x, rotation.y,
+                     rotation.z, rotation.w);
+    set_sampler2D_uniform("gradientTex", grad);
+    set_sampler2D_uniform("densityTex", vol);
     glDrawArrays(GL_TRIANGLES, 0, 
                  6*render_texel_dimensions_3d.length);
     unbind();
@@ -345,7 +486,7 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
     // Take the gradient of the volume data.
     gradient(this->frames.gradient_half_precision, volume_data.get_frame_id(),
              0, this->programs.gradient, 
-             2, 0, 0, 3, 
+             4, 1, 0, 3, 
              this->sample_texel_dimensions_3d, 
              this->sample_texel_dimensions_2d);
     
@@ -366,6 +507,7 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
                        view_scale, 
                        rotation,
                        this->render_texel_dimensions_3d,
+                       this->render_texel_dimensions_2d,
                        this->sample_texel_dimensions_3d,
                        this->sample_texel_dimensions_2d);
     // Sample the gradient data to its own render texture.
@@ -376,6 +518,7 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
                        view_scale, 
                        rotation,
                        this->render_texel_dimensions_3d,
+                       this->render_texel_dimensions_2d,
                        this->sample_texel_dimensions_3d,
                        this->sample_texel_dimensions_2d);
 
@@ -412,8 +555,22 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
                         rotation,
                         this->debug_rotation,
                         view_scale,
-                        render_texel_dimensions_3d, 
-                        render_texel_dimensions_2d);
+                        this->render_texel_dimensions_3d, 
+                        this->render_texel_dimensions_2d);
+        
+        // sample_show_vol(this->frames.out,
+        //                 this->frames.gradient_half_precision, 
+        //                 this->frames.vol_half_precision,
+        //                 this->programs.sample_show_volume, 
+        //                 this->programs.cube,
+        //                 this->sizeof_elements,
+        //                 rotation,
+        //                 this->debug_rotation,
+        //                 view_scale,
+        //                 this->render_texel_dimensions_3d, 
+        //                 this->render_texel_dimensions_2d,
+        //                 this->sample_texel_dimensions_3d,
+        //                 this->sample_texel_dimensions_2d);
 
         glClear(GL_COLOR_BUFFER_BIT);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -427,7 +584,7 @@ Texture2DData VolumeRender::render(const Texture2DData &volume_data,
 
 
     Texture2DData t = Texture2DData(
-        HALF_FLOAT4, 
+        BYTE4, 
         this->view_dimensions.width, 
         this->view_dimensions.height,
         false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
@@ -483,3 +640,20 @@ Texture2DData VolumeRender::debug_get_sample_vol() const {
     tex_copy(t.get_frame_id(), this->frames.sample_volume);
     return t;
 }
+
+/* Texture2DData VolumeRender::debug_get_volume_render_wireframe() const {
+    glViewport(0, 0, view_dimensions.width, view_dimensions.height);
+    Texture2DData t = Texture2DData(
+        FLOAT4, 
+        this->view_dimensions.width, 
+        this->view_dimensions.height,
+        true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE,
+        GL_LINEAR, GL_LINEAR);
+    bind_frame(t.get_frame_id(), this->programs.cube);
+    struct VertexParam vertex_params[2] = {
+        {.name=(char *)"uvIndex", .size=2, .type=GL_FLOAT, 
+        .normalized=GL_FALSE,
+        .stride=0, .offset=0}
+    };
+    set_vertex_attributes(vertex_params, 1);
+}*/

@@ -75,6 +75,8 @@ static struct SimulationParams {
     int display_option = 1;
     float fps = 0.0;
     IVec3 texel_dimensions3d {this->nx, this->ny, this->nz};
+    IVec2 texel_dimensions2d 
+        = get_2d_from_3d_dimensions(&this->texel_dimensions3d);
     Vec3 dimensions3d {float(this->width), 
                        float(this->height), 
                        float(this->length)};
@@ -84,7 +86,8 @@ static struct SimulationParams {
         double sx = 0.07, sy = 0.07, sz = 0.07;
         // double sx = 0.25, sy = 0.25, sz = 0.25;
         float bx = 0.5, by = 0.5, bz = 0.5;
-        int nx = 20, ny = 20, nz = 20;
+        // int nx = 20, ny = 20, nz = 20;
+        int nx = 0, ny = 20, nz = 0;
     } init_wave_packet;
 } sim_params;
 
@@ -194,6 +197,7 @@ static void time_step(const Texture2DData &u, const Texture2DData &v,
         u3,
         {
             {"numberOfDimensions", {int(3)}},
+            {"texelDimensions2D", {sim_params.texel_dimensions2d}},
             {"texelDimensions3D", {sim_params.texel_dimensions3d}},
             {"dimensions3D", {sim_params.dimensions3d}},
             {"uTex", {&u2}},
@@ -254,7 +258,6 @@ static void time_step(const Texture2DData &u, const Texture2DData &v,
 };
 
 static void slice_of_3d(Drawer &drawer, int orientation, int slice,
-                        IVec2 slice_tex_dimensions,
                         IVec2 input_tex_dimensions_2d,
                         IVec3 input_tex_dimensions_3d,
                         const Texture2DData &out,
@@ -264,7 +267,7 @@ static void slice_of_3d(Drawer &drawer, int orientation, int slice,
         {
             {"orientation", {int(orientation)}},
             {"slice", {int(slice)}},
-            {"sliceTexelDimensions2D", {slice_tex_dimensions}},
+            // {"sliceTexelDimensions2D", {slice_tex_dimensions}},
             {"inputTexelDimensions2D", {input_tex_dimensions_2d}},
             {"inputTexelDimensions3D", {input_tex_dimensions_3d}},
             {"tex", {&in}}
@@ -329,6 +332,8 @@ void get_initial_momentum_wavepacket(
                 {Vec3 {float(sim_params.width), 
                         float(sim_params.height),
                         float(sim_params.length)}}},
+                {"texelDimensions2D", 
+                {sim_params.texel_dimensions2d}},
                 {"texelDimensions", 
                 {IVec3 {sim_params.nx, sim_params.ny, sim_params.nz}}},
                 {"position", {position}},
@@ -413,7 +418,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
         = Drawer(Path("./shaders/dirac/init-momentum-wavepacket.frag"));
 
 
-    glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+    use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
 
     auto x = get_texture_coordinate(0, sim_params);
     auto y = get_texture_coordinate(1, sim_params);
@@ -468,22 +473,29 @@ int dirac_splitstep_3d(Renderer *renderer) {
     // int show_controls_window = 1;
 
     char text[500] = {'\0',};
+    for (int n = 1; n < 1000; n++) {
+        IVec2 d = decompose(n);
+        fprintf(stdout, "%d: %d, %d\n", n, d.ind[0], d.ind[1]);
+    }
 
     auto vol = VolumeRender(
         {{{window_width, window_height}}}, 
-        {{{128, 128, 64}}},
+        {{{256, 256, 256}}},
         {{{sim_params.nx, sim_params.ny, sim_params.nz}}}
         );
     // char a;
     // std::cin >> a;
 
+    int max_tex_size;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
+    fprintf(stdout, "Max texture size: %d.\n", max_tex_size);
     struct timespec frame_times[2] = {{}, {}};
     // #ifndef __EMSCRIPTEN__
     clock_gettime(CLOCK_MONOTONIC_RAW, &frame_times[0]);
     // #endif
     loop = [&] {
 
-        glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+        use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
         for (int i = 0; i < sim_params.steps_per_frame; i++) {
             if (!sim_params.init_new_wavepacket)
                 time_step(u, v, 
@@ -537,7 +549,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
         auto j0_2 = j0.cast_to(FLOAT4, X, NONE, NONE, X);*/
         double scroll = 2.0*Interactor::get_scroll()/25.0;
         // std::cout << scroll << std::endl;
-        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2, SLICE_ZY=3, SLICE_XZ=4};
+        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2, SLICE_ZY=3, SLICE_XZ=4, SHOW_3D_TEX=5};
         if (sim_params.display_option == SHOW_VECTOR_FIELD) {
             auto vec_display = vec_view.render(
             scalar_vec_display*sim_params.brightness, 
@@ -566,14 +578,20 @@ int dirac_splitstep_3d(Renderer *renderer) {
                  = funcs2D::zeroes(FLOAT4, sim_params.nx, sim_params.ny);
             glViewport(0, 0, sim_params.nx, sim_params.ny);
             slice_of_3d(slice_of_3d_procedure, sim_params.display_option - 2, 64/2, 
-                        {sim_params.nx, sim_params.ny},
-                        {sim_params.nx*sim_params.nz, sim_params.ny},
+                        sim_params.texel_dimensions2d,
                         {sim_params.nx, sim_params.ny, sim_params.nz},
                         xy_slice,
                         scalar_vol_display);
             glViewport(0, 0, window_width, window_height);
             bind_quad(main_frame, copy_program);
             set_sampler2D_uniform("tex", xy_slice.get_frame_id());
+            draw_unbind_quad();
+        } else if (sim_params.display_option == SHOW_3D_TEX) {
+            glViewport(0, 0, window_width, window_height);
+            bind_quad(main_frame, copy_program);
+            // set_sampler2D_uniform("tex", vol_display.get_frame_id());
+            set_sampler2D_uniform("tex", scalar_vol_display.get_frame_id());
+            // vol_display.set_as_sampler2D_uniform("tex");
             draw_unbind_quad();
         }
 
@@ -627,8 +645,11 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 if (ImGui::MenuItem("ZY slice", "")) {
                     sim_params.display_option = SLICE_ZY;
                 }
-                if (ImGui::MenuItem("ZY slice", "")) {
+                if (ImGui::MenuItem("XZ slice", "")) {
                     sim_params.display_option = SLICE_XZ;
+                }
+                if (ImGui::MenuItem("Debug show texture", "")) {
+                    sim_params.display_option = SHOW_3D_TEX;
                 }
                 ImGui::EndMenu();
             }
@@ -644,7 +665,8 @@ int dirac_splitstep_3d(Renderer *renderer) {
         // ImGui_
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        interactor.click_update(renderer);
+        if (!io.WantCaptureMouse)
+            interactor.click_update(renderer);
         if (interactor.left_pressed()) {
             double angle = 4.0*interactor.get_mouse_abs_delta();
             auto vel = interactor.get_mouse_delta();

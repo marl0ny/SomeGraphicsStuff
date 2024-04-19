@@ -375,7 +375,7 @@ static GLuint to_type(int sized) {
     case GL_RGBA16UI: case GL_RGB16UI: case GL_RG16UI: case GL_R16UI:
         return GL_UNSIGNED_SHORT;
     case GL_RGBA8: case GL_RGB8: case GL_RG8: case GL_R8:
-        return GL_BYTE;
+        return GL_UNSIGNED_BYTE;
     case GL_RGBA8UI: case GL_RGB8UI: case GL_RG8UI: case GL_R8UI:
         return GL_UNSIGNED_BYTE;
     }
@@ -414,7 +414,7 @@ void quad_init_texture(const struct TextureParams *params) {
     //     fprintf(stdout, "%d\n", to_base(params->format));
     //     fprintf(stdout, "%d\n", to_type(params->format));
     // }
-    fprintf(stdout, "new_quad: %x\n", params->format);
+    // fprintf(stdout, "new_quad: %x\n", params->format);
     glTexImage2D(GL_TEXTURE_2D, 0, params->format,
                  params->width, params->height, 0, 
                  to_base(params->format),
@@ -499,7 +499,7 @@ int new_frame(const struct TextureParams *texture_params,
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     s_current_frame->texture = texture;
-    fprintf(stdout, "new_frame: %x\n", texture_params->format);
+    // fprintf(stdout, "new_frame: %x\n", texture_params->format);
     glTexImage2D(GL_TEXTURE_2D, 0, texture_params->format,
                  texture_params->width, texture_params->height, 0,
                  to_base(texture_params->format),
@@ -963,4 +963,140 @@ void window_dimensions(GLFWwindow *window, int *ptr_w, int *ptr_h) {
     *ptr_w = 2**ptr_w;
     *ptr_h = 2**ptr_h;
 #endif
+}
+
+static double floor(double a) {
+    return  (double)((int)(a));
+}
+
+static double mod(double a, double b) {
+    return  b*(a/b - floor(a/b));
+}
+
+/* If n is a perfect square, return its square root,
+else return those values closest to making it a square.
+Although this is implemented using brute force iteration,
+for the problem that this function is meant to solve
+the value of n shouldn't be too large (n < 1000).
+*/
+struct IVec2 decompose(unsigned int n) {
+    struct IVec2 d = {.ind={n, 1}};
+    int i = 1;
+    for (; i*i < n; i++) {}
+    for (; n % i; i--) {}
+    d.ind[0] = ((n / i) > i)? (n / i): i;
+    d.ind[1] = ((n / i) < i)? (n / i): i;
+    return d;
+}
+
+/* 3D arrays of data are represented as 2D textures.
+ This function returns the dimensions of the 2D texture given the dimensions
+ of its 3D array representation. If width_3d, height_3d, and length_3d
+ are the dimensions of the 3D data array, then the dimensions of the 2D
+ texture are (d1 * width_2d) x (d2 * height_3d), where d1 * d2 = length_3d.
+ Since OpenGL places restrictions on the maximum texture side length,
+ the length of each of the two side lengths are kept as small as possible.
+ This is done by minimizing the value of d1 + d2
+ (related to the size of the perimeter of the texture).*/
+struct IVec2 get_2d_from_3d_dimensions(const struct IVec3 *dimensions_3d) {
+    int width = dimensions_3d->width;
+    int height = dimensions_3d->height;
+    int length = dimensions_3d->length;
+    int max_tex_size = 0xfffffff;
+    // #ifndef __APPLE__ 
+    // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
+    // #endif
+    struct IVec2 tex_dimensions_2d = {};
+    // if (length*width < max_tex_size) {
+    //     tex_dimensions_2d.width = length*width;
+    //     tex_dimensions_2d.height = height;
+    // } else if (length*height < max_tex_size) {
+    //     tex_dimensions_2d.width = width;
+    //     tex_dimensions_2d.height = length*height;
+    // } else {
+        struct IVec2 d = decompose(length);
+        if (d.ind[0]*width < max_tex_size && 
+            d.ind[1]*height < max_tex_size) {
+            tex_dimensions_2d.width = width*d.ind[0];
+            tex_dimensions_2d.height = height*d.ind[1];
+        } else if (d.ind[1]*width < max_tex_size && 
+                    d.ind[0]*height < max_tex_size) {
+            tex_dimensions_2d.width = width*d.ind[1];
+            tex_dimensions_2d.height = height*d.ind[0];
+        } else {
+            fprintf(stderr, 
+                    "Warning: 3D texture dimensions %d, %d, %d "
+                    "with possible 2D representations %d, %d "
+                    " or %d, %d exceed maximum "
+                    "texture size. The maximum 2D texture side length "
+                    "is %d.", 
+                    width, height, length, 
+                    width*d.ind[0], height*d.ind[1],
+                    width*d.ind[1], height*d.ind[0],
+                    max_tex_size);
+            tex_dimensions_2d.width = width*d.ind[1];
+            tex_dimensions_2d.height = height*d.ind[0];
+        }
+    // }
+    return tex_dimensions_2d;
+}
+
+struct IVec2 get_2d_from_width_height_length(
+    int width, int height, int length) {
+    struct IVec3 dimensions_3d
+         = {.width=width, .height=height, .length=length};
+    return get_2d_from_3d_dimensions(&dimensions_3d);
+}
+
+void use_3d_texture(int width, int height, int length) {
+    struct IVec3 dimensions_3d = {
+        .width=width, .height=height, .length=length
+    };
+    struct IVec2 tex_dimensions_2d 
+        = get_2d_from_3d_dimensions(&dimensions_3d);
+    glViewport(0, 0, tex_dimensions_2d.width, tex_dimensions_2d.height);
+}
+
+struct Vec2 get_2d_from_3d_texture_coordinates(
+    const struct Vec3 *uvw, 
+    const struct IVec2 *tex_dimensions_2d,
+    const struct IVec3 *dimensions_3d) {
+    int width_2d = tex_dimensions_2d->width;
+    int height_2d = tex_dimensions_2d->height;
+    int width_3d = dimensions_3d->width;
+    int height_3d = dimensions_3d->height;
+    int length_3d = dimensions_3d->length;
+    double w_stack = (double)width_2d/(double)width_3d;
+    // double h_stack = (double)height_2d/(double)height_3d;
+    double x_index = (double)width_3d*mod(uvw->ind[0], 1.0);
+    double y_index = (double)height_3d*mod(uvw->ind[1], 1.0);
+    double z_index = mod(floor((double)length_3d*uvw->ind[2]), 
+                         (double)length_3d);
+    // fprintf(stdout, "%g, %g\n", z_index, mod(z_index, w_stack)*(double)width_3d);
+    double u_index = (mod(z_index, w_stack)*((double)width_3d)) + x_index;
+    // fprintf(stdout, "x_index: %g, u_index: %g\n", x_index, u_index);
+    double v_index = (floor(z_index / w_stack)*((double)height_3d)) + y_index;
+    struct Vec2 uv = {.u=(float)(u_index/(double)width_2d),
+                      .v=(float)(v_index/(double)height_2d)};
+    return uv;
+
+}
+
+struct Vec3 get_3d_from_2d_texture_coordinates(
+    const struct Vec2 *uv,
+    const struct IVec2 *tex_dimensions_2d,
+    const struct IVec3 *dimensions_3d) {
+    int width_2d = tex_dimensions_2d->width;
+    int height_2d = tex_dimensions_2d->height;
+    int width_3d = dimensions_3d->width;
+    int height_3d = dimensions_3d->height;
+    int length_3d = dimensions_3d->length;
+    double w_stack = (double)width_2d/(double)width_3d;
+    double h_stack = (double)height_2d/(double)height_3d;
+    double u = mod(uv->ind[0]*w_stack, 1.0);
+    double v = mod(uv->ind[1]*h_stack, 1.0);
+    double w = (floor(uv->ind[1]*h_stack)*w_stack 
+                + floor(uv->ind[0]*w_stack) + 0.5)/(double)length_3d;
+    struct Vec3 uvw = {.x=(float)u, .y=(float)v, .z=(float)v};
+    return uvw;
 }

@@ -22,21 +22,23 @@ LIBS = -ldl -L/opt/homebrew/lib -L/usr/local/include -lglfw\
 endif
 
 
-# TARGET = ${PWD}/program
-# FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
-# FLAGS_NO_OPT = -O0 -g -Wall 
-# # FLAGS = -O0 -g -Wall
-# C_COMPILE = clang 
-# CPP_COMPILE = clang++ -std=c++11
+TARGET = ${PWD}/program
+FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
+FLAGS_NO_OPT = -O0 -g -Wall 
+# FLAGS = -O0 -g -Wall
+C_COMPILE = clang 
+CPP_COMPILE = clang++ -std=c++11
 
-TARGET = main.js
-CPP_COMPILE = EMCC_DEBUG=1 emcc
-C_COMPILE = EMCC_DEBUG=1 emcc
-FLAGS = -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
-	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
-FLAGS_NO_OPT = ${FLAGS}
-LIBS =
-INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
+# TARGET = main.js
+# # CPP_COMPILE = EMCC_DEBUG=1 emcc
+# # C_COMPILE = EMCC_DEBUG=1 emcc
+# CPP_COMPILE = emcc
+# C_COMPILE = emcc
+# FLAGS = -O3 -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
+# 	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+# FLAGS_NO_OPT = ${FLAGS}
+# LIBS =
+# INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
 
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
              unary_ops.c fft.c bitmap.c summation.c write_to_png.c \
@@ -53,7 +55,7 @@ CPP_SOURCES = render.cpp interactor.cpp quaternions.cpp volume_render.cpp \
 							summation_stuff.cpp texture_data.cpp fft_omp.cpp \
 							texture_data_transfers_stuff.cpp waves.cpp sph.cpp \
 							schrod_leapfrog_3d.cpp schrod_splitstep_3d.cpp pauli_leapfrog_3d.cpp \
-							dirac_splitstep_3d.cpp electrodynamics_3d.cpp 
+							dirac_splitstep_3d.cpp electrodynamics_3d.cpp free_space_position.cpp
 CPP_OBJECTS = render.o interactor.o quaternions.o \
 					texture_data.o draw_texture_data.o \
 					vector_field_view_2d.o vector_field_view_3d.o volume_render.o \
@@ -64,7 +66,8 @@ CPP_OBJECTS = render.o interactor.o quaternions.o \
 					schrod_splitstep_image_potential.o schrod_leapfrog.o\
 					schrod_splitstep.o isf_splitstep.o \
 					dirac_leapfrog.o fft_omp.o  schrod_leapfrog_3d.o pauli_leapfrog_3d.o \
-					schrod_splitstep_3d.o dirac_splitstep_3d.o electrodynamics_3d.o main.o
+					schrod_splitstep_3d.o dirac_splitstep_3d.o \
+					electrodynamics_3d.o free_space_position.o main.o
 
 IMGUI_DIR = ${PWD}/imgui
 IMGUI_SOURCES = ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp \
@@ -112,6 +115,9 @@ electrodynamics_3d.o: electrodynamics_3d.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 fft_omp.o: fft_omp.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+free_space_position.o: free_space_position.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 interactor.o: interactor.cpp

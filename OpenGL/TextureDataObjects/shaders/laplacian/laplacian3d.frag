@@ -36,23 +36,37 @@ uniform vec3 dimensions3D; // Dimensions of simulation
 
 */
 
-vec2 to2DTextureCoordinates(vec3 position) {
+vec2 to2DTextureCoordinates(vec3 uvw) {
     int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
     int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
     int length3D = texelDimensions3D[2];
-    float xIndex = float(width3D)*mod(position.x, 1.0);
-    float zIndex = float(length3D)*mod(position.z, 1.0);
-    float uIndex = floor(zIndex)*float(width3D) + xIndex; 
-    return vec2(uIndex/float(width2D), mod(position.y, 1.0));
+    float wStack = float(width2D)/float(width3D);
+    // float hStack = float(height2D)/float(height3D);
+    float xIndex = float(width3D)*mod(uvw[0], 1.0);
+    float yIndex = float(height3D)*mod(uvw[1], 1.0);
+    float zIndex = mod(floor(float(length3D)*uvw[2]), float(length3D));
+    float uIndex = mod(zIndex, wStack)*float(width3D) + xIndex; 
+    float vIndex = floor(zIndex / wStack)*float(height3D) + yIndex; 
+    return vec2(uIndex/float(width2D), vIndex/float(height2D));
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
+    int width3D = texelDimensions3D[0];
+    int height3D = texelDimensions3D[1];
     int length3D = texelDimensions3D[2];
-    float u = mod(uv[0]*float(length3D), 1.0);
-    float v = uv[1];
-    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float u = mod(uv[0]*wStack, 1.0);
+    float v = mod(uv[1]*hStack, 1.0);
+    float w = (floor(uv[1]*hStack)*wStack
+               + floor(uv[0]*wStack) + 0.5)/float(length3D);
     return vec3(u, v, w);
 }
+
 
 
 vec4 xLaplacian2ndOrder3Point(sampler2D tex) {

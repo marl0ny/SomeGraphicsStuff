@@ -48,9 +48,9 @@ static void main_loop() {
 static const double PI = 3.14159;
 
 static struct SimulationParams {
-    int nx = 64;
-    int ny = 64;
-    int nz = 64;
+    int nx = 100;
+    int ny = 100;
+    int nz = 100;
     double hbar = 1.0;
     double m = 1.0;
     double dt  = 0.1;
@@ -66,7 +66,7 @@ static struct SimulationParams {
         // double sx = 0.10, sy = 0.10, sz = 1.0;
         double sx = 0.07, sy = 0.07, sz = 0.07;
         double bx = 0.5, by = 0.5, bz = 0.5;
-        double nx = 0.0, ny = 0.0, nz = 8.0;
+        double nx = 5.0, ny = 5.0, nz = 20.0;
     } init_wave_packet;
 } sim_params;
 
@@ -88,6 +88,24 @@ static Texture2DData get_texture_coordinate(
         sim_params.nx, sim_params.ny, sim_params.nz,
         GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR
         ).cast_to(COMPLEX2, X, NONE, X, NONE);
+}
+
+static Texture2DData color_phase_data(const Drawer view_proc,
+                                      const Texture2DData &comp_data,
+                                      SimulationParams sim_params) {
+    Texture2DData col_data
+        = funcs3D::zeroes(FLOAT4,
+         sim_params.nx, sim_params.ny, sim_params.nz); 
+    /* Texture2DData abs_data = (comp_data*conj(comp_data)
+        ).cast_to(FLOAT4, NONE, NONE, NONE, X);*/
+    auto comp_data2 = comp_data; // + abs_data;
+    view_proc.draw(
+        col_data,
+        {
+            {"tex", {&comp_data}},
+        }
+    );
+    return col_data;
 }
 
 
@@ -165,7 +183,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
     sim_params.dy = sim_params.height/sim_params.ny;
     sim_params.dz = sim_params.length/sim_params.nz;*/
 
-    glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+    use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
     auto imag_unit = std::complex<double>(0.0, 1.0);
 
     auto x = get_texture_coordinate(0, sim_params);
@@ -184,9 +202,12 @@ int pauli_leapfrog_3d(Renderer *renderer) {
     // Laplacian program
     auto laplacian_command
          = DrawTexture2DData(Path("./shaders/laplacian/laplacian3d.frag"));
-    laplacian_command.set_ivec2_uniforms({
-        {"texelDimensions2D", {sim_params.nx*sim_params.nz, sim_params.ny}},
-    });
+    auto view_proc = Drawer(Path("./shaders/view2.frag"));
+
+    struct IVec2 tex_dimensions_2d 
+        = get_2d_from_width_height_length(sim_params.nx, sim_params.ny, sim_params.nz);
+    laplacian_command.set_ivec2_uniforms(
+        {{"texelDimensions2D", tex_dimensions_2d}});
     laplacian_command.set_ivec3_uniforms({
         {"texelDimensions3D", 
             {sim_params.nx, sim_params.ny, sim_params.nz}},
@@ -220,10 +241,11 @@ int pauli_leapfrog_3d(Renderer *renderer) {
 
 
     int view_program = make_quad_program("./shaders/view.frag");
+    int copy_program = make_quad_program("./shaders/util/copy.frag");
 
     glViewport(0, 0, window_width, window_height);
     IVec2 view_dimensions {window_width, window_height};
-    IVec3 render_dimensions {128, 128, 64};
+    IVec3 render_dimensions {256, 256, 512};
     IVec3 sample_dimensions {sim_params.nx, sim_params.ny, sim_params.nz};
     auto vol = VolumeRender(view_dimensions, render_dimensions, sample_dimensions);
 
@@ -248,7 +270,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
 
     loop = [&] {
 
-        glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+        use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
         int steps_per_frame = 20;
         for (int i = 0; i < steps_per_frame; i++) {
             psi3 = psi1 - (imag_unit*sim_params.dt/sim_params.hbar)
@@ -275,6 +297,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
                       (float)sim_params.length}}}
              });
         gradient = gradient*0.25;
+        auto psi_col_data = color_phase_data(view_proc, psi1, sim_params);
         // vec_view.render(conj(psi1)*psi1, j, 1.0, {0.0, 0.0, 0.0, 1.0});
         auto abs_psi_display = abs_psi1.cast_to(FLOAT4, X, NONE, NONE, X);
         glViewport(0, 0, window_width, window_height);
@@ -282,8 +305,8 @@ int pauli_leapfrog_3d(Renderer *renderer) {
         // Quaternion rot0 = {0.0, 1.0, 0.0, 1.0};
         // auto rot = rot0.normalized();
         double scroll = 2.0*Interactor::get_scroll()/25.0;
-        auto vol_display = vol.render(abs_psi_display, scroll, rotation);
-        bind_quad(main_frame, view_program);
+        auto vol_display = vol.render(psi_col_data, scroll, rotation);
+        bind_quad(main_frame, copy_program);
         vol_display.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         

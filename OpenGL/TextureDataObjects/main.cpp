@@ -36,6 +36,7 @@
 #include "sph.hpp"
 #include "electrodynamics_3d.hpp"
 #include "pauli_leapfrog_3d.hpp"
+#include "free_space_position.hpp"
 #include "render.hpp"
 
 
@@ -46,7 +47,7 @@ int main(int argc, char **argv) {
     // int NX = 1024, NY = 1024;
     int NX = WIDTH_TO_HEIGHT*1440, NY = 1440;
     #else
-    int NX = WIDTH_TO_HEIGHT*512, NY = 512;
+    int NX = WIDTH_TO_HEIGHT*640, NY = 640;
     #endif
     GLFWwindow *window = init_window(NX, NY);
     /* int monitor_count = 0;
@@ -90,6 +91,7 @@ int main(int argc, char **argv) {
         // and the png library appears to not be available for emscripten.*/
         gray_scott_reaction_diffusion,
         electrodynamics_3d,
+        free_space_position,
     };
     int which_function = 15;
     if (argc > 1)

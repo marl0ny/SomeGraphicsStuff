@@ -147,7 +147,7 @@ int electrodynamics_3d(Renderer *renderer) {
     auto vector_view 
         = VectorFieldView3D(view_dimensions, vector_dimensions);
 
-    glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+    use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
 
     sim_params.dx = sim_params.width/sim_params.nx;
     sim_params.dy = sim_params.height/sim_params.ny;
@@ -227,7 +227,7 @@ int electrodynamics_3d(Renderer *renderer) {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
 
-        glViewport(0, 0, sim_params.nx*sim_params.nz, sim_params.ny);
+        use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
         for (int i = 0; i < steps_per_frame; i++)
             time_step(e_field0, e_field1, 
                 b_field0, b_field1, j, curl_draw, e_draw, b_draw);

@@ -1122,9 +1122,12 @@ namespace funcs3D {
                          GLuint wrap_s, GLuint wrap_t,
                          GLuint min_filter, 
                          GLuint mag_filter) {
+        IVec3 dimensions_3d {.width=width, .height=height, .length=length};
+        IVec2 tex_dimensions_2d = get_2d_from_3d_dimensions(&dimensions_3d);
         TextureParams tex_params {
             .format=type_to_format(type),
-            .width=width*length, .height=height,
+            .width=tex_dimensions_2d.width,
+            .height=tex_dimensions_2d.height,
             .generate_mipmap = (int)generate_mipmap,
             .wrap_s = (int)wrap_s, .wrap_t = (int)wrap_t,
             .min_filter = (int)min_filter, .mag_filter = (int)mag_filter,
@@ -1140,8 +1143,11 @@ namespace funcs3D {
                          int width, int height, int length,
                          GLuint wrap_s, GLuint wrap_t,
                          GLuint min_filter, GLuint mag_filter) {
+        IVec3 dimensions_3d {.width=width, .height=height, .length=length};
+        IVec2 tex_dimensions_2d = get_2d_from_3d_dimensions(&dimensions_3d);
         struct TextureParams tex_params {.format=type_to_format(type),
-            .width=(int)width*length, .height=(int)height,
+            .width=(int)tex_dimensions_2d.width,
+            .height=(int)tex_dimensions_2d.height,
             .wrap_s=(int)wrap_s, .wrap_t=(int)wrap_t,
             .min_filter=(int)min_filter, .mag_filter=(int)mag_filter};
         frame_id new_frame = activate_frame(&tex_params);
@@ -1165,7 +1171,7 @@ namespace funcs3D {
                               .z=(float)x0, .w=(float)x0}}};
         struct Vec4 w111 = {{{.x=(float)xf, .y=(float)xf,
                               .z=(float)xf, .w=(float)xf}}};
-        tex_trilerp(new_frame, &texture_dimensions_3d, 
+        tex_trilerp(new_frame, &tex_dimensions_2d, &texture_dimensions_3d, 
                     &w000, &w010, &w100, &w110,
                     &w001, &w011, &w101, &w111);
         struct IVec4 dimensions = {.x=width, .y=height, .z=length, .w=0};
@@ -1177,8 +1183,11 @@ namespace funcs3D {
                          int width, int height, int length,
                          GLuint wrap_s, GLuint wrap_t,
                          GLuint min_filter, GLuint mag_filter) {
+        IVec3 dimensions_3d {.width=width, .height=height, .length=length};
+        IVec2 tex_dimensions_2d = get_2d_from_3d_dimensions(&dimensions_3d);
         struct TextureParams tex_params {.format=type_to_format(type),
-            .width=(int)width*length, .height=(int)height,
+            .width=(int)tex_dimensions_2d.width,
+            .height=(int)tex_dimensions_2d.height,
             .wrap_s=(int)wrap_s, .wrap_t=(int)wrap_t,
             .min_filter=(int)min_filter, .mag_filter=(int)mag_filter};
         frame_id new_frame = activate_frame(&tex_params);
@@ -1202,7 +1211,7 @@ namespace funcs3D {
                               .z=(float)yf, .w=(float)yf}}};
         struct Vec4 w111 = {{{.x=(float)yf, .y=(float)yf,
                               .z=(float)yf, .w=(float)yf}}};
-        tex_trilerp(new_frame, &texture_dimensions_3d, 
+        tex_trilerp(new_frame, &tex_dimensions_2d, &texture_dimensions_3d,
                     &w000, &w010, &w100, &w110,
                     &w001, &w011, &w101, &w111);
         struct IVec4 dimensions = {.x=width, .y=height, .z=length, .w=0};
@@ -1214,8 +1223,11 @@ namespace funcs3D {
                          int width, int height, int length,
                          GLuint wrap_s, GLuint wrap_t,
                          GLuint min_filter, GLuint mag_filter) {
+        IVec3 dimensions_3d {.width=width, .height=height, .length=length};
+        IVec2 tex_dimensions_2d = get_2d_from_3d_dimensions(&dimensions_3d);
         struct TextureParams tex_params {.format=type_to_format(type),
-            .width=(int)width*length, .height=(int)height,
+            .width=(int)tex_dimensions_2d.width,
+            .height=(int)tex_dimensions_2d.height,
             .wrap_s=(int)wrap_s, .wrap_t=(int)wrap_t,
             .min_filter=(int)min_filter, .mag_filter=(int)mag_filter};
         frame_id new_frame = activate_frame(&tex_params);
@@ -1239,7 +1251,7 @@ namespace funcs3D {
                               .z=(float)zf, .w=(float)zf}}};
         struct Vec4 w111 = {{{.x=(float)zf, .y=(float)zf,
                               .z=(float)zf, .w=(float)zf}}};
-        tex_trilerp(new_frame, &texture_dimensions_3d, 
+        tex_trilerp(new_frame, &tex_dimensions_2d, &texture_dimensions_3d,
                     &w000, &w010, &w100, &w110,
                     &w001, &w011, &w101, &w111);
         struct IVec4 dimensions = {.x=width, .y=height, .z=length, .w=0};

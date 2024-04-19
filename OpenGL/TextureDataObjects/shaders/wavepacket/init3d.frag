@@ -36,6 +36,9 @@ uniform vec3 wavenumber1;
 const float PI = 3.141592653589793;
 
 vec2 to2DTextureCoordinates(vec3 position) {
+    int maxTexDimension = 8192;
+    float wStack = 0.0;
+    float hStack = 0.0;
     int width2D = texelDimensions2D[0];
     int width3D = texelDimensions3D[0];
     int length3D = texelDimensions3D[2];

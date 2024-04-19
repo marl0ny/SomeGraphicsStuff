@@ -63,7 +63,7 @@ int schrod_leapfrog_3d(Renderer *renderer) {
     auto imag_unit = std::complex<double>(0.0, 1.0);
 
     // Texture for the potential
-    glViewport(0, 0, NX*NZ, NY);
+    use_3d_texture(NX, NY, NZ);
 
     // Texture to store initial wave function
     // auto psi1 = funcs3D::zeroes(COMPLEX2, NX, NY, NZ);
@@ -118,7 +118,7 @@ int schrod_leapfrog_3d(Renderer *renderer) {
     bool exit_loop = false;
     loop = [&] {
         
-        glViewport(0, 0, NX*NZ, NY);
+        use_3d_texture(NX, NY, NZ);
         for (int i = 0; i < 10; i++) {
             psi3 = psi1 - (imag_unit*dt/hbar)*h_psi_func(psi2, pot);
             swap(psi3, psi2);

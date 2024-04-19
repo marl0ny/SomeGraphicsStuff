@@ -26,6 +26,7 @@ in the split-step-momentum3d.frag shader.
 
 // Dimensions
 uniform vec3 dimensions;
+uniform ivec2 texelDimensions2D;
 uniform ivec3 texelDimensions;
 
 // Wavepacket expectation values.
@@ -89,12 +90,20 @@ float pow2(float val) {
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
+    int width3D = texelDimensions[0];
+    int height3D = texelDimensions[1];
     int length3D = texelDimensions[2];
-    float u = mod(uv[0]*float(length3D), 1.0);
-    float v = uv[1];
-    float w = (floor(uv[0]*float(length3D)) + 0.5)/float(length3D);
+    int width2D = texelDimensions2D[0];
+    int height2D = texelDimensions2D[1];
+    float wStack = float(width2D)/float(width3D);
+    float hStack = float(height2D)/float(height3D);
+    float u = mod(uv[0]*wStack, 1.0);
+    float v = mod(uv[1]*hStack, 1.0);
+    float w = (floor(uv[1]*hStack)*wStack
+               + floor(uv[0]*wStack) + 0.5)/float(length3D);
     return vec3(u, v, w);
 }
+
 
 vec3 getMomentum() {
     float u, v, w;

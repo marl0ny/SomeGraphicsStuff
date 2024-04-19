@@ -81,12 +81,17 @@ void tex_bilerp(frame_id dst,
     draw_unbind_quad();
 }
 
-void tex_trilerp(frame_id dst, const struct IVec3 *texel_dimensions_3d,
+void tex_trilerp(frame_id dst,
+                 const struct IVec2 *texel_dimensions_2d,
+                 const struct IVec3 *texel_dimensions_3d,
                  const struct Vec4 *w000, const struct Vec4 *w010,
                  const struct Vec4 *w100, const struct Vec4 *w110,
                  const struct Vec4 *w001, const struct Vec4 *w011,
                  const struct Vec4 *w101, const struct Vec4 *w111) {
     bind_quad(dst, s_unary_ops_programs.trilinear);
+    set_ivec2_uniform("texelDimensions2D", 
+                      texel_dimensions_2d->x, 
+                      texel_dimensions_2d->y);
     set_ivec3_uniform("texelDimensions3D",
                       texel_dimensions_3d->x,
                       texel_dimensions_3d->y,

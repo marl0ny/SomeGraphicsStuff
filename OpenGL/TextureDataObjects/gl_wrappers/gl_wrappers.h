@@ -273,6 +273,25 @@ int pop_frame();
 
 void window_dimensions(GLFWwindow *window, int *ptr_w, int *ptr_h);
 
+struct IVec2 decompose(unsigned int n);
+
+void use_3d_texture(int width, int height, int length);
+
+struct IVec2 get_2d_from_3d_dimensions(const struct IVec3 *dimensions_3d);
+
+struct IVec2 get_2d_from_width_height_length(
+    int width, int height, int length);
+
+struct Vec3 get_3d_from_2d_texture_coordinates(
+    const struct Vec2 *uv, 
+    const struct IVec2 *tex_dimensions_2d,
+    const struct IVec3 *dimensions_3d);
+
+struct Vec2 get_2d_from_3d_texture_coordinates(
+    const struct Vec3 *uvw,
+    const struct IVec2 *tex_dimensions_2d,
+    const struct IVec3 *dimensions_3d);
+
 #ifdef __cplusplus
 }
 #endif

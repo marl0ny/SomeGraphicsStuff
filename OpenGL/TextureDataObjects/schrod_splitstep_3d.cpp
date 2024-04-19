@@ -72,7 +72,7 @@ int schrod_splitstep_3d(Renderer *renderer) {
     double dx = width/(float)NX, dy = height/(float)NY, dz = height/(float)NZ;
     auto imag_unit = std::complex<double>(0.0, 1.0);
 
-    glViewport(0, 0, NX*NZ, NY);
+    use_3d_texture(NX, NY, NZ);
 
     // Texture to store initial wave function
     // auto psi1 = funcs3D::zeroes(COMPLEX2, NX, NY, NZ);
@@ -110,7 +110,7 @@ int schrod_splitstep_3d(Renderer *renderer) {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
 
-        glViewport(0, 0, NX*NZ, NY);
+        use_3d_texture(NX, NY, NZ);
         int steps_per_frame = 1;
         for (int i = 0; i < steps_per_frame; i++) {
             auto psi_p = funcs3D::fft(x_propagator*psi1);
