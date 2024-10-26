@@ -1,3 +1,5 @@
+/* Finite difference waves simulation using
+second order centred difference in time.*/
 #include "waves.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -30,8 +32,6 @@ static void main_loop() {
 }
 #endif
 
-/* Finite difference waves simulation using
-second order centred difference in time.*/
 int waves(Renderer *renderer) {
     int exit_status = 0;
     int window_width = 0, window_height = 0;
@@ -107,7 +107,7 @@ int waves(Renderer *renderer) {
     while (!exit_loop)
         loop();
     #endif
-    std::cout << "This is reached\n";
+    // std::cout << "This is reached\n";
 
     return exit_status;
 }

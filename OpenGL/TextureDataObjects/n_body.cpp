@@ -1,3 +1,12 @@
+/* N-body gravity simulation.
+ *
+ * References:
+ *
+ * Verlet integration:
+ *  - Wikipedia contributors. (2023, April 24).
+ *  Verlet integration. In Wikipedia, The Free Encyclopedia.
+ * 
+ */
 #include "n_body.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -28,17 +37,6 @@ static void main_loop() {
 }
 #endif
 
-
-
-/* N-body gravity simulation.
- *
- * References:
- *
- * Verlet integration:
- *  - Wikipedia contributors. (2023, April 24).
- *  Verlet integration. In Wikipedia, The Free Encyclopedia.
- * 
- */
 int particles_coulomb(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

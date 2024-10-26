@@ -1,3 +1,16 @@
+/* Simulation of a Gaussian wave packet in 2D in the absence of any potential.
+
+The equation of motion for a Gaussian wave packet in free space is derived 
+in pg 151-154 of Shankar, with the final result in eq. 5.1.15. This was
+checked with Sympy by integrating an initial Gaussian wave packet with the 
+free-space position space propagator (5.1.10) 
+(integral expression in eq. 5.1.11).
+
+Reference:
+Shankar, R. (1994). Simple Problems in One Dimension.
+In Principles of Quantum Mechanics, chapter 5. Springer.
+*/
+
 #include "free_space_position.hpp"
 
 #define GL_SILENCE_DEPRECATION

@@ -1,7 +1,24 @@
+/* Numerically solving the Schrodinger equation using explicit finite
+   differences. This follows an article by Visscher.
+
+   Reference:
+
+   Visscher, P. (1991).
+   A fast explicit algorithm for the time‐dependent Schrödinger equation.
+   Computers in Physics, 5<, 596-598.
+   https://doi.org/10.1063/1.168415
+
+   Probability Current (visualized with white lines):
+   
+   Wikipedia - Probability current
+   https://en.wikipedia.org/wiki/Probability_current
+
+
+*/
 #include "schrod_leapfrog.hpp"
 
-
 // #include <OpenGL/OpenGL.h>
+#include <algorithm>
 #include <cstdlib>
 #include <new>
 #define GL_SILENCE_DEPRECATION
@@ -17,6 +34,7 @@
 #include "bitmap.h"
 #include "summation.h"
 #include <GLES3/gl3.h>
+#include "interactor.hpp"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -31,24 +49,6 @@ static void main_loop() {
 #endif
 
 
-/* Numerically solving the Schrodinger equation using explicit finite
-   differences. This follows an article by Visscher.
-
-   Reference:
-
-   Visscher, P. (1991).
-   A fast explicit algorithm for the time‐dependent Schrödinger equation.
-   Computers in Physics, 5<, 596-598.
-   https://doi.org/10.1063/1.168415
-
-   Probability Current:
-
-   Wikipedia - Probability current
-   https://en.wikipedia.org/wiki/Probability_current
-
-
-
-*/
 int schrod_leapfrog(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;
@@ -115,6 +115,7 @@ int schrod_leapfrog(Renderer *renderer) {
 
     int k = 0;
     int exit_loop = false;
+    Interactor interactor(window);
     loop = [&] {
         glViewport(0, 0, NX, NY);
         for (int i = 0; i < 20; i++) {
@@ -127,7 +128,10 @@ int schrod_leapfrog(Renderer *renderer) {
         }
         auto j = compute_current(psi1);
         auto f = 0.1*j/(conj(psi1)*psi1).cast_to(FLOAT2, X, X);
-        auto view = vec_view.render((psi1*conj(psi1)).cast_to(FLOAT3, X, X, X), 0.01*j);
+        auto view 
+            = vec_view.render((psi1*conj(psi1)
+            ).cast_to(FLOAT4, X, X, X, X), 0.01*j);
+        // auto  = funcs3D.
         glViewport(0, 0, window_width, window_height);
         frame_count++;
         
@@ -141,6 +145,31 @@ int schrod_leapfrog(Renderer *renderer) {
 
         // (psi1 / 3.0).paste_to_quad(main_frame);
         glfwPollEvents();
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            DVec2 left_click = interactor.get_mouse_position();
+            double bx = left_click.x;
+            double by = left_click.y;
+            double vx = interactor.get_mouse_delta().ind[0];
+            double vy = interactor.get_mouse_delta().ind[1];
+            std::cout << "vx: " << vx << ", vy: " << vy << std::endl;
+            command.set_ivec2_uniforms({{"wavenumber", 
+                {.x=(int)std::max(-width/4.0, 
+                    std::min(width/4.0, 8.0*width*vx)),
+                 .y=(int)std::max(-height/4.0, std::
+                    min(height/4.0, 8.0*height*vy))
+                }},
+            });
+            command.set_vec2_uniform("r0", {(float)bx, (float)by});
+            glViewport(0, 0, NX, NY);
+            psi1 = command.create(COMPLEX, NX, NY, true,
+                               GL_REPEAT, GL_REPEAT,
+                               GL_LINEAR, GL_LINEAR);
+            psi2 = psi1 - (imag_unit*(0.5*dt/hbar))*h_psi_func(psi1, pot);
+            psi3 = psi2;
+            glViewport(0, 0, window_width, window_height);
+
+        }
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

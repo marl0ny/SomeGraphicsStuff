@@ -7,8 +7,8 @@ class Interactor {
     struct {
         double x, y;
         double dx, dy;
-        int pressed;
-        int released;
+        int pressed = 0;
+        int released = 0;
     } left_click, middle_click, right_click;
     struct {
         double x, y;
@@ -27,6 +27,9 @@ class Interactor {
     bool left_pressed();
     bool middle_pressed();
     bool right_pressed();
+    bool left_released();
+    bool middle_released();
+    bool right_released();
     double get_mouse_abs_delta();
     static double get_scroll();
 };

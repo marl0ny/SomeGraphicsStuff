@@ -1,3 +1,14 @@
+/* Numerically solving the Schrodinger equation in 3D using explicit finite
+   differences. This follows an article by Visscher.
+
+   Reference:
+
+   Visscher, P. (1991).
+   A fast explicit algorithm for the time‐dependent Schrödinger equation.
+   Computers in Physics, 5<, 596-598.
+   https://doi.org/10.1063/1.168415
+
+*/
 #include "dirac_leapfrog.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -29,17 +40,6 @@ static void main_loop() {
 }
 #endif
 
-/* Numerically solving the Schrodinger equation in 3D using explicit finite
-   differences. This follows an article by Visscher.
-
-   Reference:
-
-   Visscher, P. (1991).
-   A fast explicit algorithm for the time‐dependent Schrödinger equation.
-   Computers in Physics, 5<, 596-598.
-   https://doi.org/10.1063/1.168415
-
-*/
 int schrod_leapfrog_3d(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

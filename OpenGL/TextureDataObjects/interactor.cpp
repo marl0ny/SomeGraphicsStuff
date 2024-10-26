@@ -46,11 +46,11 @@ void Interactor::attach_scroll_callback(GLFWwindow *window) {
 
 
 DVec2 Interactor::get_mouse_position() {
-    return {this->left_click.x, this->left_click.y};
+    return {.x=this->left_click.x, .y=this->left_click.y};
 }
 
 DVec2 Interactor::get_mouse_delta() {
-    return {this->left_click.dx, this->left_click.dy};
+    return {.x=this->left_click.dx, .y=this->left_click.dy};
 }
 
 double Interactor::get_mouse_abs_delta() {
@@ -65,6 +65,10 @@ double Interactor::get_scroll() {
 
 bool Interactor::left_pressed() {
     return left_click.pressed;
+}
+
+bool Interactor::left_released() {
+    return left_click.released;
 }
 
 bool Interactor::middle_pressed() {

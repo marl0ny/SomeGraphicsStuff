@@ -1,3 +1,27 @@
+/* SPH Simulation with some issues that still need to be resolved
+ * (the simulation may give different results even with the same
+ *  initial conditions, and sometimes very high velocity particles
+ *  may appear where they easily cut through the bulk of the fluid).
+ * This initial implementation was made by following these lecture notes:
+ * https://www.cs.cmu.edu/~scoros/cs15467-s16/lectures/11-fluids2.pdf.
+ *
+ * References:
+ *
+ * - Coros S. Lecture 10: Particle-based Fluids.
+ *   Simulation Methods for Animation and Digital Fabrication.
+ *   https://www.cs.cmu.edu/~scoros/cs15467-s16/lectures/11-fluids2.pdf
+ *
+ * - Wikipedia contributors. (2022, November 8).
+ *   Smoothed-particle hydrodynamics. In Wikipedia, The Free Encyclopedia.
+ *   https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics
+ * 
+ * Multithreading reference:
+ * 
+ * - Ippolito, G. (2004). Posix thread (pthread) libraries.
+ *   YoLinux Tutorials.
+ *   https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/\
+ *   www/pthreads.html.
+ */
 #include "sph.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -75,7 +99,7 @@ static int number_of_threads_to_use() {
 #ifdef __EMSCRIPTEN__
     n_threads = 8;
 #endif
-
+    std::cout << "Number of threads: " << n_threads << std::endl;
         if (n_threads > MAX_SUPPORTED_THREADS)
             return MAX_SUPPORTED_THREADS;
     return n_threads;
@@ -264,30 +288,6 @@ static void *threaded_compute_energies_and_forces(void *void_data) {
 static double time_difference_in_ms(const struct timespec *t1,
                                     const struct timespec *t2);
 
-/* SPH Simulation with some issues that still need to be resolved
- * (the simulation may give different results even with the same
- *  initial conditions, and sometimes very high velocity particles
- *  may appear where they easily cut through the bulk of the fluid).
- * This initial implementation was made by following these lecture notes:
- * https://www.cs.cmu.edu/~scoros/cs15467-s16/lectures/11-fluids2.pdf.
- *
- * References:
- *
- * - Coros S. Lecture 10: Particle-based Fluids.
- *   Simulation Methods for Animation and Digital Fabrication.
- *   https://www.cs.cmu.edu/~scoros/cs15467-s16/lectures/11-fluids2.pdf
- *
- * - Wikipedia contributors. (2022, November 8).
- *   Smoothed-particle hydrodynamics. In Wikipedia, The Free Encyclopedia.
- *   https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics
- * 
- * Multithreading reference:
- * 
- * - Ippolito, G. (2004). Posix thread (pthread) libraries.
- *   YoLinux Tutorials.
- *   https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/\
- *   www/pthreads.html.
- */
 int sph_mt(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

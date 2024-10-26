@@ -1,3 +1,22 @@
+/*
+Stable fluids simulation.
+
+References:
+ - Stam, J. (July 1999). Stable Fluids.
+   SIGGRAPH99: 26th International Conference on
+   Computer Graphics and Interactive Techniques, 121-128.
+   https://doi.org/10.1145/311535.311548
+ - Harris, M. (2004). Fast Fluid Dynamics Simulation on the GPU.
+   In GPU Gems, chapter 38. NVIDIA.
+   https://developer.nvidia.com/gpugems/gpugems\
+   part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu
+ - Crane, K., Llamas, I., Tariq, S. (2007).
+   Real-Time Simulation and Rendering of 3D Fluids.
+   In GPU Gems 3, chapter 30. NVIDIA.
+   https://developer.nvidia.com/gpugems/gpugems3\
+   part-v-physics-simulation/
+   chapter-30-real-time-simulation-and-rendering-3d-fluids
+*/
 #include "stable_fluids.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -7,6 +26,7 @@
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
+#include "interactor.hpp"
 // #include <OpenGL/OpenGL.h>
 #include <vector>
 #include "fft.h"
@@ -28,25 +48,6 @@ static void main_loop() {
 }
 #endif
 
-/*
-Stable fluids simulation.
-
-References:
- - Stam, J. (July 1999). Stable Fluids.
-   SIGGRAPH99: 26th International Conference on
-   Computer Graphics and Interactive Techniques, 121-128.
-   https://doi.org/10.1145/311535.311548
- - Harris, M. (2004). Fast Fluid Dynamics Simulation on the GPU.
-   In GPU Gems, chapter 38. NVIDIA.
-   https://developer.nvidia.com/gpugems/gpugems/
-   part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu
- - Crane, K., Llamas, I., Tariq, S. (2007).
-   Real-Time Simulation and Rendering of 3D Fluids.
-   In GPU Gems 3, chapter 30. NVIDIA.
-   https://developer.nvidia.com/gpugems/gpugems3/
-   part-v-physics-simulation/
-   chapter-30-real-time-simulation-and-rendering-3d-fluids
-*/
 int stable_fluids(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;
@@ -160,6 +161,8 @@ int stable_fluids(Renderer *renderer) {
 
     int k = 0;
     bool exit_loop = false;
+    Interactor interactor(window);
+    float amplitude_factor = 0.1;
     loop = [&] {
         glViewport(0, 0, NX, NY);
         dist = advect_func(dist, vel);
@@ -182,6 +185,31 @@ int stable_fluids(Renderer *renderer) {
                             window_width, window_height);
                             }*/
         glfwPollEvents();
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            glViewport(0, 0, NX, NY);
+            DVec2 left_click = interactor.get_mouse_position();
+            double bx = left_click.x;
+            double by = left_click.y;
+            double vx = interactor.get_mouse_delta().ind[0];
+            double vy = interactor.get_mouse_delta().ind[1];
+            init_vel_com.set_float_uniforms({{"amplitude", 5.0},
+                                            {"sigma", 0.07}});
+            init_vel_com.set_vec2_uniforms({{"r0", {.x=(float)bx, .y=(float)by}},
+                                           {"v0", {.x=(float)vx, .y=(float)vy}}});
+            auto vel_tmp = init_vel_com.create(FLOAT2, NX, NY);
+            init_dist_com.set_vec2_uniforms({{"r0", {.x=(float)bx, .y=(float)by}}});
+            init_dist_com.set_float_uniforms({{"amplitude", amplitude_factor},
+                                      {"sigma", 0.1}});
+            auto dist_tmp = init_dist_com.create(FLOAT, NX, NY);
+            auto dist_tmp2 = dist;
+            auto vel_tmp2 = vel;
+            dist = dist_tmp + dist_tmp2;
+            vel = vel_tmp + vel_tmp2;
+            glViewport(0, 0, window_width, window_height);
+        }
+        if (interactor.left_released())
+            amplitude_factor *= -1.0;
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

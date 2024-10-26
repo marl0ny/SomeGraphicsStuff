@@ -1,32 +1,22 @@
+
 <!DOCTYPE html>
-<meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
-<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
 <meta charset="utf-8"/>
 <html>
-    <center>
-        <h1 style="color:white;">Simulation</h1>>
-    <body style="font-family: Arial; background-color: rgb(0, 0, 0);">
-        <canvas id="canvas", oncontextmenu="event.preventDefault()"> </canvas>
+    <body>
+        <h1>WASM programs</h1>
+        <p>Sorry for the sparse documentation; I have yet to write descriptions on what each of these
+        programs actually do here and in their respective pages. For the time being each page will show the program
+        itself in the left pane, with its source file on the right.
+        Hopefully you can gain the necessary context and information from looking at the
+        program's source file itself!
+        </p>
+        <p>Note that these programs will not work on handheld/mobile devices.
+        They may not work properly on all web browsers as well;
+        Firefox should be the most compatible browser, since it was used for testing.
+        </p>
+        <p>
+        <h3>Full list of simulations:</h3>
+        <li style="list-style-type: square;"><a href="./waves.html">waves</a></li><li style="list-style-type: square;"><a href="./stable_fluids.html">stable_fluids</a></li><li style="list-style-type: square;"><a href="./reaction_diffusion.html">reaction_diffusion</a></li><li style="list-style-type: square;"><a href="./schrod_leapfrog.html">schrod_leapfrog</a></li><li style="list-style-type: square;"><a href="./schrod_splitstep_3d.html">schrod_splitstep_3d</a></li><li style="list-style-type: square;"><a href="./free_space_position.html">free_space_position</a></li><li style="list-style-type: square;"><a href="./isf_splitstep.html">isf_splitstep</a></li><li style="list-style-type: square;"><a href="./sph.html">sph</a></li><li style="list-style-type: square;"><a href="./mol_dynamics.html">mol_dynamics</a></li><li style="list-style-type: square;"><a href="./mol_dynamics_mt.html">mol_dynamics_mt</a></li><li style="list-style-type: square;"><a href="./pauli_leapfrog_3d.html">pauli_leapfrog_3d</a></li><li style="list-style-type: square;"><a href="./schrod_splitstep.html">schrod_splitstep</a></li><li style="list-style-type: square;"><a href="./dirac_leapfrog.html">dirac_leapfrog</a></li><li style="list-style-type: square;"><a href="./dirac_splitstep_3d.html">dirac_splitstep_3d</a></li>
+        </p>
     </body>
-    </center>
-    <center>
-        <!--
-    <p style="color:white;">
-       Click anywhere on the canvas to reset the simulation.<br>
-       The left and right-hand side
-       show position and momentum space respectively.<br>
-    </p></center>
-    !-->
-    <script type='text/javascript'>
-        var canvas = document.getElementById('canvas');
-        var Module = {
-          canvas: canvas
-        };
-    </script>
-    <!--<script scr="/stats/stats.min.js"></script>!-->
-    <!--<script type="text/javascript">
-	    var stats = new Stats
-    </script>!-->
-    <script src="main.js"></script>
 </html>
-

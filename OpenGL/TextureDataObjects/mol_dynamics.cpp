@@ -1,3 +1,20 @@
+/* A very rudimentary molecular dynamics simulation.
+ * This is based on the
+ * Interactive Molecular Dynamics program by Daniel Schroeder
+ * found here https://physics.weber.edu/schroeder/md/,
+ * as well as this accompanying article:
+ * https://physics.weber.edu/schroeder/md/InteractiveMD.pdf.
+ *
+ * References:
+ *
+ *  - Schroeder, D. Interactive Molecular Dynamics 
+ *    https://physics.weber.edu/schroeder/md/
+ *
+ *  - Schroeder, D. (2015). Interactive Molecular Dynamics.
+ *    American Journal of Physics, 83(3), 210 - 218.
+ *    http://dx.doi.org/10.1119/1.4901185
+ *
+ * */
 #include "mol_dynamics.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -36,24 +53,6 @@ static double time_difference_in_ms(const struct timespec *t1,
     return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/1000000.0;
 }
 
-
-/* A very rudimentary molecular dynamics simulation.
- * The primary reference for this is the
- * Interactive Molecular Dynamics program by Daniel Schroeder
- * found here https://physics.weber.edu/schroeder/md/,
- * as well as this accompanying article:
- * https://physics.weber.edu/schroeder/md/InteractiveMD.pdf.
- *
- * References:
- *
- *  - Schroeder, D. Interactive Molecular Dynamics 
- *    https://physics.weber.edu/schroeder/md/
- *
- *  - Schroeder, D. (2015). Interactive Molecular Dynamics.
- *    American Journal of Physics, 83(3), 210 - 218.
- *    http://dx.doi.org/10.1119/1.4901185
- *
- * */
 int particles_lennard_jones(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

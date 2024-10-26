@@ -1,5 +1,6 @@
 // #include <OpenGL/OpenGL.h>
 #include <cstdlib>
+#include <fstream>
 #include <new>
 #define GL_SILENCE_DEPRECATION
 
@@ -38,7 +39,8 @@
 #include "pauli_leapfrog_3d.hpp"
 #include "free_space_position.hpp"
 #include "render.hpp"
-
+#include <iostream>
+#include <regex>
 
 int main(int argc, char **argv) {
     int WIDTH_TO_HEIGHT = 1;
@@ -46,6 +48,7 @@ int main(int argc, char **argv) {
     // int NX = 512, NY = 512;
     // int NX = 1024, NY = 1024;
     int NX = WIDTH_TO_HEIGHT*1440, NY = 1440;
+
     #else
     int NX = WIDTH_TO_HEIGHT*640, NY = 640;
     #endif

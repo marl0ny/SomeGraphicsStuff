@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+<meta charset="utf-8"/>
+<html>
+    <center>
+        <!--<h1 style="color:white;">Simulation</h1>>!-->
+    <body style="font-family: Arial; background-color: rgb(0, 0, 0);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr;">
+            <div style="grid-column: 1">
+                <h1 style="color: white">Program compiled to WASM</h1>
+                <canvas id="canvas", oncontextmenu="event.preventDefault()">
+                </canvas>
+            </div>
+            <div style="grid-column: 2">
+                <h2 style="color: white">Pertinent source file</h1>
+                <embed type="text/plain" src="./sph_mt.cpp"
+                    encoding="utf-8" width="90%" height="85%"
+                    style="background-color: white;">
+                </embed></br>
+                <a href="https://github.com/marl0ny/SomeGraphicsStuff/OpenGL/"
+                    style="color: lightblue">Full source code</a>
+            </div>
+        </div>
+    </body>
+    </center>
+    <center>
+        <!--
+    <p style="color:white;">
+       Click anywhere on the canvas to reset the simulation.<br>
+       The left and right-hand side
+       show position and momentum space respectively.<br>
+    </p></center>
+    !-->
+    <script type='text/javascript'>
+        var canvas = document.getElementById('canvas');
+        var Module = {
+          canvas: canvas,
+          arguments: [6]
+        };
+    </script>
+    <!--<script scr="/stats/stats.min.js"></script>!-->
+    <!--<script type="text/javascript">
+	    var stats = new Stats
+    </script>!-->
+    <script src="main.js"></script>
+</html>

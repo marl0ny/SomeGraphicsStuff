@@ -1,3 +1,17 @@
+/* Very basic Maxwell simulation in 3D using the FDTD method.
+
+References:
+
+ - Taflove A., Hagness S. (2000).
+   Introduction to Maxwell's Equations and the Yee Algorithm.
+   In Computational Electrodynamics: 
+   The Finite-Difference Time-Domain Method, 
+   chapter 3. Artrech House.
+
+ - Wikipedia - Finite-difference time-domain method
+   https://en.wikipedia.org/wiki/Finite-difference_time-domain_method
+
+*/
 #include "electrodynamics_3d.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -112,20 +126,6 @@ static void time_step(Texture2DData &e0, Texture2DData &e1,
     swap(b1, b0);
 }
 
-/* Very basic Maxwell simulation in 3D using the FDTD method.
-
-References:
-
- - Taflove A., Hagness S. (2000).
-   Introduction to Maxwell's Equations and the Yee Algorithm.
-   In Computational Electrodynamics: 
-   The Finite-Difference Time-Domain Method, 
-   chapter 3. Artrech House.
-
- - Wikipedia - Finite-difference time-domain method
-   https://en.wikipedia.org/wiki/Finite-difference_time-domain_method
-
-*/
 int electrodynamics_3d(Renderer *renderer) {
 
     GLFWwindow *window = renderer->window;
@@ -209,7 +209,7 @@ int electrodynamics_3d(Renderer *renderer) {
         sim_params.width, sim_params.height, sim_params.length);
 
     auto wave = get_initial_wavepacket(x, y, z, sim_params);
-    auto e_field0 = wave.cast_to(FLOAT3, X, X, X);
+    auto e_field0 = wave.cast_to(FLOAT4, X, X, X, NONE);
     auto b_field0 = e_field0*0.0;
     auto e_field1 = e_field0*1.0;
     auto b_field1 = 0.0*b_field0;
@@ -232,14 +232,16 @@ int electrodynamics_3d(Renderer *renderer) {
             time_step(e_field0, e_field1, 
                 b_field0, b_field1, j, curl_draw, e_draw, b_draw);
 
-        auto field_vis1 = e_field0.cast_to(FLOAT3, X, NONE, NONE);
-        auto field_vis2 = e_field0.cast_to(FLOAT3, NONE, NONE, X);
+        auto field_vis1 
+            = e_field0.cast_to(FLOAT4, X, NONE, NONE, NONE);
+        auto field_vis2 
+            = e_field0.cast_to(FLOAT4, NONE, NONE, X, NONE);
         auto ones 
             = (funcs3D::make_x(0.0, 1.0, FLOAT, 
             sim_params.nx, sim_params.ny, sim_params.nz) + 1.0
             ).cast_to(FLOAT4, NONE, NONE, NONE, X);
         auto field_vis0 = field_vis1 - field_vis2;
-        auto field_vis = field_vis0.cast_to(FLOAT4, X, Y, Z, NONE) + ones;
+        auto field_vis = field_vis0 + ones;
 
         glViewport(0, 0, window_width, window_height);
         // auto t

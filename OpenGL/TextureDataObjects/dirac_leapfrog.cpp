@@ -1,3 +1,22 @@
+/* Numerically solving the Dirac equation using centred second order
+finite differences in time, where the upper and lower spinors can be optionally
+staggered in space.
+
+For the WASM build, this simulation only works properly when using Firefox,
+at least on MacOS. For the other web browsers expect to see incorrect
+output that consists of glitchy, rapidly pulsating lights.
+
+References:
+ - Wikipedia contributors. (2021, June 16).
+   Dirac equation. In Wikipedia, The Free Encyclopedia.
+ - Wikipedia contributors. (2021, August 5).
+   Dirac spinor. In Wikipedia, The Free Encyclopedia.
+ - Hammer, R., Pötz W. (2014).
+   Staggered grid leap-frog scheme for the (2 + 1)D Dirac equation.
+   Computer Physics Communications, 185(1), 40-53.
+   https://doi.org/10.1016/j.cpc.2013.08.013
+
+*/
 #include "dirac_leapfrog.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -7,6 +26,7 @@
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
+#include "interactor.hpp"
 // #include <OpenGL/OpenGL.h>
 #include <vector>
 #include "fft.h"
@@ -28,21 +48,6 @@ static void main_loop() {
 }
 #endif
 
-/* Numerically solving the Dirac equation using centred second order
-finite differences in time, where the upper and lower spinors can be optionally
-staggered in space.
-
-References:
- - Wikipedia contributors. (2021, June 16).
-   Dirac equation. In Wikipedia, The Free Encyclopedia.
- - Wikipedia contributors. (2021, August 5).
-   Dirac spinor. In Wikipedia, The Free Encyclopedia.
- - Hammer, R., Pötz W. (2014).
-   Staggered grid leap-frog scheme for the (2 + 1)D Dirac equation.
-   Computer Physics Communications, 185(1), 40-53.
-   https://doi.org/10.1016/j.cpc.2013.08.013
-
-*/
 int dirac_leapfrog(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;
@@ -72,6 +77,7 @@ int dirac_leapfrog(Renderer *renderer) {
     command.set_ivec2_uniforms({{"wavenumber", {.x=0, .y=0}}, });
     auto phi0 = funcs2D::zeroes(COMPLEX2, NX, NY);
     command.draw(phi0);
+    // auto view_command = 
     std::vector<Texture2DData> psi0 {phi0, 0.0*phi0};
     std::vector<Texture2DData> psi1 {phi0, 0.0*phi0};
     std::vector<Texture2DData> psi2 {phi0, 0.0*phi0};
@@ -137,6 +143,7 @@ int dirac_leapfrog(Renderer *renderer) {
 
     int k = 0;
     bool exit_loop = false;
+    Interactor interactor(window);
     loop = [&] {
         glViewport(0, 0, NX, NY);
         for (int i = 0; i < 10; i++) {
@@ -152,6 +159,32 @@ int dirac_leapfrog(Renderer *renderer) {
         psi0[0].set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            std::cout << "Mouse pressed." << std::endl;
+            DVec2 left_click = interactor.get_mouse_position();
+            double bx = left_click.x;
+            double by = left_click.y;
+            double vx = interactor.get_mouse_delta().ind[0];
+            double vy = interactor.get_mouse_delta().ind[1];
+            std::cout << "vx: " << vx << ", vy: " << vy << std::endl;
+            command.set_ivec2_uniforms({{"wavenumber", 
+                {.x=(int)std::max(-NX/5.0, 
+                    std::min(NX/5.0, 4.0*NX*vx)),
+                 .y=(int)std::max(-NY/5.0, std::
+                    min(NY/5.0, 4.0*NY*vy))
+                }},
+            });
+            command.set_vec2_uniform("r0", {(float)bx, (float)by});
+            glViewport(0, 0, NX, NY);
+            command.draw(phi0);
+            psi0[0] = phi0, psi0[1] = 0.0*phi0;
+            psi1[0] = phi0, psi1[1] = 0.0*phi0;
+            psi2[0] = phi0, psi2[1] = 0.0*phi0;
+            eom(psi1, psi0, psi0, vec_potential, 0.5*dt);
+            glViewport(0, 0, window_width, window_height);
+
+        }
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

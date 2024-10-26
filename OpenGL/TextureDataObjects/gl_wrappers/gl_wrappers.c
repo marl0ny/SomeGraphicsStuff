@@ -1,6 +1,7 @@
 #include "gl_wrappers.h"
 #include <GLES3/gl3.h>
 #include <GLES3/gl32.h>
+// #include <OpenGL/OpenGL.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -111,7 +112,7 @@ GLFWwindow *init_window(int width, int height) {
     #endif
     if (!window) {
         #ifndef __EMSCRIPTEN__
-	fprintf(stderr, "%x\n", glfwGetError(NULL)); 
+	fprintf(stderr, "%x\n", glfwGetError(NULL));
         fprintf(stderr, "Unable to create glfw window.\n");
         exit(1);
         #endif
@@ -120,20 +121,21 @@ GLFWwindow *init_window(int width, int height) {
     return window;
 }
 
-void compile_shader(GLuint shader_ref, const char *shader_source) {
+static int compile_shader(GLuint shader_ref, const char *shader_source) {
     char buf[512];
     const char version_number_placeholder[] = "#VERSION_NUMBER_PLACEHOLDER";
     int m = 0;
     for (; m < sizeof(version_number_placeholder)-1; m++) {
         if (!shader_source[m] ||
             shader_source[m] != version_number_placeholder[m]) {
-            fprintf(stderr, "Shader invalid.");
+            fprintf(stderr, "Shader invalid.\n");
+            return 0;
         }
     }
     for ( ; shader_source[m] != '\n'; m++) {
         if (!shader_source[m] || shader_source[m] != ' ') {
-            fprintf(stderr, "Shader invalid");
-            return;
+            fprintf(stderr, "Shader invalid.\n");
+            return 0;
         }
     }
     int size = 0;
@@ -154,7 +156,7 @@ void compile_shader(GLuint shader_ref, const char *shader_source) {
     char *mod_source = (char *)calloc(1 + size, sizeof(char));
     if (mod_source == NULL) {
         perror("Unable to allocate resources for shader initialization.");
-        return;
+        return 0;
     }
     int i = 0, k = 0;
     for (; shader_source[i] != '\n'; i++) {
@@ -174,8 +176,10 @@ void compile_shader(GLuint shader_ref, const char *shader_source) {
         if (buf[0] != '\0') {
             fprintf(stdout, "%s", buf);
         }
+        return 1;
     } else {
         fprintf(stderr, "%s\n%s", "Shader compilation failed:", buf);
+        return 0;
     }
 }
 
@@ -187,7 +191,9 @@ GLuint make_vertex_shader(const char *v_source) {
                 glGetError());
         exit(1);
     }
-    compile_shader(vs_ref, v_source);
+    if (!compile_shader(vs_ref, v_source)) {
+        return 0;
+    }
     return vs_ref;
 }
 
@@ -199,20 +205,24 @@ GLuint make_geometry_shader(const char *g_source) {
                 glGetError());
         exit(1);
     }
-    compile_shader(gs_ref, g_source);
+    if (!compile_shader(gs_ref, g_source)) {
+        return 0;
+    }
     return gs_ref;
 }
 
 
 GLuint make_fragment_shader(const char *f_source) {
-    GLuint fs_ref = glCreateShader(GL_FRAGMENT_SHADER);
+    GLint fs_ref = glCreateShader(GL_FRAGMENT_SHADER);
     if (fs_ref == 0) {
         fprintf(stderr, "Error: unable to "
                 "create fragment shader (error code %d).\n",
                 glGetError());
         exit(1);
     }
-    compile_shader(fs_ref, f_source);
+    if (!compile_shader(fs_ref, f_source)) {
+        return 0;
+    }
     return fs_ref;
 }
 
@@ -321,12 +331,21 @@ GLuint make_quad_program_from_string_source(const char *src) {
     }
     GLuint vs_ref = s_quad_vertex_shader_ref;
     GLuint fs_ref = make_fragment_shader(src);
+    fprintf(stdout, "Fragment shader %d\n", fs_ref);
+    if (!fs_ref) {
+        // glDeleteShader(vs_ref);
+        fprintf(stderr,
+                "Unable to create program - "
+                "fragment shader compilation failed.\n");
+        return 0;
+    }
     GLuint program = glCreateProgram();
     if (program == 0) {
         fprintf(stderr, "Unable to create program.\n");
+        return 0;
     }
-    // std::cout << program << ", " << glGetError() << std::endl;
-    glAttachShader(program, vs_ref);
+    glAttachShader(program, vs_ref); // vs_ref is somehow not valid
+    fprintf(stdout, "Shader vaules: %d, %d\n", vs_ref, fs_ref);
     glAttachShader(program, fs_ref);
     glLinkProgram(program);
     GLint status;
@@ -335,6 +354,7 @@ GLuint make_quad_program_from_string_source(const char *src) {
     glGetProgramInfoLog(program, 512, NULL, buf);
     if (status != GL_TRUE) {
         fprintf(stderr, "%s\n%s", "Failed to link program:", buf);
+        return 0;
     }
     glUseProgram(program);
     return program;
@@ -396,13 +416,14 @@ void quad_init_texture(const struct TextureParams *params) {
             glBindTexture(GL_TEXTURE_2D, texture);
             s_current_frame->texture = texture;
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8UI,
-                        512, 512, 0, 
+                        512, 512, 0,
                         to_base(GL_RGBA8UI),
                         to_type(GL_RGBA8UI),
                         NULL);
         }*/
         return;
     }
+    fprintf(stdout, "Creating quad texture %d\n", s_current_frame_id);
     glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
     GLuint texture;
     glGenTextures(1, &texture);
@@ -416,7 +437,7 @@ void quad_init_texture(const struct TextureParams *params) {
     // }
     // fprintf(stdout, "new_quad: %x\n", params->format);
     glTexImage2D(GL_TEXTURE_2D, 0, params->format,
-                 params->width, params->height, 0, 
+                 params->width, params->height, 0,
                  to_base(params->format),
                  to_type(params->format),
                  NULL);
@@ -494,6 +515,7 @@ int new_frame(const struct TextureParams *texture_params,
                         GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
                         GL_LINEAR);}
+    fprintf(stdout, "Creating frame texture %d\n", s_current_frame_id);
     glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
     GLuint texture;
     glGenTextures(1, &texture);
@@ -946,9 +968,9 @@ void quad_substitute_array(int quad_id, const struct TextureParams *tex_params,
     };
     glActiveTexture(GL_TEXTURE0 + s_current_frame_id);
     glBindTexture(GL_TEXTURE_2D, s_current_frame->texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
                     tex_params->width, tex_params->height,
-                    to_base(tex_params->format), 
+                    to_base(tex_params->format),
                     to_type(tex_params->format), array);
     // glTexImage2D(GL_TEXTURE_2D, 0, 4,
     //              width, height, 0, GL_RGBA, texture_type,
@@ -1003,7 +1025,7 @@ struct IVec2 get_2d_from_3d_dimensions(const struct IVec3 *dimensions_3d) {
     int height = dimensions_3d->height;
     int length = dimensions_3d->length;
     int max_tex_size = 0xfffffff;
-    // #ifndef __APPLE__ 
+    // #ifndef __APPLE__
     // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
     // #endif
     struct IVec2 tex_dimensions_2d = {};
@@ -1015,22 +1037,22 @@ struct IVec2 get_2d_from_3d_dimensions(const struct IVec3 *dimensions_3d) {
     //     tex_dimensions_2d.height = length*height;
     // } else {
         struct IVec2 d = decompose(length);
-        if (d.ind[0]*width < max_tex_size && 
+        if (d.ind[0]*width < max_tex_size &&
             d.ind[1]*height < max_tex_size) {
             tex_dimensions_2d.width = width*d.ind[0];
             tex_dimensions_2d.height = height*d.ind[1];
-        } else if (d.ind[1]*width < max_tex_size && 
+        } else if (d.ind[1]*width < max_tex_size &&
                     d.ind[0]*height < max_tex_size) {
             tex_dimensions_2d.width = width*d.ind[1];
             tex_dimensions_2d.height = height*d.ind[0];
         } else {
-            fprintf(stderr, 
+            fprintf(stderr,
                     "Warning: 3D texture dimensions %d, %d, %d "
                     "with possible 2D representations %d, %d "
                     " or %d, %d exceed maximum "
                     "texture size. The maximum 2D texture side length "
-                    "is %d.", 
-                    width, height, length, 
+                    "is %d.",
+                    width, height, length,
                     width*d.ind[0], height*d.ind[1],
                     width*d.ind[1], height*d.ind[0],
                     max_tex_size);
@@ -1052,13 +1074,13 @@ void use_3d_texture(int width, int height, int length) {
     struct IVec3 dimensions_3d = {
         .width=width, .height=height, .length=length
     };
-    struct IVec2 tex_dimensions_2d 
+    struct IVec2 tex_dimensions_2d
         = get_2d_from_3d_dimensions(&dimensions_3d);
     glViewport(0, 0, tex_dimensions_2d.width, tex_dimensions_2d.height);
 }
 
 struct Vec2 get_2d_from_3d_texture_coordinates(
-    const struct Vec3 *uvw, 
+    const struct Vec3 *uvw,
     const struct IVec2 *tex_dimensions_2d,
     const struct IVec3 *dimensions_3d) {
     int width_2d = tex_dimensions_2d->width;
@@ -1070,7 +1092,7 @@ struct Vec2 get_2d_from_3d_texture_coordinates(
     // double h_stack = (double)height_2d/(double)height_3d;
     double x_index = (double)width_3d*mod(uvw->ind[0], 1.0);
     double y_index = (double)height_3d*mod(uvw->ind[1], 1.0);
-    double z_index = mod(floor((double)length_3d*uvw->ind[2]), 
+    double z_index = mod(floor((double)length_3d*uvw->ind[2]),
                          (double)length_3d);
     // fprintf(stdout, "%g, %g\n", z_index, mod(z_index, w_stack)*(double)width_3d);
     double u_index = (mod(z_index, w_stack)*((double)width_3d)) + x_index;
@@ -1095,8 +1117,8 @@ struct Vec3 get_3d_from_2d_texture_coordinates(
     double h_stack = (double)height_2d/(double)height_3d;
     double u = mod(uv->ind[0]*w_stack, 1.0);
     double v = mod(uv->ind[1]*h_stack, 1.0);
-    double w = (floor(uv->ind[1]*h_stack)*w_stack 
+    double w = (floor(uv->ind[1]*h_stack)*w_stack
                 + floor(uv->ind[0]*w_stack) + 0.5)/(double)length_3d;
-    struct Vec3 uvw = {.x=(float)u, .y=(float)v, .z=(float)v};
+    struct Vec3 uvw = {.x=(float)u, .y=(float)v, .z=(float)w};
     return uvw;
 }

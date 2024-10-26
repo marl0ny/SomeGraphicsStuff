@@ -1,3 +1,20 @@
+/* Split operator implementation for the Schrodinger equation in 3D.
+
+Currently only the 2D texture that is used to store the actual 3D array of
+data that represents the wave function is visualized; a proper 3D render
+has yet to be implemented.
+
+   References:
+
+   - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
+   https://www.algorithm-archive.org/contents/
+   split-operator_method/split-operator_method.html.
+
+   - Wikipedia contributors. (2021, May 6). Split-step method.
+   In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Split-step_method.
+   
+*/
 #include "schrod_splitstep_3d.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -37,19 +54,6 @@ static double time_difference_in_ms(const struct timespec *t1,
     return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/1000000.0;
 }
 
-/* Split operator implementation for the Schrodinger equation in 3D.
-
-   References:
-
-   - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
-   https://www.algorithm-archive.org/contents/
-   split-operator_method/split-operator_method.html.
-
-   - Wikipedia contributors. (2021, May 6). Split-step method.
-   In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Split-step_method.
-   
-*/
 int schrod_splitstep_3d(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

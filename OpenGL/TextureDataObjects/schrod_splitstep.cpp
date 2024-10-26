@@ -1,3 +1,16 @@
+/* Split operator implementation for the Schrodinger equation.
+
+   References:
+
+   - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
+   https://www.algorithm-archive.org/contents/
+   split-operator_method/split-operator_method.html.
+
+   - Wikipedia contributors. (2021, May 6). Split-step method.
+   In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Split-step_method.
+ 
+*/
 #include "schrod_splitstep.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -7,6 +20,7 @@
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
+#include "interactor.hpp"
 // #include <OpenGL/OpenGL.h>
 #include <vector>
 #include "fft.h"
@@ -54,18 +68,6 @@ void init_wavepacket_in_momentum_space(const Texture2DData &t) {
     );
 }
 
-
-/* Split operator implementation for the Schrodinger equation.
-
-   References:
-
-   - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
-   https://www.algorithm-archive.org/contents/
-   split-operator_method/split-operator_method.html.
-
-   - Wikipedia contributors. (2021, May 6). Split-step method.
-   In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Split-step_method.*/
 int schrod_splitstep(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;
@@ -119,6 +121,7 @@ int schrod_splitstep(Renderer *renderer) {
 
     int k = 0;
     bool exit_loop = false;
+    Interactor interactor(window);
     loop = [&] {
         struct timespec frame_start, frame_end;
         clock_gettime(CLOCK_MONOTONIC, &frame_start);
@@ -165,6 +168,28 @@ int schrod_splitstep(Renderer *renderer) {
             exit_status = 1;
         }
         glfwSwapBuffers(window);
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            DVec2 left_click = interactor.get_mouse_position();
+            double bx = left_click.x;
+            double by = left_click.y;
+            double vx = interactor.get_mouse_delta().ind[0];
+            double vy = interactor.get_mouse_delta().ind[1];
+            command.set_ivec2_uniforms({{"wavenumber", 
+                {.x=(int)std::max(-NX/8.0, 
+                    std::min(NX/8.0, NX*vx)),
+                 .y=(int)std::max(-NY/8.0, std::
+                    min(NY/8.0, NY*vy))
+                }},
+            });
+            command.set_vec2_uniform("r0", {(float)bx, (float)by});
+            glViewport(0, 0, NX, NY);
+            psi = command.create(COMPLEX, NX, NY, true,
+                               GL_REPEAT, GL_REPEAT,
+                               GL_LINEAR, GL_LINEAR);
+            glViewport(0, 0, window_width, window_height);
+
+        }
         clock_gettime(CLOCK_MONOTONIC, &frame_end);
         if (k % 10 == 0 && k != 0) {
             double delta_t = time_difference_in_ms(&frame_start, &frame_end);

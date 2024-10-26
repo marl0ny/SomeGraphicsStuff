@@ -22,30 +22,30 @@ LIBS = -ldl -L/opt/homebrew/lib -L/usr/local/include -lglfw\
 endif
 
 
-TARGET = ${PWD}/program
-FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
-FLAGS_NO_OPT = -O0 -g -Wall 
-# FLAGS = -O0 -g -Wall
-C_COMPILE = clang 
-CPP_COMPILE = clang++ -std=c++11
+# TARGET = ${PWD}/program
+# FLAGS = -O2 -g -ffast-math -Wall # -Wno-everything
+# FLAGS_NO_OPT = -O0 -g -Wall 
+# # FLAGS = -O0 -g -Wall
+# C_COMPILE = clang 
+# CPP_COMPILE = clang++ -std=c++11
 
-# TARGET = main.js
-# # CPP_COMPILE = EMCC_DEBUG=1 emcc
-# # C_COMPILE = EMCC_DEBUG=1 emcc
-# CPP_COMPILE = emcc
-# C_COMPILE = emcc
-# FLAGS = -O3 -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
-# 	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
-# FLAGS_NO_OPT = ${FLAGS}
-# LIBS =
-# INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
+TARGET = main.js
+# CPP_COMPILE = EMCC_DEBUG=1 emcc
+# C_COMPILE = EMCC_DEBUG=1 emcc
+CPP_COMPILE = emcc
+C_COMPILE = emcc
+FLAGS = -O3 -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
+	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+FLAGS_NO_OPT = ${FLAGS}
+LIBS =
+INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
 
 C_SOURCES = ${PWD}/gl_wrappers/gl_wrappers.c frames_stacks.c bin_ops.c \
              unary_ops.c fft.c bitmap.c summation.c write_to_png.c \
 						 read_from_png.c serialize.c
 C_OBJECTS = gl_wrappers.o frames_stacks.o bin_ops.o unary_ops.o fft.o \
 			 bitmap.o summation.o write_to_png.o read_from_png.o serialize.o
-CPP_SOURCES = render.cpp interactor.cpp quaternions.cpp volume_render.cpp \
+CPP_SOURCES = render.cpp interactor.cpp quaternions.cpp volume_render.cpp parse_util.cpp \
 							complex_func.cpp dirac_leapfrog.cpp draw_texture_data.cpp \
 							vector_field_view_2d.cpp vector_field_view_3d.cpp \
 							isf_splitstep.cpp main.cpp mol_dynamics.cpp mol_dynamics_mt.cpp \
@@ -56,7 +56,7 @@ CPP_SOURCES = render.cpp interactor.cpp quaternions.cpp volume_render.cpp \
 							texture_data_transfers_stuff.cpp waves.cpp sph.cpp \
 							schrod_leapfrog_3d.cpp schrod_splitstep_3d.cpp pauli_leapfrog_3d.cpp \
 							dirac_splitstep_3d.cpp electrodynamics_3d.cpp free_space_position.cpp
-CPP_OBJECTS = render.o interactor.o quaternions.o \
+CPP_OBJECTS = render.o interactor.o quaternions.o parse_util.o \
 					texture_data.o draw_texture_data.o \
 					vector_field_view_2d.o vector_field_view_3d.o volume_render.o \
 					texture_data_transfers_stuff.o summation_stuff.o \
@@ -127,7 +127,7 @@ isf_splitstep.o: isf_splitstep.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 main.o: main.cpp
-	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+	${CPP_COMPILE} ${FLAGS_NO_OPT} -c $^ ${INCLUDE}
 
 mol_dynamics.o: mol_dynamics.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
@@ -136,6 +136,9 @@ mol_dynamics_mt.o: mol_dynamics_mt.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 n_body.o: n_body.cpp
+	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
+
+parse_util.o: parse_util.cpp
 	${CPP_COMPILE} ${FLAGS} -c $^ ${INCLUDE}
 
 pauli_leapfrog_3d.o: pauli_leapfrog_3d.cpp

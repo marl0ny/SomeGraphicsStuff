@@ -61,6 +61,8 @@ class Drawer {
     int program = 0;
     public:
     Drawer(const struct Path &path);
+    Drawer(const std::string &shader_contents);
+    Drawer(int program);
     void draw(const Texture2DData &dst, 
               std::map<std::string, const Uniform &>) const;
 };

@@ -1,3 +1,51 @@
+/* Numerically solve the Dirac equation in 3D using the split-operator method.
+
+References:
+
+Dirac Equation:
+
+ - Wikipedia contributors. (2023, February 6).
+   Dirac equation. In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Dirac_equation
+
+ - Wikipedia contributors. (2023, February 25).
+   Dirac spinor. In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Dirac_spinor
+
+ - Shankar, R. (1994). The Dirac Equation.
+   In Principles of Quantum Mechanics, chapter 20. Springer.
+
+ - Peskin, M., Schroeder, D. (1995). The Dirac Field.
+   In An Introduction to Quantum Field Theory, chapter 3.
+   CRC Press.
+
+Split-Operator Method:
+
+ - James Schloss. The Split-Operator Method.
+   In The Arcane Algorithm Archive.
+   https://www.algorithm-archive.org/contents/
+   split-operator_method/split-operator_method.html
+
+ - Wikipedia contributors. (2023, January 25).
+   Split-step method. In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Split-step_method
+
+ - Bauke, H., Keitel, C. (2011).
+   Accelerating the Fourier split operator method
+   via graphics processing units.
+   Computer Physics Communications, 182(12), 2454-2463.
+   https://doi.org/10.1016/j.cpc.2011.07.003
+
+Spin and Pauli Spin Matrices:
+
+ - Shankar, R. (1994). Spin.
+   In Principles of Quantum Mechanics, chapter 14. Springer.
+
+ - Wikipedia contributors. (2023, March 6).
+   Pauli matrices. In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Pauli_matrices
+
+*/
 #include "dirac_splitstep_3d.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -35,6 +83,8 @@
 
 #include "volume_render.hpp"
 
+#include "parse_util.hpp"
+
 static std::function <void()> loop;
 #ifdef __EMSCRIPTEN__
 static void main_loop() {
@@ -70,25 +120,28 @@ static struct SimulationParams {
     float dt = max_time_step();
     float vec_length = 0.1;
     float brightness = 1.0;
-    int steps_per_frame = 1;
+    float pot_brightness = 0.1;
+    int steps_per_frame = 0;
     int representation = 0;
     int display_option = 1;
     float fps = 0.0;
     IVec3 texel_dimensions3d {this->nx, this->ny, this->nz};
-    IVec2 texel_dimensions2d 
+    IVec2 texel_dimensions2d
         = get_2d_from_3d_dimensions(&this->texel_dimensions3d);
-    Vec3 dimensions3d {float(this->width), 
-                       float(this->height), 
+    Vec3 dimensions3d {float(this->width),
+                       float(this->height),
                        float(this->length)};
     bool init_new_wavepacket = false;
     struct InitWavePacket {
         double a = 10.0;
         double sx = 0.07, sy = 0.07, sz = 0.07;
         // double sx = 0.25, sy = 0.25, sz = 0.25;
-        float bx = 0.5, by = 0.5, bz = 0.5;
+        // float bx = 0.5, by = 0.5, bz = 0.5;
+        float bx = 0.25, by = 0.25, bz = 0.25;
         // int nx = 20, ny = 20, nz = 20;
-        int nx = 0, ny = 20, nz = 0;
+        int nx = 10, ny = 10, nz = 10;
     } init_wave_packet;
+    bool init_new_potential;
 } sim_params;
 
 static double time_difference_in_ms(const struct timespec *t1,
@@ -99,54 +152,6 @@ static double time_difference_in_ms(const struct timespec *t1,
     return (double)(999999999 - t1->tv_nsec + t2->tv_nsec)/ns_in_ms;
 }
 
-/* Numerically solve the Dirac equation in 3D using the split-operator method.
-
-References:
-
-Dirac Equation:
-
- - Wikipedia contributors. (2023, February 6). 
-   Dirac equation. In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Dirac_equation
-
- - Wikipedia contributors. (2023, February 25).
-   Dirac spinor. In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Dirac_spinor
-
- - Shankar, R. (1994). The Dirac Equation. 
-   In Principles of Quantum Mechanics, chapter 20. Springer.
-
- - Peskin, M., Schroeder, D. (1995). The Dirac Field.
-   In An Introduction to Quantum Field Theory, chapter 3.
-   CRC Press.
-
-Split-Operator Method:
-
- - James Schloss. The Split-Operator Method.
-   In The Arcane Algorithm Archive.
-   https://www.algorithm-archive.org/contents/
-   split-operator_method/split-operator_method.html
- 
- - Wikipedia contributors. (2023, January 25). 
-   Split-step method. In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Split-step_method
-
- - Bauke, H., Keitel, C. (2011).
-   Accelerating the Fourier split operator method 
-   via graphics processing units.
-   Computer Physics Communications, 182(12), 2454-2463. 
-   https://doi.org/10.1016/j.cpc.2011.07.003
-
-Spin and Pauli Spin Matrices:
-
- - Shankar, R. (1994). Spin.
-   In Principles of Quantum Mechanics, chapter 14. Springer.
- 
- - Wikipedia contributors. (2023, March 6). 
-   Pauli matrices. In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Pauli_matrices
-
-*/
 static void time_step(const Texture2DData &u, const Texture2DData &v,
                       const Texture2DData &potential1,
                       const Texture2DData &potential2,
@@ -278,11 +283,11 @@ static void slice_of_3d(Drawer &drawer, int orientation, int slice,
 static Texture2DData get_texture_coordinate(
     int orientation_index, SimulationParams sim_params) {
     Texture2DData (* funcs[3])(
-        double, double, int, int, int, int, 
+        double, double, int, int, int, int,
         GLuint, GLuint, GLuint, GLuint
         ) = {&funcs3D::make_x, &funcs3D::make_y, &funcs3D::make_z};
     return funcs[orientation_index](
-        0.0, 1.0, FLOAT, 
+        0.0, 1.0, FLOAT,
         sim_params.nx, sim_params.ny, sim_params.nz,
         GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR
         ).cast_to(COMPLEX2, X, NONE, X, NONE);
@@ -314,7 +319,7 @@ void get_initial_momentum_wavepacket(
     Vec3 position {.x=float(bx*sim_params.width),
                    .y=float(by*sim_params.height),
                    .z=float(bz*sim_params.length)};
-    Vec3 momentum {.x=float(p(int(nx), sim_params.width)), 
+    Vec3 momentum {.x=float(p(int(nx), sim_params.width)),
                    .y=float(p(int(ny), sim_params.height)),
                    .z=float(p(int(nz), sim_params.length))};
     Vec3 sigma {.x=float(p(int(0.15*sim_params.nx), sim_params.width)),
@@ -322,19 +327,19 @@ void get_initial_momentum_wavepacket(
                 .z=float(p(int(0.15*sim_params.nz), sim_params.length))
                 };
     auto w = funcs3D::zeroes(
-        FLOAT4, 
+        FLOAT4,
         sim_params.nx, sim_params.ny, sim_params.nz);
     for (auto &i: {0, 1}) {
         drawer.draw(
             w,
             {
-                {"dimensions", 
-                {Vec3 {float(sim_params.width), 
+                {"dimensions",
+                {Vec3 {float(sim_params.width),
                         float(sim_params.height),
                         float(sim_params.length)}}},
-                {"texelDimensions2D", 
+                {"texelDimensions2D",
                 {sim_params.texel_dimensions2d}},
-                {"texelDimensions", 
+                {"texelDimensions",
                 {IVec3 {sim_params.nx, sim_params.ny, sim_params.nz}}},
                 {"position", {position}},
                 {"momentum", {momentum}},
@@ -357,9 +362,9 @@ void get_initial_momentum_wavepacket(
     }
 }
 
-static Texture2DData get_initial_wavepacket(const Texture2DData &x, 
+static Texture2DData get_initial_wavepacket(const Texture2DData &x,
                                             const Texture2DData &y,
-                                            const Texture2DData &z, 
+                                            const Texture2DData &z,
                                             const SimulationParams &params) {
     auto imag_unit = std::complex<double>(0.0, 1.0);
     double a = sim_params.init_wave_packet.a;
@@ -377,7 +382,7 @@ static Texture2DData get_initial_wavepacket(const Texture2DData &x,
     auto zb = z - bz;
     return a*exp(2.0*PI*imag_unit*(nx*xb + ny*yb + nz*zb))
         *exp(-0.5*(xb*xb/(sx*sx) + yb*yb/(sy*sy) + zb*zb/(sz*sz)));
-    
+
 }
 
 int dirac_splitstep_3d(Renderer *renderer) {
@@ -399,17 +404,15 @@ int dirac_splitstep_3d(Renderer *renderer) {
     sim_params.texel_dimensions3d.ind[1] = sim_params.ny;
     sim_params.texel_dimensions3d.ind[2] = sim_params.nz;
 
-    auto imag_unit = std::complex<double>(0.0, 1.0);
-
-    auto kinetic_procedure 
+    auto kinetic_procedure
         = Drawer(Path("./shaders/dirac/split-step-momentum3d.frag"));
-    auto spatial_procedure 
+    auto spatial_procedure
         = Drawer(Path("./shaders/dirac/split-step-spatial.frag"));
     auto current_procedure = Drawer(Path("./shaders/dirac/current.frag"));
-    auto pseudocurrent_procedure 
+    auto pseudocurrent_procedure
         = Drawer(Path("./shaders/dirac/pseudocurrent.frag"));
     auto scalar_procedure = Drawer(Path("./shaders/dirac/scalar.frag"));
-    /* auto pseudoscalar_procedure 
+    /* auto pseudoscalar_procedure
         = Drawer(Path("./shaders/dirac-pseudoscalar.frag"));*/
     auto slice_of_3d_procedure
         = Drawer(
@@ -424,23 +427,26 @@ int dirac_splitstep_3d(Renderer *renderer) {
     auto y = get_texture_coordinate(1, sim_params);
     auto z = get_texture_coordinate(2, sim_params);
 
-    auto pot 
-        = 0.0*100.0*powf(64.0F/(float)sim_params.nz, 2.0)
-            *((x - 0.5)*(x - 0.5) 
-              + (y - 0.5)*(y - 0.5) 
+    auto pot
+        = 100.0*powf(64.0F/(float)sim_params.nz, 2.0)
+            *((x - 0.5)*(x - 0.5)
+              + (y - 0.5)*(y - 0.5)
               + (z - 0.5)*(z - 0.5)
             ).cast_to(FLOAT4, NONE, NONE, NONE, X);
+    auto pot_shader_contents
+         = get_file_contents("./shaders/dirac/four-vector-potential.frag");
+
     auto u = get_initial_wavepacket(x, y, z, sim_params);
     auto v = 0.0*u;
 
     auto j = funcs3D::zeroes(
-        FLOAT4, 
+        FLOAT4,
         sim_params.nx, sim_params.ny, sim_params.nz);
-    auto scalar = funcs3D::zeroes(FLOAT, 
+    auto scalar = funcs3D::zeroes(FLOAT,
         sim_params.nx, sim_params.ny, sim_params.nz);
 
     auto vec_view = VectorFieldView3D(
-        {window_width, window_height}, 
+        {window_width, window_height},
         {sim_params.nx, sim_params.ny, sim_params.nz});
 
     /* auto px = funcs3D::fftshift(2.0*PI*x);
@@ -473,16 +479,18 @@ int dirac_splitstep_3d(Renderer *renderer) {
     // int show_controls_window = 1;
 
     char text[500] = {'\0',};
-    for (int n = 1; n < 1000; n++) {
+    /* for (int n = 1; n < 1000; n++) {
         IVec2 d = decompose(n);
         fprintf(stdout, "%d: %d, %d\n", n, d.ind[0], d.ind[1]);
-    }
+    }*/
 
     auto vol = VolumeRender(
-        {{{window_width, window_height}}}, 
+        {{{window_width, window_height}}},
         {{{256, 256, 256}}},
         {{{sim_params.nx, sim_params.ny, sim_params.nz}}}
         );
+
+    std::string dynamic_pot_shader = pot_shader_contents + "";
     // char a;
     // std::cin >> a;
 
@@ -498,23 +506,74 @@ int dirac_splitstep_3d(Renderer *renderer) {
         use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
         for (int i = 0; i < sim_params.steps_per_frame; i++) {
             if (!sim_params.init_new_wavepacket)
-                time_step(u, v, 
-                          pot, pot, 
+                time_step(u, v,
+                          pot, pot,
                           kinetic_procedure, spatial_procedure,
                           sim_params);
-            /* time_step(u, v, pot, pot, 
+            /* time_step(u, v, pot, pot,
                       kinetic_prop_drawer, spatial_prop_drawer, sim_params);*/
         }
         if (sim_params.init_new_wavepacket) {
-            get_initial_momentum_wavepacket(u, v, 
+            get_initial_momentum_wavepacket(u, v,
                 {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
                  wavepacket_drawer, sim_params);
             get_initial_momentum_wavepacket(u, v,
-                {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, 
+                {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
                 wavepacket_drawer, sim_params);
             // u = get_initial_wavepacket(x, y, z, sim_params);
             // v = 0.0*u;
             sim_params.init_new_wavepacket = 0;
+        }
+
+        if (sim_params.init_new_potential) {
+            auto variables = remove_reserved_variables(
+                gather_variables(std::string(text)),
+                {"x", "y", "z"});
+            std::cout << "Variables:\n";
+            std::map<std::string, const Uniform &> uniforms = {
+                    {"dimensions", {Vec3 {{{(float)sim_params.width,
+                                            (float)sim_params.height,
+                                            (float)sim_params.length}}}}
+                    },
+                    {"shiftOriginToCenter", {int(1)}},
+                    {"t", {float(0.0)}},
+                    {"texelDimensions2D", {sim_params.texel_dimensions2d}},
+                    {"texelDimensions3D", {sim_params.texel_dimensions3d}},
+                };
+            std::string uniform_line = "";
+            for (auto &v: variables) {
+                std::cout << v << std::endl;
+                uniform_line += "uniform float " + v + "; ";
+                uniforms.insert({v, {float(1.0)}});
+            }
+            auto contents2
+                = redefine_singleline_macro(pot_shader_contents,
+                                            {{"ADDITIONAL_UNIFORMS",
+                                              uniform_line},
+                                             {"AX_PLACEHOLDER", "0.0"},
+                                             {"AY_PLACEHOLDER", "0.0"},
+                                             {"AZ_PLACEHOLDER", "0.0"},
+                                             {"AT_PLACEHOLDER",
+                                              std::string(text)}
+                                            });
+            int program
+                 = make_quad_program_from_string_source(contents2.c_str());
+            // fprintf(stdout, "Program value: %d", program);
+            if (!program) {
+                // fprintf(stderr, "Program failed to compile: %d\n", program);
+                program
+                     = make_quad_program_from_string_source(
+                        dynamic_pot_shader.c_str());
+            } else {
+               dynamic_pot_shader = contents2;
+            }
+            // std::cout << contents2 << std::endl;
+            auto potential_drawer = Drawer(program);
+            potential_drawer.draw(
+                pot,
+                uniforms
+            );
+            sim_params.init_new_potential = false;
         }
 
         current_procedure.draw(
@@ -523,36 +582,40 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 {"sigmaY", {Vec4 {0.0, 0.0, 0.0, -1.0}}},
                 {"sigmaZ", {Vec4 {1.0, -1.0, 0.0, 0.0}}},
                 {"representation", {sim_params.representation}},
-                {"uTex", {&u}}, 
+                {"uTex", {&u}},
                 {"vTex", {&v}}
                 });
         scalar_procedure.draw(
             scalar, {
                 {"representation", {sim_params.representation}},
-                {"uTex", {&u}}, 
+                {"uTex", {&u}},
                 {"vTex", {&v}}
                 });
         // puts("This is reached.");
-        auto scalar_alpha 
+        auto scalar_alpha
             = sqrt(scalar*scalar).cast_to(FLOAT4, NONE, NONE, NONE, X);
-        auto scalar_red 
+        auto scalar_red
             = max(scalar.cast_to(FLOAT4, X, NONE, NONE, NONE), 0.0);
         // puts("This is reached.");
-        auto scalar_blue 
+        auto scalar_blue
             = max(0.0 - scalar.cast_to(FLOAT4, NONE, NONE, X, NONE), 0.0);
+        auto scalar_pot
+             = pot.cast_to(FLOAT4, W, W, W, W)*sim_params.pot_brightness;
         auto scalar_vec_display = scalar_red + scalar_blue + scalar_alpha;
-        auto scalar_vol_display = scalar_red + scalar_blue + scalar_alpha;
+        auto scalar_vol_display
+            = sim_params.brightness*(scalar_red + scalar_blue + scalar_alpha) + scalar_pot;
         auto j0 = j.cast_to(FLOAT4, W, W, W, W);
-        /* auto ones = funcs3D::zeroes(FLOAT, 
+        /* auto ones = funcs3D::zeroes(FLOAT,
             sim_params.nx, sim_params.ny, sim_params.nz) + 1.0;
         ones = ones.cast_to(FLOAT4, NONE, NONE, NONE, X);
         auto j0_2 = j0.cast_to(FLOAT4, X, NONE, NONE, X);*/
         double scroll = 2.0*Interactor::get_scroll()/25.0;
         // std::cout << scroll << std::endl;
-        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2, SLICE_ZY=3, SLICE_XZ=4, SHOW_3D_TEX=5};
+        enum {SHOW_VECTOR_FIELD=0, VOL_DISPLAY=1, SLICE_XY=2,
+              SLICE_ZY=3, SLICE_XZ=4, SHOW_3D_TEX=5};
         if (sim_params.display_option == SHOW_VECTOR_FIELD) {
             auto vec_display = vec_view.render(
-            scalar_vec_display*sim_params.brightness, 
+            scalar_vec_display*sim_params.brightness,
             sim_params.vec_length*j, scroll, rotation);
             glViewport(0, 0, window_width, window_height);
             bind_quad(main_frame, copy_program);
@@ -560,7 +623,7 @@ int dirac_splitstep_3d(Renderer *renderer) {
             draw_unbind_quad();
         } else if (sim_params.display_option == VOL_DISPLAY) {
             auto vol_display = vol.render(
-            scalar_vol_display*sim_params.brightness, scroll, rotation);
+            scalar_vol_display, scroll, rotation);
             auto debug_grad = 10.0*vol.debug_get_grad_half_precision();
             auto debug_vol = 10.0*vol.debug_get_vol_half_precision();
             auto debug_sample_grad = vol.debug_get_sample_grad();
@@ -571,13 +634,13 @@ int dirac_splitstep_3d(Renderer *renderer) {
             set_sampler2D_uniform("tex", vol_display.get_frame_id());
             // vol_display.set_as_sampler2D_uniform("tex");
             draw_unbind_quad();
-        } else if (sim_params.display_option == SLICE_XY 
+        } else if (sim_params.display_option == SLICE_XY
                     || sim_params.display_option == SLICE_XZ
                     || sim_params.display_option == SLICE_ZY) {
             auto xy_slice
                  = funcs2D::zeroes(FLOAT4, sim_params.nx, sim_params.ny);
             glViewport(0, 0, sim_params.nx, sim_params.ny);
-            slice_of_3d(slice_of_3d_procedure, sim_params.display_option - 2, 64/2, 
+            slice_of_3d(slice_of_3d_procedure, sim_params.display_option - 2, 64/2,
                         sim_params.texel_dimensions2d,
                         {sim_params.nx, sim_params.ny, sim_params.nz},
                         xy_slice,
@@ -606,8 +669,8 @@ int dirac_splitstep_3d(Renderer *renderer) {
             ImGui::Text("WIP AND INCOMPLETE");
             ImGui::SliderFloat("Mass", &sim_params.m, 0.0, 2.0);
             ImGui::SliderFloat(
-                "Time Step", &sim_params.dt, 
-                -sim_params.max_time_step(), sim_params.max_time_step(), 
+                "Time Step", &sim_params.dt,
+                -sim_params.max_time_step(), sim_params.max_time_step(),
                 "%g");
             ImGui::SliderInt(
                 "Steps/Frame", &sim_params.steps_per_frame, 0, 10);
@@ -615,22 +678,25 @@ int dirac_splitstep_3d(Renderer *renderer) {
                 "Vector Length", &sim_params.vec_length, 0.0, 2.0);
             ImGui::SliderFloat("Brightness",
                 &sim_params.brightness, 0.0, 2.0);
+            ImGui::SliderFloat("Potential Brightness",
+                &sim_params.pot_brightness, 0.0, 0.01, "%g");
             int s = 0;
-            s += ImGui::SliderInt("nx", 
+            s += ImGui::SliderInt("nx",
                 &sim_params.init_wave_packet.nx, -20, 20);
-            s += ImGui::SliderInt("ny", 
+            s += ImGui::SliderInt("ny",
                 &sim_params.init_wave_packet.ny, -20, 20);
-            s += ImGui::SliderInt("nz", 
+            s += ImGui::SliderInt("nz",
                 &sim_params.init_wave_packet.nz, -20, 20);
-            s += ImGui::SliderFloat("rx", 
+            s += ImGui::SliderFloat("rx",
                 &sim_params.init_wave_packet.bx, 0.0, 1.0);
-            s += ImGui::SliderFloat("ry", 
+            s += ImGui::SliderFloat("ry",
                 &sim_params.init_wave_packet.by, 0.0, 1.0);
-            s += ImGui::SliderFloat("rz", 
+            s += ImGui::SliderFloat("rz",
                 &sim_params.init_wave_packet.bz, 0.0, 1.0);
             sim_params.init_new_wavepacket = s;
 
-            ImGui::InputText("Text input", (char *)&text[0], 500);
+            sim_params.init_new_potential
+                = ImGui::InputText("Text input", (char *)&text[0], 500);
             // ImGui::Checkbox("Show Volume Render", (bool *)&sim_params.display_option);
             if (ImGui::BeginMenu("Visualization")) {
                 if (ImGui::MenuItem("Vector field view", "")) {

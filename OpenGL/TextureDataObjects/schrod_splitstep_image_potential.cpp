@@ -1,3 +1,16 @@
+/* Split operator implementation for the Schrodinger equation.
+
+References:
+
+ - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
+   https://www.algorithm-archive.org/contents/
+   split-operator_method/split-operator_method.html.
+
+ - Wikipedia contributors. (2021, May 6). Split-step method.
+   In Wikipedia, The Free Encyclopedia.
+   https://en.wikipedia.org/wiki/Split-step_method.
+
+*/
 #include "schrod_splitstep_image_potential.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -61,19 +74,6 @@ static std::vector<Vec4> get_potential_from_bmp_file(std::string path) {
     return data;
 }
 
-/* Split operator implementation for the Schrodinger equation.
-
-References:
-
- - James Schloss. The Split-Operator Method. In The Arcane Algorithm Archive.
-   https://www.algorithm-archive.org/contents/
-   split-operator_method/split-operator_method.html.
-
- - Wikipedia contributors. (2021, May 6). Split-step method.
-   In Wikipedia, The Free Encyclopedia.
-   https://en.wikipedia.org/wiki/Split-step_method.
-
-*/
 int schrod_splitstep_image_potential(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;

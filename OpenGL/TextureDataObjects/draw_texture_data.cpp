@@ -5,6 +5,15 @@ Drawer::Drawer(const struct Path &path) {
     this->program = make_quad_program(path.path.c_str());
 }
 
+Drawer::Drawer(const std::string &shader_contents) {
+    this->program = make_quad_program_from_string_source(
+        shader_contents.c_str());
+}
+
+Drawer::Drawer(int program) {
+    this->program = program;
+}
+
 void Drawer::draw(const Texture2DData &dst,
                   std::map<std::string, const Uniform &> uniforms) const {
     bind_quad(dst.get_frame_id(), this->program);

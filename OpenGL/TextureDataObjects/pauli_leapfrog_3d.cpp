@@ -1,3 +1,43 @@
+/* Numerical simulation of the Pauli equation in 3D.
+
+References
+
+Numerical method (centred second order difference in time):
+
+ - Visscher, P. (1991). 
+ A fast explicit algorithm for the time‐dependent Schrödinger equation.
+ Computers in Physics, 5, 596-598.
+ [https://doi.org/10.1063/1.168415](https://doi.org/10.1063/1.168415)
+
+- Ira Moxley III, F. (2013).
+ [Generalized finite-difference time-domain schemes 
+  for solving nonlinear Schrödinger equations]
+ (https://digitalcommons.latech.edu/cgi/
+  viewcontent.cgi?article=1284&context=dissertations).
+  Dissertation, 290. 
+
+Explanation of the Pauli equation:
+
+ - Wikipedia contributors. (2022, August 5).
+ [Pauli equation](https://en.wikipedia.org/wiki/Pauli_equation).
+ In Wikipedia, The Free Encyclopedia.
+
+ - Shankar, R. (1994). Spin.
+ In Principles of Quantum Mechanics, chapter 14. Springer.
+
+ - Shankar, R. (1994). The Dirac Equation. 
+ In Principles of Quantum Mechanics, chapter 20. Springer.
+
+Finite difference stencils for discretizing the derivative terms of
+the Pauli equation:
+
+ - Fornberg, B. (1988).
+ Generation of Finite Difference Formulas on Arbitrarily Spaced Grids.
+ Mathematics of Computation, 51(184), 699-706.
+ [https://doi.org/10.1090/S0025-5718-1988-0935077-0]
+ (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
+
+*/
 #include "pauli_leapfrog_3d.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -134,44 +174,6 @@ static Texture2DData get_initial_wavepacket(const Texture2DData &x,
     
 }
 
-/*
-References
-
-Numerical method (centred second order difference in time)
-
- - Visscher, P. (1991). 
- A fast explicit algorithm for the time‐dependent Schrödinger equation.
- Computers in Physics, 5, 596-598.
- [https://doi.org/10.1063/1.168415](https://doi.org/10.1063/1.168415)
-
-- Ira Moxley III, F. (2013).
- [Generalized finite-difference time-domain schemes 
-  for solving nonlinear Schrödinger equations]
- (https://digitalcommons.latech.edu/cgi/
-  viewcontent.cgi?article=1284&context=dissertations).
-  Dissertation, 290. 
-
-Pauli equation
-
- - Wikipedia contributors. (2022, August 5).
- [Pauli equation](https://en.wikipedia.org/wiki/Pauli_equation).
- In Wikipedia, The Free Encyclopedia.
-
- - Shankar, R. (1994). Spin.
- In Principles of Quantum Mechanics, chapter 14. Springer.
-
- - Shankar, R. (1994). The Dirac Equation. 
- In Principles of Quantum Mechanics, chapter 20. Springer.
-
-Finite difference stencils
-
- - Fornberg, B. (1988).
- Generation of Finite Difference Formulas on Arbitrarily Spaced Grids.
- Mathematics of Computation, 51(184), 699-706.
- [https://doi.org/10.1090/S0025-5718-1988-0935077-0]
- (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
-
-*/
 int pauli_leapfrog_3d(Renderer *renderer) {
     int exit_status = 0;
     int window_width = 0, window_height = 0;
@@ -185,15 +187,6 @@ int pauli_leapfrog_3d(Renderer *renderer) {
 
     use_3d_texture(sim_params.nx, sim_params.ny, sim_params.nz);
     auto imag_unit = std::complex<double>(0.0, 1.0);
-
-    auto x = get_texture_coordinate(0, sim_params);
-    auto y = get_texture_coordinate(1, sim_params);
-    auto z = get_texture_coordinate(2, sim_params);
-
-    auto gradient = 0.0*x;
-    fprintf(stdout, "Max texture size %d\n", GL_MAX_TEXTURE_SIZE);
-
-    auto pot = 4.0*((x-0.5)*(x-0.5) + (y-0.5)*(y-0.5) + (z-0.5)*(z-0.5));
 
     // Create a texture that will store the Laplacian of psi
     auto laplacian_psi = funcs3D::zeroes(
@@ -222,7 +215,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
               (float)sim_params.nz}},
     });
 
-    auto gradient_procedure = Drawer({"./shaders/gradient/gradient3d.frag"});
+    auto gradient_procedure = Drawer(Path{"./shaders/gradient/gradient3d.frag"});
 
     auto h_psi_func = [&](Texture2DData &psi, Texture2DData &pot) {
         double hbar = sim_params.hbar;
@@ -231,9 +224,30 @@ int pauli_leapfrog_3d(Renderer *renderer) {
         return ((-hbar*hbar)/(2.0*m))*laplacian_psi + pot*psi;
     };
 
-    auto psi1 = get_initial_wavepacket(x, y, z, sim_params);
-    auto psi2 = psi1 - (imag_unit*(0.5*sim_params.dt/sim_params.hbar))*h_psi_func(psi1, pot);
-    auto psi3 = psi2;
+    Texture2DData gradient = Texture2DData(
+        COMPLEX2, sim_params.nx, sim_params.ny);
+    Texture2DData pot = Texture2DData(
+        COMPLEX2, sim_params.nx, sim_params.ny
+    );
+    Texture2DData psi1 = Texture2DData(
+        COMPLEX2, sim_params.nx, sim_params.ny
+    );
+    Texture2DData psi2 = Texture2DData(
+        COMPLEX2, sim_params.nx, sim_params.ny
+    );
+    Texture2DData psi3 = Texture2DData(
+        COMPLEX2, sim_params.nx, sim_params.ny
+    );
+    {
+        auto x = get_texture_coordinate(0, sim_params);
+        auto y = get_texture_coordinate(1, sim_params);
+        auto z = get_texture_coordinate(2, sim_params);
+        gradient = 0.0*x;
+        pot = 4.0*((x-0.5)*(x-0.5) + (y-0.5)*(y-0.5) + (z-0.5)*(z-0.5));
+        psi1 = get_initial_wavepacket(x, y, z, sim_params);
+        psi2 = psi1 - (imag_unit*(0.5*sim_params.dt/sim_params.hbar))*h_psi_func(psi1, pot);
+        psi3 = psi2;
+    }
 
     auto vec_view = VectorFieldView3D(
         {window_width, window_height}, 
@@ -300,12 +314,14 @@ int pauli_leapfrog_3d(Renderer *renderer) {
         auto psi_col_data = color_phase_data(view_proc, psi1, sim_params);
         // vec_view.render(conj(psi1)*psi1, j, 1.0, {0.0, 0.0, 0.0, 1.0});
         auto abs_psi_display = abs_psi1.cast_to(FLOAT4, X, NONE, NONE, X);
+        auto pot_col_data = 0.015*pot.cast_to(FLOAT4, X, X, X, X);
+        auto vol_display_data = psi_col_data + pot_col_data;
         glViewport(0, 0, window_width, window_height);
         // tex_copy(main_frame, gradient.get_frame_id());
         // Quaternion rot0 = {0.0, 1.0, 0.0, 1.0};
         // auto rot = rot0.normalized();
         double scroll = 2.0*Interactor::get_scroll()/25.0;
-        auto vol_display = vol.render(psi_col_data, scroll, rotation);
+        auto vol_display = vol.render(vol_display_data, scroll, rotation);
         bind_quad(main_frame, copy_program);
         vol_display.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();

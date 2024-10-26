@@ -1,3 +1,19 @@
+/*
+Gray Scott Reaction Diffusion.
+
+The following projects were used as references:
+
+ - Abelson, Adams, Coore, Hanson, Nagpul, Sussmann.
+   Gray Scott Model of Reaction Diffusion.
+   https://groups.csail.mit.edu/mac/projects/amorphous/GrayScott/
+
+ - Käfer, K., Schulz M.
+   Gray-Scott Model of a Reaction-Diffusion System
+   Pattern Formation.
+   https://itp.uni-frankfurt.de/~gros/StudentProjects/\
+   Projects_2020/projekt_schulz_kaefer/
+
+*/
 #include "reaction_diffusion.hpp"
 
 // #include <OpenGL/OpenGL.h>
@@ -7,6 +23,7 @@
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
+#include "interactor.hpp"
 // #include <OpenGL/OpenGL.h>
 #include <vector>
 #include "fft.h"
@@ -28,22 +45,6 @@ static void main_loop() {
 }
 #endif
 
-/*
-Gray Scott Reaction Diffusion.
-
-The following projects were used as references:
-
- - Abelson, Adams, Coore, Hanson, Nagpul, Sussmann.
-   Gray Scott Model of Reaction Diffusion.
-   https://groups.csail.mit.edu/mac/projects/amorphous/GrayScott/
-
- - Käfer, K., Schulz M.
-   Gray-Scott Model of a Reaction-Diffusion System
-   Pattern Formation.
-   https://itp.uni-frankfurt.de/~gros/StudentProjects/
-	 //Projects_2020/projekt_schulz_kaefer/
-
-*/
 int gray_scott_reaction_diffusion(Renderer *renderer) {
     int main_frame = renderer->main_frame;
     GLFWwindow *window = renderer->window;
@@ -57,7 +58,7 @@ int gray_scott_reaction_diffusion(Renderer *renderer) {
     // double f = 0.04;
     double k = 0.06;
     double f = 0.044;
-    double dt = 0.05;
+    double dt = 0.1;
     // double r_u = 0.01, r_v = 0.01;
     double r_u = 0.05;
     double r_v = 0.5*r_u;
@@ -68,9 +69,9 @@ int gray_scott_reaction_diffusion(Renderer *renderer) {
     int view_program = make_quad_program("./shaders/view.frag");
     glViewport(0, 0, NX, NY);
     std::vector<Texture2DData> uv;
+    auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
+    auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
     {
-        auto x = funcs2D::make_x(-0.5, 0.5, FLOAT, NX, NY);
-        auto y = funcs2D::make_y(-0.5, 0.5, FLOAT, NX, NY);
         auto u = exp(-0.5*(x*x + y*y)/(0.03*0.03));
         {
             // u = u - 3.0*exp(-0.5*(pow(x - 0.25, 2)
@@ -124,6 +125,7 @@ int gray_scott_reaction_diffusion(Renderer *renderer) {
 
     bool exit_loop = false;
     int n = 0;
+    Interactor interactor(window);
     loop = [&] {
         glViewport(0, 0, width, height);
         for (int k = 0; k < 50; k++) {
@@ -137,6 +139,21 @@ int gray_scott_reaction_diffusion(Renderer *renderer) {
         view_u.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            std::cout << "This is reached." << std::endl;
+            DVec2 left_click = interactor.get_mouse_position();
+            double bx = left_click.x - 0.5 - 0.01;
+            double by = left_click.y - 0.5 - 0.01;
+            glViewport(0, 0, NX, NY);
+            auto u_tmp 
+                = 0.1*exp(-0.5*((x - bx)*(x - bx) + (y - by)*(y - by))/
+                        (0.01*0.01));
+            auto v_tmp = funcs2D::roll(u_tmp, {.x=0.02, .y=0.02});
+            uv[0] = uv[0] + u_tmp;
+            uv[1] = uv[1] + v_tmp;
+            glViewport(0, 0, window_width, window_height);
+        }
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && n > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {
