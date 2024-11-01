@@ -35,7 +35,7 @@ TARGET = main.js
 CPP_COMPILE = emcc
 C_COMPILE = emcc
 FLAGS = -O3 -v -s WASM=1 -s USE_GLFW=3 -s FULL_ES3=1 \
-	-s TOTAL_MEMORY=100MB --embed-file shaders -pthread -sPTHREAD_POOL_SIZE=12 
+	-s TOTAL_MEMORY=100MB --embed-file shaders # -pthread -sPTHREAD_POOL_SIZE=12 
 FLAGS_NO_OPT = ${FLAGS}
 LIBS =
 INCLUDE = -I${IMGUI_DIR} -I${IMGUI_DIR}/backends
