@@ -283,10 +283,10 @@ int isf_splitstep(Renderer *renderer) {
             double ry = left_click.y;
             double vx = interactor.get_mouse_delta().ind[0];
             double vy = interactor.get_mouse_delta().ind[1];
-            int wnx = (int)std::max(-width/4.0, 
-                    std::min(width/4.0, 8.0*width*vx));
-            int wny = (int)std::max(-height/4.0, std::
-                        min(height/4.0, 8.0*height*vy));
+            int wnx = (int)std::max(-width/8.0, 
+                    std::min(width/8.0, 8.0*width*vx));
+            int wny = (int)std::max(-height/8.0, std::
+                        min(height/8.0, 8.0*height*vy));
             auto psi_tmp = psi_u;
             modify_current_func(psi_u, psi_tmp, 0.05, rx, ry, wnx, wny);
             init_dist_command.set_float_uniforms(
@@ -302,9 +302,11 @@ int isf_splitstep(Renderer *renderer) {
             dist_display = dist_tmp;
             amplitude_factor *= -1.0;
         } else {
-            auto psi_ud = step(dist, psi_u, psi_d);
-            psi_u = psi_ud[0];
-            psi_d = psi_ud[1];
+            for (int i = 0; i < 2; i++) {
+                auto psi_ud = step(dist, psi_u, psi_d);
+                psi_u = psi_ud[0];
+                psi_d = psi_ud[1];
+            }
             dist_display = dist;
         }
         glViewport(0, 0, window_width, window_height);

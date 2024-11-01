@@ -17,6 +17,7 @@ In Principles of Quantum Mechanics, chapter 5. Springer.
 
 #include "texture_data.hpp"
 #include "draw_texture_data.hpp"
+#include "interactor.hpp"
 // #include <OpenGL/OpenGL.h>
 
 #include "render.hpp"
@@ -52,6 +53,8 @@ int free_space_position(Renderer *renderer) {
     float width = (float)10.0;
     float height = (float)10.0;
     double t = 0.0;
+    float r0x = 0.5*width, r0y = 0.5*height;
+    float px = 10.0, py = 10.0;
     double amplitude = 10.0;
 
     // double dx = width/(float)NX, dy = height/(float)NY;
@@ -67,6 +70,7 @@ int free_space_position(Renderer *renderer) {
 
     int k = 0;
     bool exit_loop = false;
+    Interactor interactor = Interactor(window);
     loop = [&] {
         glViewport(0, 0, NX, NY);
 
@@ -79,8 +83,8 @@ int free_space_position(Renderer *renderer) {
                 {"t", {float(t)}},
                 {"amplitude", {float(amplitude)}},
                 // {"texDimensions2D", {IVec2 {NX, NY}}},
-                {"r0", {Vec3 {0.5F*width, 0.5F*height, 0.0}}},
-                {"p0", {Vec3 {10.0, 10.0, 0.0}}},
+                {"r0", {Vec3 {r0x, r0y, 0.0}}},
+                {"p0", {Vec3 {px, py, 0.0}}},
                 {"sigma", {Vec3 {0.01F*width, 0.01F*height, 0.0}}},
                 {"dimensions", {Vec3 {width, height, 0.0}}}
             }
@@ -92,6 +96,17 @@ int free_space_position(Renderer *renderer) {
         psi.set_as_sampler2D_uniform("tex");
         draw_unbind_quad();
         glfwPollEvents();
+        interactor.click_update(renderer);
+        if (interactor.left_pressed()) {
+            DVec2 mouse_position = interactor.get_mouse_position();
+            DVec2 mouse_delta = interactor.get_mouse_delta();
+            px = (float)mouse_delta.x*width*100.0;
+            py = (float)mouse_delta.y*height*100.0;
+            r0x = (float)mouse_position.x*width;
+            r0y = (float)mouse_position.y*height;
+            t = 0.0;
+
+        }
         if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && k > 30)
             exit_loop = true;
         if (glfwWindowShouldClose(window)) {

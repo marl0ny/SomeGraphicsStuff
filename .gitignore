@@ -12,9 +12,6 @@ imgui.ini
 !.gitignore
 *.o
 *.so
-*.wasm
-main.worker.js
-/OpenGL/TextureDataObjects/main.js
 __pycache__
 /**/program.dSYM/
 program

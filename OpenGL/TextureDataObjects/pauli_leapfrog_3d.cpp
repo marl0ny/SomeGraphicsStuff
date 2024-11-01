@@ -328,7 +328,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
         
         glfwPollEvents();
 
-         // Process input for ImGui
+        /* // Process input for ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -340,6 +340,7 @@ int pauli_leapfrog_3d(Renderer *renderer) {
         }
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        */
 
         
         interactor.click_update(renderer);
