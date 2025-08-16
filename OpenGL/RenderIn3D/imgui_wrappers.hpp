@@ -121,7 +121,7 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->NOISE_SCALE, params->noiseScale);
     ImGui::Text("--------------------------------------------------------------------------------");
     ImGui::Text("Three Orthogonal Planar Slices Controls");
-    ImGui::Text("Planar slices offsets (normalized coordinates)");
+    ImGui::Text("Planar slices offsets (in normalized coordinates) for xy, yz, xz");
     if (ImGui::SliderFloat("planarNormCoordOffsets[0]", &params->planarNormCoordOffsets.ind[0], 0.0, 1.0))
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
     if (ImGui::SliderFloat("planarNormCoordOffsets[1]", &params->planarNormCoordOffsets.ind[1], 0.0, 1.0))
@@ -129,7 +129,7 @@ void imgui_controls(void *void_params) {
     if (ImGui::SliderFloat("planarNormCoordOffsets[2]", &params->planarNormCoordOffsets.ind[2], 0.0, 1.0))
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
     ImGui::Text("--------------------------------------------------------------------------------");
-    ImGui::Text("Arrows plot");
+    ImGui::Text("Arrows Plot");
 
 }
 

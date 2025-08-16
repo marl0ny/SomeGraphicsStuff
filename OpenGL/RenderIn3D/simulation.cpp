@@ -91,6 +91,8 @@ const RenderTarget &Simulation
         );
         case VECTOR_FIELD_VIEW:
         {
+            IVec3 arrows_d3d = params.arrowDimensions;
+            IVec2 arrows_d2d = get_2d_from_3d_dimensions(arrows_d3d);
             IVec3 tex_d3d = params.dataTexelDimensions3D;
             IVec2 tex_d2d = get_2d_from_3d_dimensions(tex_d3d);
             Vec3 dr = Vec3{
@@ -123,6 +125,8 @@ const RenderTarget &Simulation
                     {"scale", float(1.0)},
                     {"screenDimensions",
                             m_frames.render.texture_dimensions()},
+                    {"arrowsDimensions3D", arrows_d3d},
+                    {"arrowsDimensions2D", arrows_d2d},
                     {"texelDimensions3D", tex_d3d},
                     {"texelDimensions2D", tex_d2d},
                     {"color", Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}

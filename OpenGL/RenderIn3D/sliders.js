@@ -348,8 +348,8 @@ createVectorParameterSliders(controls, 11, "Volume dimensions", "IVec3", {'value
 createScalarParameterSlider(controls, 12, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
 createLineDivider(controls);
 createLabel(controls, 14, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 15, "Planar slices offsets (normalized coordinates)", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createVectorParameterSliders(controls, 15, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 createLineDivider(controls);
-createLabel(controls, 17, "Arrows plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 18, "Arrows dimensions", "IVec3", {'value': [32, 32, 32], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createLabel(controls, 17, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createVectorParameterSliders(controls, 18, "Arrows dimensions", "IVec3", {'value': [16, 16, 16], 'min': [8, 8, 8], 'max': [128, 128, 128]});
 
