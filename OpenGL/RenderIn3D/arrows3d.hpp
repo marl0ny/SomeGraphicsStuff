@@ -15,6 +15,8 @@ struct Programs {
 
 struct Frames {
     WireFrame arrows3d;
+    IVec3 dimensions3d;
+    void reset_dimensions(IVec3 d_3d);
     Frames(const TextureParams &default_texture_params,
            IVec3 d_3d);
 };
@@ -23,12 +25,18 @@ struct Frames {
 class Arrows {
     Programs m_programs;
     Frames m_frames;
-    IVec3 m_dimensions_3d;
     public:
     Arrows(IVec3 d_3d, TextureParams default_tex_params);
     void view(
         RenderTarget &dst, const Quad &src,
         float scale, Quaternion rotation,
+        IVec3 src_texel_dimensions3d,
+        Uniforms additional_uniforms = {});
+    void view(
+        RenderTarget &dst, const Quad &src,
+        float scale, Quaternion rotation,
+        IVec3 arrows_dimensions3d,
+        IVec3 src_texel_dimensions3d,
         Uniforms additional_uniforms = {});
 };
 

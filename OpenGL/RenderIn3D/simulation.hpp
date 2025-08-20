@@ -24,7 +24,7 @@ struct Programs {
     unsigned int copy;
     unsigned int user_defined;
     // For arrows
-    unsigned int arrows3d;
+    // unsigned int arrows3d;
     unsigned int gradient;
     Programs();
 };
@@ -32,6 +32,7 @@ struct Programs {
 class Simulation {
     volume_render::VolumeRender m_volume_render;
     planar_slice::PlanarSlices m_planar_slices;
+    arrows3d::Arrows m_arrows3d;
     Programs m_programs;
     Frames m_frames;
     public:

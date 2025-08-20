@@ -43,7 +43,7 @@ struct SimParams {
     Vec3 planarNormCoordOffsets = (Vec3)(Vec3 {.ind={0.5, 0.5, 0.5}});
     LineDivider arrows3DLineDiv = LineDivider{};
     Label arrows3DLabel = Label{};
-    IVec3 arrowDimensions = (IVec3)(IVec3 {.ind={16, 16, 16}});
+    IVec3 arrowDimensions = (IVec3)(IVec3 {.ind={8, 8, 8}});
     int dummyValue = (int)(0);
     enum {
         T=0,

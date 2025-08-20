@@ -18,5 +18,6 @@ Basic volumetric render for visualizing 3D data:
 - Non-square view screen
 - Perspective projection
 - Add text labels to plots
-
+- 3D axis labels for pointing the x, y and z directions
+- Add an option in the volume render to do a gradient-less render
 

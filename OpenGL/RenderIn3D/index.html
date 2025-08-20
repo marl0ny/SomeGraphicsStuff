@@ -3,6 +3,9 @@
 <html>
     <head>
         <style>
+            .body-style {
+                font-family: Arial; background-color: rgb(0, 0, 0);
+            }
             h3 {font-family:Arial, Helvetica, sans-serif; }
             label {font-family:Arial, Helvetica, sans-serif; color: white; }
 			text {font-family:Arial, Helvetica, sans-serif; }
@@ -14,7 +17,7 @@
                     grid-column: 1;
                 }
                 .inner-div2 {
-                    grid-column: 2;
+                    grid-column: 2p;
                 }
                 .controls-div {
                     overflow-y: scroll; max-height: 700px;
@@ -22,21 +25,21 @@
             }
             @media (orientation: portrait) {
                 .outer-div {
-                    display: grid; grid-template-rows: 1fr 1fr;
+                    display: grid; grid-template-rows: repeat(2, auto); gap: 20px;
                 }
                 .inner-div1 {
                     grid-row: 2;
                 }
                 .inner-div2 {
-                    grid-row: 1;
+                    grid-row: 1; overflow-y: scroll;
                 }
                 .controls-div {
-                    overflow-y: scroll;
+                    overflow-y: scroll; max-width: 90%; margin-left: 5%;
                 }
             }
         </style>
     </head>
-    <body style="font-family: Arial; background-color: rgb(0, 0, 0);">
+    <body class="body-style">
         <!--<h3 style="color:white; text-align: center;">Box of springs</h3>!-->
         <div class="outer-div">
             <div class="inner-div1">
@@ -57,6 +60,19 @@
          cd /Applications/XCode.app/Contents/Developer/Applications; open ./Simulator.app
     !-->
     <script type='text/javascript'>
+
+        /* Sliders become invisible when setting the body colour to black
+        when using Safari on Desktop Mac OS. This workaround just sets the 
+        background colour to grayish on this particular configuration. */
+        if (window.navigator.userAgent.includes('Safari') 
+            && window.navigator.userAgent.includes('Mac OS')
+            && !window.navigator.userAgent.includes('iPhone')
+            && !window.navigator.userAgent.includes('Chrome')) {
+            let elements = document.getElementsByClassName('body-style');
+            for (let e of elements)
+                e.style['background-color'] = `rgba(75, 75, 75)`;
+        }
+
 
         /* Adjust the controls div height to be 95 % the height
         of the client if the client width is greater than the client
@@ -84,13 +100,17 @@
           canvas: canvas,
           arguments: arguments
         };
+        // canvas.style["max-height"] = "10%";
         let sNumberOfTouches = 0;
 
         function getNormalizedCanvasCoordinates(e) {
-            // TODO: account for scroll location on the page as well!
-            let x = (e.clientX - canvas.offsetLeft)/canvas.offsetWidth;
-            let y = ((canvas.offsetTop + canvas.offsetHeight) 
-                        - e.clientY)/canvas.offsetHeight;
+            let x = (
+                e.clientX + window.scrollX - canvas.offsetLeft
+            )/canvas.offsetWidth;
+            let y = (
+                (canvas.offsetTop + canvas.offsetHeight - window.scrollY) 
+                - e.clientY
+            )/canvas.offsetHeight;
             return [x, y];
         }
 

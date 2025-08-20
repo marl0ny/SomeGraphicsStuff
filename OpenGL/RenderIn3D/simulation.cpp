@@ -23,10 +23,6 @@ Programs::Programs() {
     this->copy = Quad::make_program_from_path(
         "./shaders/util/copy.frag"
     );
-    this->arrows3d = make_program_from_paths(
-        "./shaders/arrows/arrows3d.vert", 
-        "./shaders/util/uniform-color.frag"
-    );
     this->gradient = Quad::make_program_from_path(
         "./shaders/gradient/gradient3d.frag"
     );
@@ -41,7 +37,7 @@ Frames(const TextureParams &default_tex_params, const SimParams &params):
             params.dataTexelDimensions3D)[0],
         .height=(unsigned int)get_2d_from_3d_dimensions(
             params.dataTexelDimensions3D)[1],
-        .generate_mipmap=1,
+        .generate_mipmap=1, // default_tex_params.generate_mipmap,
         .min_filter=default_tex_params.min_filter,
         .mag_filter=default_tex_params.mag_filter,
         .wrap_s=GL_REPEAT,
@@ -69,8 +65,9 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
 ) : m_volume_render(default_tex_params,
     params.volumeTexelDimensions3D,
     params.dataTexelDimensions3D),
-m_planar_slices(default_tex_params),
- m_frames(default_tex_params, params) {
+    m_planar_slices(default_tex_params),
+    m_arrows3d(params.arrowDimensions, default_tex_params),
+    m_frames(default_tex_params, params) {
 }
 
 const RenderTarget &Simulation
@@ -114,25 +111,11 @@ const RenderTarget &Simulation
                 }
             );
             this->m_frames.render.clear();
-            this->m_frames.render.draw(
-                m_programs.arrows3d,
-                {
-                    {"vecTex", &m_frames.tmp},
-                    {"arrowScale", float(1.0)},
-                    {"maxLength", float(10.0)},
-                    {"rotation", rotation},
-                    {"translate", Vec3{.x=0.0, .y=0.0, .z=0.0}},
-                    {"scale", float(1.0)},
-                    {"screenDimensions",
-                            m_frames.render.texture_dimensions()},
-                    {"arrowsDimensions3D", arrows_d3d},
-                    {"arrowsDimensions2D", arrows_d2d},
-                    {"texelDimensions3D", tex_d3d},
-                    {"texelDimensions2D", tex_d2d},
-                    {"color", Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}
-                },
-                m_frames.arrows3d_frame
-            );
+            m_arrows3d.view(
+                this->m_frames.render, this->m_frames.tmp,
+                scale, rotation, 
+                params.arrowDimensions,
+                params.dataTexelDimensions3D);
             return this->m_frames.render;
         }
         case VOL_RENDER_VIEW:

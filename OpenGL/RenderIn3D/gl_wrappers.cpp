@@ -1158,6 +1158,7 @@ void RenderTarget::clear() {
         return;
     glBindFramebuffer(GL_FRAMEBUFFER, this->fbo);
     glBindRenderbuffer(GL_RENDERBUFFER, this->rbo);
+    // glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, (GLint)NULL);
     glBindRenderbuffer(GL_RENDERBUFFER, (GLint)NULL);

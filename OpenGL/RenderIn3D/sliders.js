@@ -351,5 +351,5 @@ createLabel(controls, 14, "Three Orthogonal Planar Slices Controls", "color:whit
 createVectorParameterSliders(controls, 15, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 createLineDivider(controls);
 createLabel(controls, 17, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 18, "Arrows dimensions", "IVec3", {'value': [16, 16, 16], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createVectorParameterSliders(controls, 18, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
 

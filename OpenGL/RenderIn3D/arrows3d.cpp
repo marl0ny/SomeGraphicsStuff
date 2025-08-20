@@ -51,35 +51,59 @@ arrows3d::Programs
 
 arrows3d::Frames::
 Frames(const TextureParams &default_tex_params, IVec3 d_3d) :
-    arrows3d(get_3d_vector_field_wire_frame(d_3d)) {
+    arrows3d(get_3d_vector_field_wire_frame(d_3d)),
+    dimensions3d(d_3d) {
+}
+
+void arrows3d::Frames
+::reset_dimensions(IVec3 d_3d) {
+    this->dimensions3d = d_3d;
+    this->arrows3d = get_3d_vector_field_wire_frame(d_3d);
 }
 
 arrows3d::Arrows::
 Arrows(IVec3 d_3d, TextureParams default_tex_params):
     m_programs(arrows3d::Programs()),
     m_frames(arrows3d::Frames(default_tex_params, d_3d)) {
-    this->m_dimensions_3d = d_3d;
 }
 
 void arrows3d::Arrows::
 view(
     RenderTarget &dst, const Quad &src,
     float scale, Quaternion rotation,
+    IVec3 arrows_dimensions3d,
+    IVec3 src_texel_dimensions3d,
     Uniforms additional_uniforms) {
-    IVec3 tex_d3d = this->m_dimensions_3d;
+    if (arrows_dimensions3d.x != m_frames.dimensions3d.x ||
+        arrows_dimensions3d.y != m_frames.dimensions3d.y ||
+        arrows_dimensions3d.z != m_frames.dimensions3d.z)
+        m_frames.reset_dimensions(arrows_dimensions3d);
+    this->view(
+        dst, src, scale, rotation, 
+        src_texel_dimensions3d, additional_uniforms);
+}
+
+void arrows3d::Arrows::
+view(
+    RenderTarget &dst, const Quad &src,
+    float scale, Quaternion rotation,
+    IVec3 src_texel_dimensions3d,
+    Uniforms additional_uniforms) {
+    IVec3 tex_d3d = src_texel_dimensions3d;
     IVec2 tex_d2d = get_2d_from_3d_dimensions(tex_d3d);
+    IVec2 arrows_2d = get_2d_from_3d_dimensions(m_frames.dimensions3d);
     dst.draw(
         m_programs.arrows3d, 
         {
             {"vecTex", &src},
             {"arrowScale", float(1.0)},
-            {"maxLength", float(10.0)},
+            {"maxLength", float(0.1)},
             {"rotation", rotation},
             {"translate", Vec3{.x=0.0, .y=0.0, .z=0.0}},
             {"scale", float(scale)},
             {"screenDimensions", dst.texture_dimensions()},
-            // {"arrowsDimensions3D", arrows_d3d},
-            // {"arrowsDimensions2D", arrows_d2d},
+            {"arrowsDimensions3D", m_frames.dimensions3d},
+            {"arrowsDimensions2D", arrows_2d},
             {"texelDimensions3D", tex_d3d},
             {"texelDimensions2D", tex_d2d},
             {"color", Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}

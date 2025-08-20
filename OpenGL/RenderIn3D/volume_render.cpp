@@ -352,9 +352,9 @@ static void display_volume(
         uniforms,
         volume_render_wire_frame
     );
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 VolumeRender

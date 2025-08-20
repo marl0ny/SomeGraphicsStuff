@@ -342,6 +342,8 @@ void main() {
         discard;
     vec3 normal = rotate(quaternion(0.0, 0.0, 1.0, 1.0),
                          conj(rotation)).xyz;
+    vec3 normal2 = rotate(quaternion(0.0, 1.0, 0.0, 1.0),
+                         conj(rotation)).xyz;
     vec4 pix = density;
     
     // pix.a = pix.b;
@@ -353,7 +355,12 @@ void main() {
     //     grad = normalize(grad);
     // float a = dot(normal, grad);
     float a = dot(normal, normalize(grad));
+    // a += dot(normal2, normalize(grad));
     if (a <= 0.0) discard;
+    // a = 0.1;
+
+    // float a = pix.a;
+    // if (a <= 0.1) discard;
     
     // fragColor = vec4(1.0*normalize(density.rgb), a*a);
     
