@@ -119,6 +119,9 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->COLOR_BRIGHTNESS, params->colorBrightness);
     if (ImGui::SliderFloat("Noise sampling strength", &params->noiseScale, 0.0, 1.5))
            s_sim_params_set(params->NOISE_SCALE, params->noiseScale);
+    ImGui::Checkbox("Apply blur", &params->applyBlur);
+    if (ImGui::SliderInt("Size", &params->blurSize, 0, 10))
+            s_sim_params_set(params->BLUR_SIZE, params->blurSize);
     ImGui::Text("--------------------------------------------------------------------------------");
     ImGui::Text("Three Orthogonal Planar Slices Controls");
     ImGui::Text("Planar slices offsets (in normalized coordinates) for xy, yz, xz");

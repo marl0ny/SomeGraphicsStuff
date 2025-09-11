@@ -349,7 +349,7 @@ void main() {
     // pix.a = pix.b;
     // lf (length(grad) < 0.0000001) discard;
     // if (pix.a < 0.05) discard;
-    if (dot(grad, grad) == 0.0) discard;
+    // if (dot(grad, grad) == 0.0) discard;
     // fragColor = 4.0*pix;
     // if (dot(grad, grad) > 1.0)
     //     grad = normalize(grad);

@@ -38,6 +38,8 @@ struct SimParams {
     float colorBrightness = (float)(1.0F);
     IVec3 volumeTexelDimensions3D = (IVec3)(IVec3 {.ind={128, 128, 192}});
     float noiseScale = (float)(0.25F);
+    bool applyBlur = (bool)(true);
+    int blurSize = (int)(1);
     LineDivider planarSlicesLineDiv = LineDivider{};
     Label planarSlicesLabel = Label{};
     Vec3 planarNormCoordOffsets = (Vec3)(Vec3 {.ind={0.5, 0.5, 0.5}});
@@ -59,13 +61,15 @@ struct SimParams {
         COLOR_BRIGHTNESS=10,
         VOLUME_TEXEL_DIMENSIONS3_D=11,
         NOISE_SCALE=12,
-        PLANAR_SLICES_LINE_DIV=13,
-        PLANAR_SLICES_LABEL=14,
-        PLANAR_NORM_COORD_OFFSETS=15,
-        ARROWS3_D_LINE_DIV=16,
-        ARROWS3_D_LABEL=17,
-        ARROW_DIMENSIONS=18,
-        DUMMY_VALUE=19,
+        APPLY_BLUR=13,
+        BLUR_SIZE=14,
+        PLANAR_SLICES_LINE_DIV=15,
+        PLANAR_SLICES_LABEL=16,
+        PLANAR_NORM_COORD_OFFSETS=17,
+        ARROWS3_D_LINE_DIV=18,
+        ARROWS3_D_LABEL=19,
+        ARROW_DIMENSIONS=20,
+        DUMMY_VALUE=21,
     };
     void set(int enum_val, Uniform val) {
         switch(enum_val) {
@@ -92,6 +96,12 @@ struct SimParams {
             break;
             case NOISE_SCALE:
             noiseScale = val.f32;
+            break;
+            case APPLY_BLUR:
+            applyBlur = val.b32;
+            break;
+            case BLUR_SIZE:
+            blurSize = val.i32;
             break;
             case PLANAR_NORM_COORD_OFFSETS:
             planarNormCoordOffsets = val.vec3;
@@ -122,6 +132,10 @@ struct SimParams {
             return {(IVec3)volumeTexelDimensions3D};
             case NOISE_SCALE:
             return {(float)noiseScale};
+            case APPLY_BLUR:
+            return {(bool)applyBlur};
+            case BLUR_SIZE:
+            return {(int)blurSize};
             case PLANAR_NORM_COORD_OFFSETS:
             return {(Vec3)planarNormCoordOffsets};
             case ARROW_DIMENSIONS:

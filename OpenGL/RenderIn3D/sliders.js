@@ -12,13 +12,15 @@ const ENUM_CODES = {
     COLOR_BRIGHTNESS: 10,
     VOLUME_TEXEL_DIMENSIONS3_D: 11,
     NOISE_SCALE: 12,
-    PLANAR_SLICES_LINE_DIV: 13,
-    PLANAR_SLICES_LABEL: 14,
-    PLANAR_NORM_COORD_OFFSETS: 15,
-    ARROWS3_D_LINE_DIV: 16,
-    ARROWS3_D_LABEL: 17,
-    ARROW_DIMENSIONS: 18,
-    DUMMY_VALUE: 19,
+    APPLY_BLUR: 13,
+    BLUR_SIZE: 14,
+    PLANAR_SLICES_LINE_DIV: 15,
+    PLANAR_SLICES_LABEL: 16,
+    PLANAR_NORM_COORD_OFFSETS: 17,
+    ARROWS3_D_LINE_DIV: 18,
+    ARROWS3_D_LABEL: 19,
+    ARROW_DIMENSIONS: 20,
+    DUMMY_VALUE: 21,
 };
 
 function createScalarParameterSlider(
@@ -346,10 +348,12 @@ createScalarParameterSlider(controls, 9, "Alpha brightness", "float", {'value': 
 createScalarParameterSlider(controls, 10, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
 createVectorParameterSliders(controls, 11, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
 createScalarParameterSlider(controls, 12, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
+createCheckbox(controls, 13, "Apply blur", true);
+createScalarParameterSlider(controls, 14, "Size", "int", {'value': 1, 'min': 0, 'max': 10});
 createLineDivider(controls);
-createLabel(controls, 14, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 15, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createLabel(controls, 16, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createVectorParameterSliders(controls, 17, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 createLineDivider(controls);
-createLabel(controls, 17, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 18, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createLabel(controls, 19, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createVectorParameterSliders(controls, 20, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
 

@@ -26,6 +26,9 @@ Programs::Programs() {
     this->gradient = Quad::make_program_from_path(
         "./shaders/gradient/gradient3d.frag"
     );
+    this->blur = Quad::make_program_from_path(
+        "./shaders/util/blur.frag"
+    );
     this->user_defined = 0;
 }
 
@@ -45,6 +48,7 @@ Frames(const TextureParams &default_tex_params, const SimParams &params):
     }),
     data(data_tex_params),
     tmp(data_tex_params),
+    render_tmp(default_tex_params),
     render(default_tex_params),
     quad_wire_frame(get_quad_wire_frame()),
     arrows3d_frame(
@@ -110,6 +114,7 @@ const RenderTarget &Simulation
 
                 }
             );
+            this->m_frames.render_tmp.clear();
             this->m_frames.render.clear();
             m_arrows3d.view(
                 this->m_frames.render, this->m_frames.tmp,
@@ -119,11 +124,30 @@ const RenderTarget &Simulation
             return this->m_frames.render;
         }
         case VOL_RENDER_VIEW:
-        return m_volume_render.view(
+        const RenderTarget &t =  m_volume_render.view(
             this->m_frames.data, scale, rotation,
             params.alphaBrightness, params.colorBrightness,
             {{"noiseScale", params.noiseScale}}
         );
+        if (!params.applyBlur)
+            return t;
+        this->m_frames.render_tmp.draw(
+            m_programs.blur,
+            {{"tex", &t}, 
+             {"textureDimensions2D", m_frames.render.texture_dimensions()},
+             {"orientation", int(0)},
+            {"size", int(params.blurSize)}},
+            m_frames.quad_wire_frame
+        );
+        this->m_frames.render.draw(
+            m_programs.blur,
+            {{"tex", &m_frames.render_tmp}, 
+             {"textureDimensions2D", m_frames.render.texture_dimensions()},
+             {"orientation", int(1)},
+            {"size", int(params.blurSize)}},
+            m_frames.quad_wire_frame
+        );
+        return this->m_frames.render;
     }
 }
 

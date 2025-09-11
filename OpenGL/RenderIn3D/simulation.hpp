@@ -12,6 +12,7 @@ using namespace sim_2d;
 struct Frames {
     TextureParams data_tex_params;
     Quad data, tmp;
+    RenderTarget render_tmp;
     RenderTarget render;
     WireFrame quad_wire_frame;
     WireFrame arrows3d_frame;
@@ -23,6 +24,7 @@ struct Programs {
     unsigned int domain_color;
     unsigned int copy;
     unsigned int user_defined;
+    unsigned int blur;
     // For arrows
     // unsigned int arrows3d;
     unsigned int gradient;
