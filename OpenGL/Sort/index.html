@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<html>
+    <head>
+        <style>
+            .body-style {
+                font-family: Arial; background-color: rgb(0, 0, 0);
+            }
+            h3 {font-family:Arial, Helvetica, sans-serif; }
+            label {font-family:Arial, Helvetica, sans-serif; color: white; }
+			text {font-family:Arial, Helvetica, sans-serif; }
+            @media (orientation: landscape) {
+                .outer-div {
+                    display: grid; grid-template-columns: 1fr 1fr;
+                }
+                .inner-div1 {
+                    grid-column: 1;
+                }
+                .inner-div2 {
+                    grid-column: 2p;
+                }
+                .controls-div {
+                    overflow-y: scroll; max-height: 700px;
+                }
+            }
+            @media (orientation: portrait) {
+                .outer-div {
+                    display: grid; grid-template-rows: repeat(2, auto); gap: 20px;
+                }
+                .inner-div1 {
+                    grid-row: 2;
+                }
+                .inner-div2 {
+                    grid-row: 1; overflow-y: scroll;
+                }
+                .controls-div {
+                    overflow-y: scroll; max-width: 90%; margin-left: 5%;
+                }
+            }
+        </style>
+    </head>
+    <body class="body-style">
+        <!--<h3 style="color:white; text-align: center;">Box of springs</h3>!-->
+        <div class="outer-div">
+            <div class="inner-div1">
+                <div class="controls-div" id="controls"></div>
+            </div>
+            <div class="inner-div2">
+                <canvas id="canvas" oncontextmenu="event.preventDefault()"
+                    style="touch-action: none; 
+                        border: solid white 1px; top: 0px; bottom: 0px;
+                        text-align: center;">
+                </canvas>
+            </div>
+        </div>
+    </body>
+    <!--
+    On MacOS with XCode installed, test multi-touch input with the
+    iPhone simulator using:
+         cd /Applications/XCode.app/Contents/Developer/Applications; open ./Simulator.app
+    !-->
+    <script type='text/javascript'>
+
+        /* Sliders become invisible when setting the body colour to black
+        when using Safari on Desktop Mac OS. This workaround just sets the 
+        background colour to grayish on this particular configuration. */
+        if (window.navigator.userAgent.includes('Safari') 
+            && window.navigator.userAgent.includes('Mac OS')
+            && !window.navigator.userAgent.includes('iPhone')
+            && !window.navigator.userAgent.includes('Chrome')) {
+            let elements = document.getElementsByClassName('body-style');
+            for (let e of elements)
+                e.style['background-color'] = `rgba(75, 75, 75)`;
+        }
+
+
+        /* Adjust the controls div height to be 95 % the height
+        of the client if the client width is greater than the client
+        height (landscape mode). This takes as parameters the client width
+        and height. */
+        function adjustControlsHeightIfInLandscapeMode(width, height) {
+            if (width > height)
+                document.getElementById("controls").style.maxHeight 
+                    = `${Number.parseInt(0.95*height)}`;
+        }
+
+        var canvas = document.getElementById('canvas');
+        let clientW = document.documentElement.clientWidth;
+        let clientH = document.documentElement.clientHeight;
+        adjustControlsHeightIfInLandscapeMode(clientW, clientH);
+        let sideLength = Number.parseInt(
+            0.94*((clientW < clientH)? clientW: clientH));
+        let arguments = [`${sideLength}`, `${sideLength}`];
+        if (window.navigator.userAgent.includes('Safari')
+            && window.navigator.userAgent.includes('iPhone'))
+            arguments.push('nearest');
+        else
+            arguments.push('linear');
+        var Module = {
+          canvas: canvas,
+          arguments: arguments
+        };
+        // canvas.style["max-height"] = "10%";
+        let sNumberOfTouches = 0;
+
+        function getNormalizedCanvasCoordinates(e) {
+            let x = (
+                e.clientX + window.scrollX - canvas.offsetLeft
+            )/canvas.offsetWidth;
+            let y = (
+                (canvas.offsetTop + canvas.offsetHeight - window.scrollY) 
+                - e.clientY
+            )/canvas.offsetHeight;
+            return [x, y];
+        }
+
+        document.getElementById('canvas').addEventListener('mousemove', e => {
+            let [x, y] = getNormalizedCanvasCoordinates(e);
+            Module.set_left_xy(x, y);
+        });
+        document.getElementById('canvas').addEventListener('mouseup', e => {
+            let [x, y] = getNormalizedCanvasCoordinates(e);
+            Module.set_left_xy_type(x, y, 0);
+        });
+        document.getElementById('canvas').addEventListener('mousedown', e => {
+            let [x, y] = getNormalizedCanvasCoordinates(e);
+            Module.set_left_xy_type(x, y, 1);
+        });
+
+        function startSingleTouch(touches) {
+            let [x, y] = getNormalizedCanvasCoordinates(
+                {clientX: touches[0].pageX, clientY: touches[0].pageY});
+            Module.set_left_xy_type(x, y, 1);
+        }
+
+        function continueSingleTouch(touches) {
+            let [x, y] = getNormalizedCanvasCoordinates(
+                {clientX: touches[0].pageX, clientY: touches[0].pageY});
+            Module.set_left_xy(x, y);
+        }
+
+        function endSingleTouch(touches) {
+            let [x, y] = getNormalizedCanvasCoordinates(
+                {clientX: touches[0].pageX, clientY: touches[0].pageY});
+            Module.set_left_xy_type(x, y, 0);
+        }
+
+        function startDoubleTouches(touches) {
+            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
+            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
+            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
+            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
+            Module.set_double_touch_position_type(x1, y1, x2, y2, 1);
+        }
+
+        function continueDoubleTouches(touches) {
+            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
+            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
+            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
+            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
+            Module.set_double_touch_position(x1, y1, x2, y2);
+        }
+
+        function endDoubleTouches(touches) {
+            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
+            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
+            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
+            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
+            Module.set_double_touch_position_type(x1, y1, x2, y2, 0);
+        }
+
+        document.getElementById('canvas').addEventListener('touchstart', e => {
+            let touches = e.changedTouches;
+            // This if statement is evaluated when the screen is already
+            // touched by a single finger and another finger makes contact.
+            if (sNumberOfTouches === 1)
+                endSingleTouch(touches);
+            sNumberOfTouches = touches.length;
+            if (touches.length === 1)
+                startSingleTouch(touches);
+            else
+                startDoubleTouches(touches);
+        });
+        document.getElementById('canvas').addEventListener('touchmove', e => {
+            let touches = e.changedTouches;
+            if (sNumberOfTouches === 1 && touches.length > 1) {
+                endSingleTouch(touches);
+            }
+            if (touches.length === 1)
+                continueSingleTouch(touches);
+            else
+                continueDoubleTouches(touches);
+        });
+        document.getElementById('canvas').addEventListener('touchend', e => {
+            let touches = e.changedTouches;
+            if (touches.length === 1)
+                endSingleTouch(touches);
+            else
+                endDoubleTouches(touches);
+            sNumberOfTouches = 0;
+        });
+
+        // https://stackoverflow.com/a/47231903
+        window.addEventListener("keydown", e => {
+            if (e.code === "Backspace" || e.code === "Tab")
+                e.stopImmediatePropagation();
+        }, {capture: true});
+        window.addEventListener("keyup", e => {
+            if (e.code === "Backspace" || e.code === "Tab")
+                e.stopImmediatePropagation();
+        }, {capture: true});
+
+        // document.getElementById('setMouseInput').addEventListener(
+        //     "change", e =>
+        //         Module.set_mouse_mode(Number.parseInt(e.target.value))
+        // );
+        // canvas.style.width = Number.parseInt((9.0/5.0)*sideLength);
+        // canvas.style.height = Number.parseInt((4.0/5.0)*sideLength);
+
+    </script>
+    <script src="sliders.js"></script>
+    <script src="main.js"></script>
+</html>
