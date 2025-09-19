@@ -26,15 +26,20 @@ struct NotUsed {};
 
 struct SimParams {
     float brightness = (float)(10.0F);
+    int nSteps = (int)(0);
     int dummyValue = (int)(0);
     enum {
         BRIGHTNESS=0,
-        DUMMY_VALUE=1,
+        N_STEPS=1,
+        DUMMY_VALUE=2,
     };
     void set(int enum_val, Uniform val) {
         switch(enum_val) {
             case BRIGHTNESS:
             brightness = val.f32;
+            break;
+            case N_STEPS:
+            nSteps = val.i32;
             break;
             case DUMMY_VALUE:
             dummyValue = val.i32;
@@ -45,6 +50,8 @@ struct SimParams {
         switch(enum_val) {
             case BRIGHTNESS:
             return {(float)brightness};
+            case N_STEPS:
+            return {(int)nSteps};
             case DUMMY_VALUE:
             return {(int)dummyValue};
         }

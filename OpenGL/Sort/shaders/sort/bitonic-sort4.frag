@@ -4,7 +4,7 @@ bitonic sorting algorithm.
 
 References:
 
-Kipfer P., Westermann R, "Improved GPU Sorting,"
+Kipfer P., Westermann R., "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
 https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
@@ -36,6 +36,40 @@ uniform sampler2D tex;
 uniform ivec2 texDimensions2D;
 uniform int flipOrderSize;
 
+uniform int comparisonMethod;
+const int COMPARE_R = 0;
+const int COMPARE_G = 1;
+const int COMPARE_B = 2;
+const int COMPARE_A = 3;
+/* These next comparison methods
+use the distance of the texel's xy, xyz, or xyzw
+vectors with that provided by the compareStartPoint
+uniform. */
+uniform vec4 compareStartPoint;
+const int COMPARE_XY_DIST = 4;
+const int COMPARE_XYZ_DIST = 5;
+const int COMPARE_XYZW_DIST = 6;
+/* In these next comparison methods,
+it is assumed that the texel's xy or xyz vectors
+are position coordinates in a 2D or 3D space
+that has been partitioned into a uniform grid of cells.
+The "gridOfCellsDimensions", "gridOfCellsOrigin", and
+"cellDimensions" uniforms specify how these grid of
+cells are structured. The cells must ultimately be enumerated
+in a sequential fashion, one after another - i.e. our
+2D or 3D grid of cells are "flattened out" into a 1D description.
+So for those methods with "X_MAJOR" in their name,
+the cells are first enumerated along each row that sits
+parallel with the x-axis, in ascending order of x.
+Once the end of the row is reached, the row above with 
+respect to the y-axis is then counted over in the same
+manner, and so on. */
+const int COMPARE_2D_X_MAJOR_CELL_IND = 7;
+const int COMPARE_3D_X_MAJOR_CELL_IND = 8;
+uniform ivec3 gridOfCellsDimensions;
+uniform vec3 gridOfCellsOrigin;
+uniform vec3 cellDimensions;
+
 int indexFromTextureCoordinates(vec2 UV) {
     int width = texDimensions2D[0];
     int height = texDimensions2D[1];
@@ -53,8 +87,44 @@ vec2 toTextureCoordinates(int index) {
         (x + 0.5)/float(width), (y + 0.5)/float(height));
 }
 
+float compareVal(vec4 texel) {
+    if (comparisonMethod == COMPARE_R) {
+        return texel[0];
+    } else if (comparisonMethod == COMPARE_G) {
+        return texel[1];
+    } else if (comparisonMethod == COMPARE_B) {
+        return texel[2];
+    } else if (comparisonMethod == COMPARE_A) {
+        return texel[3];
+    } else if (comparisonMethod == COMPARE_XY_DIST) {
+        return dot(
+            texel.xy - compareStartPoint.xy, 
+            texel.xy - compareStartPoint.xy);
+    } else if (comparisonMethod == COMPARE_XYZ_DIST) {
+        return dot(
+            texel.xyz - compareStartPoint.xyz,
+            texel.xyz - compareStartPoint.xyz);
+    } else if (comparisonMethod == COMPARE_XYZW_DIST) {
+        return dot(texel - compareStartPoint, texel - compareStartPoint);
+    } else if (comparisonMethod == COMPARE_2D_X_MAJOR_CELL_IND) {
+        float x = texel.x, y = texel.y;
+        float cellXInd = floor((x - gridOfCellsOrigin.x)/cellDimensions.x);
+        float cellYInd = floor((y - gridOfCellsOrigin.y)/cellDimensions.y);
+        return cellXInd + cellYInd*float(gridOfCellsDimensions[0]);
+    } else if (comparisonMethod == COMPARE_3D_X_MAJOR_CELL_IND) {
+        float x = texel.x, y = texel.y, z = texel.z;
+        float cellXInd = floor((x - gridOfCellsOrigin.x)/cellDimensions.x);
+        float cellYInd = floor((y - gridOfCellsOrigin.y)/cellDimensions.y);
+        float cellZInd = floor((z - gridOfCellsOrigin.z)/cellDimensions.z);
+        return cellXInd 
+            + cellYInd*float(gridOfCellsDimensions[0]) 
+            + cellZInd
+            *float(gridOfCellsDimensions[0])*float(gridOfCellsDimensions[1]);
+    }
+}
+
 void sort2(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
-    if (in1[0] > in2[1]) {
+    if (compareVal(in1) > compareVal(in2)) {
         high = in1;
         low = in2;
     } else {
@@ -71,15 +141,11 @@ void bitonicSort4(
     sort2(h1, low1, in0, in2);
     sort2(h2, low2, in1, in3);
     if (!sortHigh2Low) {
-        res0 = (low1[0] < low2[0])? low1: low2;
-        res1 = (low2[0] > low1[0])? low2: low1;
-        res2 = (h1[0] < h2[0])? h1: h2;
-        res3 = (h2[0] > h1[0])? h2: h1;
+        sort2(res1, res0, low1, low2);
+        sort2(res3, res2, h1, h2);
     } else {
-        res0 = (h2[0] > h1[0])? h2: h1;
-        res1 = (h1[0] < h2[0])? h1: h2;
-        res2 = (low2[0] > low1[0])? low2: low1;
-        res3 = (low1[0] < low2[0])? low1: low2;
+        sort2(res0, res1, h1, h2);
+        sort2(res2, res3, low1, low2);
     }
 }
 

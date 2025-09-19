@@ -4,14 +4,14 @@ bitonic sort network algorithm.
 
 References:
 
-Kipfer P., Westermann R., "Improved GPU Sorting,"
+P. Kipfer, R. Westermann, "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
-https://developer.nvidia.com/gpugems/gpugems2/
+Available: https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
 chapter-46-improved-gpu-sorting
 
-"Bitonic Sort," in Wikipedia.
-https://en.wikipedia.org/wiki/Bitonic_sorter
+"Bitonic Sort." Wikipedia.com.
+Available: https://en.wikipedia.org/wiki/Bitonic_sorter
 
 */
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
@@ -126,10 +126,10 @@ void sort2(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
     if (compareVal(in1) > compareVal(in2)) {
         high = in1;
         low = in2;
-    } else {
-        high = in2;
-        low = in1;
+        return;
     }
+    high = in2;
+    low = in1;
 }
 
 void bitonicSort4(
@@ -147,7 +147,6 @@ void bitonicSort4(
         sort2(res2, res3, low1, low2);
     }
 }
-
 
 void main() {
     int index = indexFromTextureCoordinates(UV);
@@ -170,7 +169,7 @@ void main() {
     vec4 d0, d1, d2, d3;
     bitonicSort4(a0, a1, a2, a3, low1, high1, high2, low2, false);
     bitonicSort4(d0, d1, d2, d3, low1, high1, high2, low2, true);
-    bool sortLow2High = abs(mod(float(indexDivBlock), 2.0)) < 1e-30;
+    bool sortLow2High = mod(float(indexDivBlock), 2.0) == 0.0;
     if (index == i0)
         fragColor = sortLow2High? a0: d0;
     else if (index == i1)

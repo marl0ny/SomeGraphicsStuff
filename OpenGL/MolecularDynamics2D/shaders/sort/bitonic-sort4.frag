@@ -1,17 +1,17 @@
-/* Sort on each consecutive size 4 subblock of a texture.
+/* Perform a bitonic sort on each 1x4 sub-portion of a texture.
 This is used to implement the base case of the recursive 
-bitonic sort network algorithm.
+bitonic sorting algorithm.
 
 References:
 
-Kipfer P., Westermann R., "Improved GPU Sorting,"
+P. Kipfer, R. Westermann, "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
-https://developer.nvidia.com/gpugems/gpugems2/
+Available: https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
 chapter-46-improved-gpu-sorting
 
-"Bitonic Sort," in Wikipedia.
-https://en.wikipedia.org/wiki/Bitonic_sorter
+"Bitonic Sort." Wikipedia.com.
+Available: https://en.wikipedia.org/wiki/Bitonic_sorter
 
 */
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
@@ -34,6 +34,7 @@ out vec4 fragColor;
 
 uniform sampler2D tex;
 uniform ivec2 texDimensions2D;
+uniform int flipOrderSize;
 
 uniform int comparisonMethod;
 const int COMPARE_R = 0;
@@ -126,10 +127,10 @@ void sort2(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
     if (compareVal(in1) > compareVal(in2)) {
         high = in1;
         low = in2;
-    } else {
-        high = in2;
-        low = in1;
+        return;
     }
+    high = in2;
+    low = in1;
 }
 
 void bitonicSort4(
@@ -148,9 +149,9 @@ void bitonicSort4(
     }
 }
 
-
 void main() {
     int index = indexFromTextureCoordinates(UV);
+    int orderIndex = int(floor(float(index)/float(flipOrderSize)));
     int indexDivBlock = int(floor(float(index)/4.0));
     int blockPos = 4*indexDivBlock;
     int i0 = blockPos;
@@ -161,16 +162,13 @@ void main() {
     vec4 in1 = texture2D(tex, toTextureCoordinates(i1));
     vec4 in2 = texture2D(tex, toTextureCoordinates(i2));
     vec4 in3 = texture2D(tex, toTextureCoordinates(i3));
-    vec4 high1, low1, high2, low2;
-    sort2(high1, low1, in0, in1);
-    sort2(high2, low2, in2, in3);
     // If in ascending order.
     vec4 a0, a1, a2, a3;
     // Else if the order is descending.
     vec4 d0, d1, d2, d3;
-    bitonicSort4(a0, a1, a2, a3, low1, high1, high2, low2, false);
-    bitonicSort4(d0, d1, d2, d3, low1, high1, high2, low2, true);
-    bool sortLow2High = abs(mod(float(indexDivBlock), 2.0)) < 1e-30;
+    bitonicSort4(a0, a1, a2, a3, in0, in1, in2, in3, false);
+    bitonicSort4(d0, d1, d2, d3, in0, in1, in2, in3, true);
+    bool sortLow2High = mod(float(orderIndex), 2.0) == 0.0;
     if (index == i0)
         fragColor = sortLow2High? a0: d0;
     else if (index == i1)

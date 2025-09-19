@@ -306,11 +306,11 @@ Reference:
 vec2 rand2D() {
     if (noiseScale == 0.0)
         return vec2(0.0, 0.0);
-    float width3D = float(fragmentTexelDimensions3D[0]);
-    float height3D = float(fragmentTexelDimensions3D[1]);
+    float w3D = float(fragmentTexelDimensions3D[0]);
+    float h3D = float(fragmentTexelDimensions3D[1]);
     return vec2(
-        noiseScale*(fract(3.31e4*cos(dot(UV, vec2(5.1e4)))) - 0.5)/width3D,
-        noiseScale*(fract(7.47e4*sin(dot(UV, vec2(1.7e4)))) - 0.5)/height3D
+        noiseScale*(fract(sin(dot(UV, vec2(2.71828, 137.036)))) - 0.5)/w3D,
+        noiseScale*(fract(cos(dot(UV, vec2(82817.2, 630.731)))) - 0.5)/h3D
     );
 }
 

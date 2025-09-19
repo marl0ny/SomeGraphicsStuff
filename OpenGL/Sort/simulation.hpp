@@ -21,10 +21,7 @@ struct Frames {
 struct Programs {
     unsigned int copy;
     unsigned int sort4;
-    struct bitonic_sort {
-        unsigned int iter_part1;
-        unsigned int iter_part2;
-    };
+    unsigned int random;
     unsigned int user_defined;
     Programs();
 };

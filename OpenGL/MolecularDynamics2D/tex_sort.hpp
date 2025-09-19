@@ -4,14 +4,14 @@ a bitonic sorting network.
 
 References:
 
-Kipfer P., Westermann R, "Improved GPU Sorting,"
+P. Kipfer, R. Westermann, "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
-https://developer.nvidia.com/gpugems/gpugems2/
+Available: https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
 chapter-46-improved-gpu-sorting
 
-"Bitonic Sort," in Wikipedia.
-https://en.wikipedia.org/wiki/Bitonic_sorter
+"Bitonic Sort." Wikipedia.com.
+Available: https://en.wikipedia.org/wiki/Bitonic_sorter
 
 */
 #include "gl_wrappers.hpp"
@@ -110,6 +110,7 @@ class Sort {
     bad things will happen. */
     void operator()(Quad &dst, const Quad &src);
     void bitonic(Quad &dst, const Quad &src);
+    void bitonic4(Quad &dst, const Quad &src);
     void reset_dimensions(int tex_width, int tex_height);
     void reset_dimensions(IVec2 tex_dimensions2d);
 };

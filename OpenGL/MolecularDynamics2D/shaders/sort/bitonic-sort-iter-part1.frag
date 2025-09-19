@@ -1,17 +1,29 @@
-/* Sort on each consecutive size 4 subblock of a texture.
-This is used to implement the base case of the recursive 
-bitonic sort network algorithm.
+/* This shader is used to implement part of the recursive step of 
+bitonic sort. The texture is divided into consecutive equally-sized
+subblocks, where the recursive step is performed individually on each 
+of these subblocks. The size of these subblock is determined through 
+uniform values, where at each iteration of the recursive step, the size of
+this subblock is divided by two. Here the texels of the lower half of each
+of these subblocks are rearranged to be along the even indices local
+to these subblocks, and the upper half are placed along the odd indices. 
+Then each contiguous even-odd pair are compared: if the bitonic sort is to 
+ultimately be done in ascending order, the texels are swapped to ensure that
+the even index contains the smaller value while the odd index contains the 
+larger; if in descending order, the even index contains the larger value.
+
+This only partially performs the recursive step of this bitonic sort;
+a second stage is required to finish this step.
 
 References:
 
-Kipfer P., Westermann R., "Improved GPU Sorting,"
+P. Kipfer, R. Westermann, "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
-https://developer.nvidia.com/gpugems/gpugems2/
+Available: https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
 chapter-46-improved-gpu-sorting
 
-"Bitonic Sort," in Wikipedia.
-https://en.wikipedia.org/wiki/Bitonic_sorter
+"Bitonic Sort." Wikipedia.com.
+Available: https://en.wikipedia.org/wiki/Bitonic_sorter
 
 */
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
@@ -34,6 +46,8 @@ out vec4 fragColor;
 
 uniform sampler2D tex;
 uniform ivec2 texDimensions2D;
+uniform int blockSize;
+uniform int flipOrderSize;
 
 uniform int comparisonMethod;
 const int COMPARE_R = 0;
@@ -122,61 +136,64 @@ float compareVal(vec4 texel) {
     }
 }
 
-void sort2(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
+void sort2A(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
+    if (compareVal(in1) >= compareVal(in2)) {
+        high = in1;
+        low = in2;
+        return;
+    }
+    high = in2;
+    low = in1;
+}
+
+void sort2B(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
     if (compareVal(in1) > compareVal(in2)) {
         high = in1;
         low = in2;
-    } else {
-        high = in2;
-        low = in1;
+        return;
     }
+    high = in2;
+    low = in1;
 }
 
-void bitonicSort4(
-    inout vec4 res0, inout vec4 res1, inout vec4 res2, inout vec4 res3,
-    vec4 in0, vec4 in1, vec4 in2, vec4 in3, bool sortHigh2Low
-) {
-    vec4 h1, low1, h2, low2;
-    sort2(h1, low1, in0, in2);
-    sort2(h2, low2, in1, in3);
-    if (!sortHigh2Low) {
-        sort2(res1, res0, low1, low2);
-        sort2(res3, res2, h1, h2);
-    } else {
-        sort2(res0, res1, h1, h2);
-        sort2(res2, res3, low1, low2);
-    }
+bool isDivisibleBy2(int val) {
+    return mod(float(val), 2.0) == 0.0;
 }
-
 
 void main() {
     int index = indexFromTextureCoordinates(UV);
-    int indexDivBlock = int(floor(float(index)/4.0));
-    int blockPos = 4*indexDivBlock;
-    int i0 = blockPos;
-    int i1 = blockPos + 1;
-    int i2 = blockPos + 2;
-    int i3 = blockPos + 3;
-    vec4 in0 = texture2D(tex, toTextureCoordinates(i0));
-    vec4 in1 = texture2D(tex, toTextureCoordinates(i1));
-    vec4 in2 = texture2D(tex, toTextureCoordinates(i2));
-    vec4 in3 = texture2D(tex, toTextureCoordinates(i3));
-    vec4 high1, low1, high2, low2;
-    sort2(high1, low1, in0, in1);
-    sort2(high2, low2, in2, in3);
-    // If in ascending order.
-    vec4 a0, a1, a2, a3;
-    // Else if the order is descending.
-    vec4 d0, d1, d2, d3;
-    bitonicSort4(a0, a1, a2, a3, low1, high1, high2, low2, false);
-    bitonicSort4(d0, d1, d2, d3, low1, high1, high2, low2, true);
-    bool sortLow2High = abs(mod(float(indexDivBlock), 2.0)) < 1e-30;
-    if (index == i0)
-        fragColor = sortLow2High? a0: d0;
-    else if (index == i1)
-        fragColor = sortLow2High? a1: d1;
-    else if (index == i2)
-        fragColor = sortLow2High? a2: d2;
-    else if (index == i3)
-        fragColor = sortLow2High? a3: d3;
+    // If this value is divisible by two, go from low to high
+    // else go from high to low.
+    int orderIndex = int(floor(float(index)/float(flipOrderSize)));
+    // Index inside a block
+    int blockIndex = int(mod(float(index), float(blockSize)));
+    // Index offset of the block
+    int blockPos = int(float(blockSize)*floor(float(index)/float(blockSize)));
+    // For an even value of blockIndex, sample blockIndex/2
+    vec4 e = texture2D(tex, 
+        toTextureCoordinates(blockPos + blockIndex/2));
+    // If blockIndex is even, then the next value must be odd,
+    // so for the next value sample blockSize/2 + blockIndex/2
+    vec4 eNext = texture2D(tex, 
+        toTextureCoordinates(blockPos + blockIndex/2 + blockSize/2));
+    // For an odd value of blockIndex,
+    // sample (blockIndex - 1)/2 + blockSize/2
+    vec4 o = texture2D(tex, 
+        toTextureCoordinates(blockPos + (blockIndex - 1)/2 + blockSize/2));
+    vec4 oLast = texture2D(tex, 
+        toTextureCoordinates(blockPos + (blockIndex - 1)/2));
+    vec4 eHigh, eLow, oHigh, oLow;
+    sort2A(eHigh, eLow, e, eNext);
+    sort2B(oHigh, oLow, o, oLast);
+    // When orderIndex % 2 == 0, go from low to high
+
+    if (isDivisibleBy2(orderIndex) && isDivisibleBy2(blockIndex))
+        fragColor = eLow;
+    else if (isDivisibleBy2(orderIndex) && !isDivisibleBy2(blockIndex))
+        fragColor = oHigh;
+    // When indexDivBlock % 2 == 1, go from hight to low
+    else if (!isDivisibleBy2(orderIndex) && isDivisibleBy2(blockIndex))
+        fragColor = eHigh;
+    else if (!isDivisibleBy2(orderIndex) && !isDivisibleBy2(blockIndex))
+        fragColor = oLow;
 }

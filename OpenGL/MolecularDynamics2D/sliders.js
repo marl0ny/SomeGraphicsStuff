@@ -1,7 +1,37 @@
 const ENUM_CODES = {
-    BRIGHTNESS: 0,
-    N_STEPS: 1,
-    DUMMY_VALUE: 2,
+    FPS_LABEL: 0,
+    TOTAL_E_LABEL: 1,
+    DRIFT_E_LABEL: 2,
+    PARTICLE_COUNT: 3,
+    CELL_GRID_DIMENSIONS2_D: 4,
+    SIM_DIMENSIONS2_D: 5,
+    STEPS_PER_FRAME: 6,
+    LINE_DIV_D_T1: 7,
+    TIME_STEP_CONFIG_TITLE: 8,
+    REQUESTED_DT: 9,
+    LIMIT_TIME_STEP_AGRESSIVENESS: 10,
+    DT: 11,
+    DT_LABEL: 12,
+    LINE_DIV_D_T2: 13,
+    POTENTIAL_CONFIG_TITLE: 14,
+    SIGMA: 15,
+    SIGMA_LABEL: 16,
+    EPSILON: 17,
+    LINE_DIV3: 18,
+    G_FORCE: 19,
+    PARTICLE_BRIGHTNESS: 20,
+    WALL_FORCE: 21,
+    TOTAL_ENERGY: 22,
+    N_STEPS: 23,
+    N_FRAMES: 24,
+    SIMULATION_DOMAIN_LABEL: 25,
+    X_RANGE_LABEL: 26,
+    Y_RANGE_LABEL: 27,
+    PARTICLE_COUNT_SELECTOR: 28,
+    SHOW_CELLS_BY_PARTICLE_COUNT: 29,
+    NEIGHBOUR_CELL_COUNT_FOR_FORCE_COMPUTATION: 30,
+    NEIGHBOUR_CELL_COUNT_FOR_FORCE_COMPUTATION_SELECTOR: 31,
+    DUMMY_VALUE: 32,
 };
 
 function createScalarParameterSlider(
@@ -317,5 +347,26 @@ function createLineDivider(controls) {
 }
 
 let controls = document.getElementById('controls');
-createScalarParameterSlider(controls, 0, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
+createLabel(controls, 0, "Frames/s", "");
+createLabel(controls, 1, "Total energy (ought to be conserved)", "");
+createLabel(controls, 2, "Cummulative total energy drift error (percentage of initial energy)", "");
+createScalarParameterSlider(controls, 6, "Steps per frame", "int", {'value': 1, 'min': 0, 'max': 50});
+createLineDivider(controls);
+createLabel(controls, 8, "Time Step Configuration", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createScalarParameterSlider(controls, 9, "Requested time step", "float", {'value': 5e-08, 'min': 0.0, 'max': 1e-07, 'step': 1e-10});
+createScalarParameterSlider(controls, 10, "Adaptive time step reduction agressiveness", "float", {'value': 250.0, 'min': 100.0, 'max': 1000.0});
+createLabel(controls, 12, "Actual time step", "");
+createLineDivider(controls);
+createLabel(controls, 14, "Lennard-Jones Configuration", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createLabel(controls, 16, "σ (related to particle size) = 0.0075", "");
+createScalarParameterSlider(controls, 17, "ε (controls strength of inter-particle interaction)", "float", {'value': 20000000.0, 'min': 20000.0, 'max': 20000000.0, 'step': 10000.0});
+createLineDivider(controls);
+createScalarParameterSlider(controls, 19, "Gravitational force", "float", {'value': -10000000.0, 'min': -20000000.0, 'max': 0.0, 'step': 1000.0});
+createScalarParameterSlider(controls, 20, "Particle Brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 1.0, 'step': 0.01});
+createLabel(controls, 25, "Simulation domain", "");
+createLabel(controls, 26, "0 ≤ x < 1.7", "");
+createLabel(controls, 27, "0 ≤ y < 1.7", "");
+createSelectionList(controls, 28, 8, "Number of particles:", [ "64",  "128",  "256",  "512",  "1024",  "2048",  "4096",  "8192",  "16384",  "32768"]);
+createCheckbox(controls, 29, "Display cells with particles", false);
+createSelectionList(controls, 31, 1, "For each particle, select the number of neighbour cells to traverse in order to find its non-zero interaction with other particles: ", [ "3",  "8"]);
 

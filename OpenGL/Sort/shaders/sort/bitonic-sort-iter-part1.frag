@@ -4,7 +4,7 @@ subblocks, where the recursive step is performed individually on each
 of these subblocks. The size of these subblock is determined through 
 uniform values, where at each iteration of the recursive step, the size of
 this subblock is divided by two. Here the texels of the lower half of each
-of these subblocks are shifted to be placed along the even indices local
+of these subblocks are rearranged to be along the even indices local
 to these subblocks, and the upper half are placed along the odd indices. 
 Then each contiguous even-odd pair are compared: if the bitonic sort is to 
 ultimately be done in ascending order, the texels are swapped to ensure that
@@ -16,7 +16,7 @@ a second stage is required to finish this step.
 
 References:
 
-Kipfer P., Westermann R, "Improved GPU Sorting,"
+Kipfer P., Westermann R., "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
 https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
@@ -49,6 +49,40 @@ uniform ivec2 texDimensions2D;
 uniform int blockSize;
 uniform int flipOrderSize;
 
+uniform int comparisonMethod;
+const int COMPARE_R = 0;
+const int COMPARE_G = 1;
+const int COMPARE_B = 2;
+const int COMPARE_A = 3;
+/* These next comparison methods
+use the distance of the texel's xy, xyz, or xyzw
+vectors with that provided by the compareStartPoint
+uniform. */
+uniform vec4 compareStartPoint;
+const int COMPARE_XY_DIST = 4;
+const int COMPARE_XYZ_DIST = 5;
+const int COMPARE_XYZW_DIST = 6;
+/* In these next comparison methods,
+it is assumed that the texel's xy or xyz vectors
+are position coordinates in a 2D or 3D space
+that has been partitioned into a uniform grid of cells.
+The "gridOfCellsDimensions", "gridOfCellsOrigin", and
+"cellDimensions" uniforms specify how these grid of
+cells are structured. The cells must ultimately be enumerated
+in a sequential fashion, one after another - i.e. our
+2D or 3D grid of cells are "flattened out" into a 1D description.
+So for those methods with "X_MAJOR" in their name,
+the cells are first enumerated along each row that sits
+parallel with the x-axis, in ascending order of x.
+Once the end of the row is reached, the row above with 
+respect to the y-axis is then counted over in the same
+manner, and so on. */
+const int COMPARE_2D_X_MAJOR_CELL_IND = 7;
+const int COMPARE_3D_X_MAJOR_CELL_IND = 8;
+uniform ivec3 gridOfCellsDimensions;
+uniform vec3 gridOfCellsOrigin;
+uniform vec3 cellDimensions;
+
 int indexFromTextureCoordinates(vec2 UV) {
     int width = texDimensions2D[0];
     int height = texDimensions2D[1];
@@ -66,14 +100,60 @@ vec2 toTextureCoordinates(int index) {
         (x + 0.5)/float(width), (y + 0.5)/float(height));
 }
 
-void sort2(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
-    if (in1[0] > in2[1]) {
+float compareVal(vec4 texel) {
+    if (comparisonMethod == COMPARE_R) {
+        return texel[0];
+    } else if (comparisonMethod == COMPARE_G) {
+        return texel[1];
+    } else if (comparisonMethod == COMPARE_B) {
+        return texel[2];
+    } else if (comparisonMethod == COMPARE_A) {
+        return texel[3];
+    } else if (comparisonMethod == COMPARE_XY_DIST) {
+        return dot(
+            texel.xy - compareStartPoint.xy, 
+            texel.xy - compareStartPoint.xy);
+    } else if (comparisonMethod == COMPARE_XYZ_DIST) {
+        return dot(
+            texel.xyz - compareStartPoint.xyz,
+            texel.xyz - compareStartPoint.xyz);
+    } else if (comparisonMethod == COMPARE_XYZW_DIST) {
+        return dot(texel - compareStartPoint, texel - compareStartPoint);
+    } else if (comparisonMethod == COMPARE_2D_X_MAJOR_CELL_IND) {
+        float x = texel.x, y = texel.y;
+        float cellXInd = floor((x - gridOfCellsOrigin.x)/cellDimensions.x);
+        float cellYInd = floor((y - gridOfCellsOrigin.y)/cellDimensions.y);
+        return cellXInd + cellYInd*float(gridOfCellsDimensions[0]);
+    } else if (comparisonMethod == COMPARE_3D_X_MAJOR_CELL_IND) {
+        float x = texel.x, y = texel.y, z = texel.z;
+        float cellXInd = floor((x - gridOfCellsOrigin.x)/cellDimensions.x);
+        float cellYInd = floor((y - gridOfCellsOrigin.y)/cellDimensions.y);
+        float cellZInd = floor((z - gridOfCellsOrigin.z)/cellDimensions.z);
+        return cellXInd 
+            + cellYInd*float(gridOfCellsDimensions[0]) 
+            + cellZInd
+            *float(gridOfCellsDimensions[0])*float(gridOfCellsDimensions[1]);
+    }
+}
+
+void sort2A(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
+    if (compareVal(in1) >= compareVal(in2)) {
         high = in1;
         low = in2;
-    } else {
-        high = in2;
-        low = in1;
+        return;
     }
+    high = in2;
+    low = in1;
+}
+
+void sort2B(inout vec4 high, inout vec4 low, vec4 in1, vec4 in2) {
+    if (compareVal(in1) > compareVal(in2)) {
+        high = in1;
+        low = in2;
+        return;
+    }
+    high = in2;
+    low = in1;
 }
 
 bool isDivisibleBy2(int val) {
@@ -103,8 +183,8 @@ void main() {
     vec4 oLast = texture2D(tex, 
         toTextureCoordinates(blockPos + (blockIndex - 1)/2));
     vec4 eHigh, eLow, oHigh, oLow;
-    sort2(eHigh, eLow, e, eNext);
-    sort2(oHigh, oLow, o, oLast);
+    sort2A(eHigh, eLow, e, eNext);
+    sort2B(oHigh, oLow, o, oLast);
     // When orderIndex % 2 == 0, go from low to high
     if (isDivisibleBy2(orderIndex) && isDivisibleBy2(blockIndex))
         fragColor = eLow;

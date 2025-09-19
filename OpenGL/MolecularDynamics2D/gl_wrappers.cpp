@@ -1427,10 +1427,7 @@ uint32_t Quad::make_program_from_source(std::string fragment_source) {
         fragment_source, GL_FRAGMENT_SHADER);
     uint32_t program = glCreateProgram();
     if (program == 0) {
-        glDeleteShader(vs_ref);
-        glDeleteShader(fs_ref);
         fprintf(stderr, "Unable to create program.\n");
-        return program;
     }
     glAttachShader(program, vs_ref);
     glAttachShader(program, fs_ref);
@@ -1440,11 +1437,7 @@ uint32_t Quad::make_program_from_source(std::string fragment_source) {
     glGetProgramiv(program, GL_LINK_STATUS, &status);
     glGetProgramInfoLog(program, 1023, NULL, buf);
     if (status != GL_TRUE) {
-        glDeleteProgram(program);
-        glDeleteShader(vs_ref);
-        glDeleteShader(fs_ref);
         fprintf(stderr, "%s\n%s\n", "Failed to link program:", buf);
-        return 0;
     }
     glUseProgram(program);
     return program;
@@ -1538,6 +1531,18 @@ std::vector<float> Quad::get_float_pixels(IVec4 viewport) {
 std::vector<float> Quad::get_float_pixels() {
     return this->get_float_pixels(
         {.ind{0, 0, (int)this->width(), (int)this->height()}});
+}
+
+void Quad::fill_array_with_contents(float *arr) const {
+    IVec4 viewport = 
+        {.ind{0, 0, (int)this->width(), (int)this->height()}};
+    if (this->id != 0)
+        glBindFramebuffer(GL_FRAMEBUFFER, this->fbo);
+    // int size = this->width()*this->height()
+    //     *number_of_channels(this->format());
+    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3],
+        to_base(this->format()), GL_FLOAT, (void *)arr);
+    unbind();
 }
  
 std::vector<uint8_t> Quad::get_byte_pixels(IVec4 viewport) {

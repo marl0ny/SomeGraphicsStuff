@@ -34,10 +34,15 @@ Programs::Programs() {
     this->sort4 = Quad::make_program_from_path(
         "./shaders/sort/sort4.frag"
     );
+    this->random = Quad::make_program_from_path(
+        "./shaders/random.frag"
+    );
     this->user_defined = 0;
 }
 
-#define N 32768
+// #define N 256
+#define N 16384
+// #define N 32768
 
 Frames::
 Frames(const TextureParams &default_tex_params, const SimParams &params):
@@ -79,7 +84,7 @@ static std::vector<Vec4> random_vec_vec4(
             max_val = (arr[i][0] > max_val)? arr[i][0]: max_val;
         } else {
             for (int k = 0; k < 3; k++)
-                arr[i][k] = val/float(N);
+                arr[i][k] = val/float(N) - 0.5;
         }
         arr[i][3] = 1.0;
     }
@@ -93,11 +98,15 @@ static std::vector<Vec4> random_vec_vec4(
 Simulation::
 Simulation(const TextureParams &default_tex_params, const SimParams &params
 ) : m_programs(), m_frames(default_tex_params, params), 
-    m_sort(decompose(N)) {
+    m_sort(decompose(N), sort::COMPARE_R) {
     int n_samples 
         = m_frames.sim_tex_params.width*m_frames.sim_tex_params.height;
     std::vector<Vec4> arr = random_vec_vec4(n_samples);
-    m_frames.data.set_pixels((float *)&arr[0]);
+    // m_frames.data.set_pixels((float *)&arr[0]);
+    m_frames.data.draw(
+        m_programs.random,
+        {{"scale", 1.0F}}
+    );
     m_sort(m_frames.tmp, m_frames.data);
     // m_frames.tmp.draw(
     //     m_programs.sort4,
@@ -115,7 +124,8 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
     for (int i = 0; i < n_samples; i++) {
         if (i % 4 == 0 && i != 0)
             puts("");
-        printf("%d: %g, %g\n", i, arr[i][0], pixels_ptr[i][0]);
+        printf("%d: %g\n", i, pixels_ptr[i][0]);
+        // printf("%d: %g, %g\n", i, arr[i][0], pixels_ptr[i][0]);
     }
     printf("\n");
     // for (int i = 0; i < n_samples/4; i++) {
@@ -134,6 +144,27 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
 }
 
 const RenderTarget &Simulation::view(SimParams &params) {
+    srand(time(NULL) + 3*params.nSteps);
+    Vec2 seed1 = Vec2{
+        .x=(float)(rand() % 1000), .y=(float)((rand()*rand()) % 1000)};
+    srand(time(NULL) + 3*params.nSteps + 1);
+    Vec2 seed2 = Vec2{
+        .x=(float)(rand() % 1000), .y=(float)((rand()*rand()) % 1000)};
+    srand(time(NULL) + 3*params.nSteps + 2);
+    Vec2 seed3 = Vec2{
+        .x=(float)(rand() % 1000), .y=(float)((rand()*rand()) % 1000)};
+    m_frames.tmp.draw(
+        m_programs.random,
+        {
+            {"scale", 1.0F},
+            {"useSeedVal", int(true)},
+            {"seedVal1", seed1},
+            {"seedVal2", seed2},
+            {"seedVal3", seed3}
+        }
+    );
+    params.nSteps += 1;
+    m_sort(m_frames.tmp, m_frames.tmp);
     m_frames.data.draw(
         m_programs.copy,
         {
