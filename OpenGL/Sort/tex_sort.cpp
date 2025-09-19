@@ -1,5 +1,4 @@
 #include "tex_sort.hpp"
-#include <OpenGL/OpenGL.h>
 
 
 using namespace sort;
@@ -91,6 +90,32 @@ void Sort::operator()(
         else
             this->bitonic(dst, m_frames.tmp, size);
     }
+}
+
+void Sort::bitonic(
+    Quad &dst, const Quad &src) {
+    int size = m_frames.sort_texture.width*m_frames.sort_texture.height;
+    this->bitonic(dst, src, size);
+}
+
+void Sort::bitonic4(Quad &dst, const Quad &src) {
+    IVec2 tex_dimensions2d {.ind{
+        (int)src.width(), (int)src.height()}};
+    int size = m_frames.sort_texture.width*m_frames.sort_texture.height;
+    dst.draw(
+    m_programs.bitonic_sort.size4,
+    {
+        {"tex", &src},
+        {"texDimensions2D", tex_dimensions2d},
+        {"flipOrderSize", (int)size},
+        // Comparison parameters.
+        {"comparisonMethod", m_comparison_method},
+        {"compareStartPoint", m_params.distance.origin},
+        {"gridOfCellsDimensions", m_params.cells.grid_dimensions},
+        {"gridOfCellsOrigin", m_params.cells.grid_origin},
+        {"cellDimensions", m_params.cells.dimensions}
+    }
+);
 }
 
 void Sort::bitonic(

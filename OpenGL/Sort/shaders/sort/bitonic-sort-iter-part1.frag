@@ -16,14 +16,14 @@ a second stage is required to finish this step.
 
 References:
 
-Kipfer P., Westermann R., "Improved GPU Sorting,"
+P. Kipfer, R. Westermann, "Improved GPU Sorting,"
 in GPU Gems 2, ch 46.
-https://developer.nvidia.com/gpugems/gpugems2/
+Available: https://developer.nvidia.com/gpugems/gpugems2/
 part-vi-simulation-and-numerical-algorithms/
 chapter-46-improved-gpu-sorting
 
-"Bitonic Sort," in Wikipedia.
-https://en.wikipedia.org/wiki/Bitonic_sorter
+"Bitonic Sort." Wikipedia.com.
+Available: https://en.wikipedia.org/wiki/Bitonic_sorter
 
 */
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
@@ -186,6 +186,7 @@ void main() {
     sort2A(eHigh, eLow, e, eNext);
     sort2B(oHigh, oLow, o, oLast);
     // When orderIndex % 2 == 0, go from low to high
+
     if (isDivisibleBy2(orderIndex) && isDivisibleBy2(blockIndex))
         fragColor = eLow;
     else if (isDivisibleBy2(orderIndex) && !isDivisibleBy2(blockIndex))
