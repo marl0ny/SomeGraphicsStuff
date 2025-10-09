@@ -358,7 +358,7 @@ createScalarParameterSlider(controls, 10, "Adaptive time step reduction agressiv
 createLabel(controls, 12, "Actual time step", "");
 createLineDivider(controls);
 createLabel(controls, 14, "Lennard-Jones Configuration", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createLabel(controls, 16, "σ (related to particle size) = 0.0075", "");
+createLabel(controls, 16, "σ (intuitively the particle's 'size') = 0.0075", "");
 createScalarParameterSlider(controls, 17, "ε (controls strength of inter-particle interaction)", "float", {'value': 20000000.0, 'min': 20000.0, 'max': 20000000.0, 'step': 10000.0});
 createLineDivider(controls);
 createScalarParameterSlider(controls, 19, "Gravitational force", "float", {'value': -10000000.0, 'min': -20000000.0, 'max': 0.0, 'step': 1000.0});

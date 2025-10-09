@@ -493,6 +493,7 @@ class Quad {
     void set_pixels(float *arr);
     std::vector<float> get_float_pixels();
     std::vector<float> get_float_pixels(IVec4 viewport);
+    void fill_array_with_contents(float *arr) const;
     std::vector<uint8_t> get_byte_pixels();
     std::vector<uint8_t> get_byte_pixels(IVec4 viewport);
     ~Quad();

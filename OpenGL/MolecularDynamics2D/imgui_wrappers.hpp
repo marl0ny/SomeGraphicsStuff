@@ -74,7 +74,7 @@ void imgui_controls(void *void_params) {
     ImGui::Text("Actual time step (dtLabel)");
     ImGui::Text("--------------------------------------------------------------------------------");
     ImGui::Text("Lennard-Jones Configuration");
-    ImGui::Text("σ (related to particle size) = 0.0075");
+    ImGui::Text("σ (intuitively the particle's 'size') = 0.0075");
     if (ImGui::SliderFloat("ε (controls strength of inter-particle interaction)", &params->epsilon, 20000.0, 20000000.0))
            s_sim_params_set(params->EPSILON, params->epsilon);
     ImGui::Text("--------------------------------------------------------------------------------");
