@@ -28,13 +28,14 @@
                     display: grid; grid-template-rows: repeat(2, auto); gap: 20px;
                 }
                 .inner-div1 {
-                    grid-row: 2;
+                    grid-row: 2; overflow-y: scroll;
                 }
                 .inner-div2 {
                     grid-row: 1; overflow-y: scroll;
                 }
                 .controls-div {
-                    overflow-y: scroll; max-width: 90%; margin-left: 8%; margin-right: 8%;
+                    overflow-y: scroll; overflow-x: hidden;
+                    max-width: 86%; margin-left: 8%; margin-right: 8%;
                 }
             }
         </style>
@@ -42,7 +43,7 @@
     <body class="body-style">
         <!--<h3 style="color:white; text-align: center;">Box of springs</h3>!-->
         <div class="outer-div">
-            <div class="inner-div1">
+            <div class="inner-div1" id="inner-div1">
                 <div class="controls-div" id="controls"></div>
             </div>
             <div class="inner-div2">
@@ -73,18 +74,30 @@
                 e.style['background-color'] = `rgba(75, 75, 75)`;
         }
 
+        let gOnMobile = 
+            (window.navigator.userAgent.includes('iPhone') ||
+             window.navigator.userAgent.includes('Android') ||
+             window.navigator.userAgent.includes('Mobile')
+            );
+
+        function isOnMobile() {
+            return gOnMobile;
+        }
 
         /* Adjust the controls div height to be 95 % the height
         of the client if the client width is greater than the client
         height (landscape mode). This takes as parameters the client width
         and height. Else make its width 84 % of the client's screen. */
         function adjustControlsDimensions(width, height) {
-            if (width > height)
+            if (width >= height)
                 document.getElementById("controls").style.maxHeight 
-                    = `${Number.parseInt(0.95*height)}`;
-            if (height >= width)
+                    = `${Number.parseInt(0.95*height)}px`;
+            if (height > width) {
+                document.getElementById("inner-div1").style.maxHeight
+                    = `${Number.parseInt(height - 0.95*width)}px`
                 document.getElementById("controls").style.maxWidth
-                        = `${Number.parseInt(0.84*width)}`;
+                        = `${Number.parseInt(0.84*width)}px`;
+            }
         }
 
         var canvas = document.getElementById('canvas');

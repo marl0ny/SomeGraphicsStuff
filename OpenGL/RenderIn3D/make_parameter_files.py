@@ -33,6 +33,9 @@ function createScalarParameterSlider(
     controls.appendChild(document.createElement("br"));
     controls.appendChild(slider);
     controls.appendChild(document.createElement("br"));
+    slider.style.touchAction = 'none';
+    if (isOnMobile())
+        controls.appendChild(document.createElement("br"));
     slider.addEventListener("input", e => {
         let valueF = Number.parseFloat(e.target.value);
         let valueI = Number.parseInt(e.target.value);
@@ -104,6 +107,7 @@ function createVectorParameterSliders(
         slider.value = spec.value[i];
         controls.appendChild(slider);
         controls.appendChild(document.createElement("br"));
+        slider.style.touchAction = 'none';
         slider.addEventListener("input", e => {
             let valueF = Number.parseFloat(e.target.value);
             let valueI = Number.parseInt(e.target.value);
@@ -124,6 +128,8 @@ function createVectorParameterSliders(
             }
         });
     }
+    if (isOnMobile())
+        controls.appendChild(document.createElement("br"));
 };
 
 function createSelectionList(
