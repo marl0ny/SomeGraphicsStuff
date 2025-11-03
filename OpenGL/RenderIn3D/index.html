@@ -1,10 +1,25 @@
 <!DOCTYPE html>
-<meta charset="utf-8"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <html>
     <head>
+        <!--
+			Originally, I had numerous issues trying to get consistent and proper scaling
+			on mobile devices. To fix this, it turns out that the viewport throught the meta tag 
+			needs to be explicitly set to use the device's screen width,
+			as this is not done by defualt. 
+			As well as this, some browser specific adjustments need to be turned off.
+			I personally found this blog post by S. Sutoris helpful:
+			https://www.rismosch.com/article?id=css-on-mobile-and-the-most-important-header-tag
+			And of course I looked at the MDN documentation:
+			https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta/name/viewport
+		-->
         <style>
             .body-style {
-                font-family: Arial; background-color: rgb(0, 0, 0);
+                font-family: Arial;
+                background-color: rgb(0, 0, 0);
+                -moz-text-size-adjust: none; 
+                text-size-adjust: none;
             }
             h3 {font-family:Arial, Helvetica, sans-serif; }
             label {font-family:Arial, Helvetica, sans-serif; color: white; }
