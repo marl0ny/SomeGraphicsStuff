@@ -1,6 +1,6 @@
 # A Simple Volumetric Render
 
-3D visualization of functions who take as input values in a 3D cubical domain, and output real or complex values. The output is visualized using [domain colouring]() techniques. These functions can be selected through a dropdown or defined by the user through a text entry box.
+3D visualization of functions who take as input values in a 3D cubical domain, and output real or complex values. The output is visualized using [domain colouring](https://en.wikipedia.org/wiki/Domain_coloring) techniques. These functions can be selected through a dropdown or defined by the user through a text entry box.
 
 ## References
 

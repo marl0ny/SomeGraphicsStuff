@@ -158,6 +158,9 @@ Programs::Programs() {
     this->zero_boundaries_3d = Quad::make_program_from_path(
         "./shaders/util/zero-boundaries-3d.frag"
     );
+    this->modify_boundaries = Quad::make_program_from_path(
+        "./shaders/vol-render/modify-boundaries.frag"
+    );
 
 }
 
@@ -443,11 +446,15 @@ const RenderTarget &VolumeRender
     // //     this->frames.reset_data(src_data_dimensions);
     // // }
     this->frames.data_half_precision.draw(
+        // this->programs.modify_boundaries,
         this->programs.zero_boundaries_3d,
+        // this->programs.copy,
         {
             {"tex", &src_data},
             {"texelDimensions2D", this->data_texel_dimensions2d},
-            {"texelDimensions3D", this->data_texel_dimensions3d}
+            {"texelDimensions3D", this->data_texel_dimensions3d},
+            {"viewScale", float(rot_scale)},
+            {"rotation", rotation}
         }
     );
     gradient(

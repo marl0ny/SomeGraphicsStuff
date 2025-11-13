@@ -1,9 +1,5 @@
-/* The attribute or input uvIndex contains the 2D coordinates represetation
-of the volume render frame, which is then converted to 3D coordinates
-and manipulated using the other uniforms.
-It is also directly passed to the fragment shader as the varying or
-out variable UV, so that it can be used to sample the volume data which
-is stored in a 2D texture format. */
+/* For the 3D array data that's stored in the source texture,
+    set those values along the 3D array boundaries to zero. */
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
 #define texture2D texture
 #else
@@ -13,24 +9,23 @@ is stored in a 2D texture format. */
 #if (__VERSION__ > 120) || defined(GL_ES)
 precision highp float;
 #endif
-
+    
 #if __VERSION__ <= 120
-attribute vec2 uvIndex;
 varying vec2 UV;
+#define fragColor gl_FragColor
 #else
-in vec2 uvIndex;
-out vec2 UV;
+in vec2 UV;
+out vec4 fragColor;
 #endif
-
-#define quaternion vec4
-
-uniform vec4 debugRotation;
-uniform bool debugShow2DTexture;
-uniform float scale;
 
 uniform ivec3 texelDimensions3D;
 uniform ivec2 texelDimensions2D;
+uniform vec4 rotation;
+uniform float viewScale;
 
+uniform sampler2D tex;
+
+#define quaternion vec4
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -42,7 +37,7 @@ quaternion mul(quaternion q1, quaternion q2) {
 }
 
 quaternion conj(quaternion r) {
-    return quaternion(-r.x, -r.y, -r.z, r.w);
+    return vec4(-r.x, -r.y, -r.z, r.w);
 }
 
 quaternion rotate(quaternion x, quaternion r) {
@@ -51,16 +46,6 @@ quaternion rotate(quaternion x, quaternion r) {
     quaternion x2 = mul(rInv, xr);
     x2.w = 1.0;
     return x2; 
-}
-
-vec4 project(vec4 x) {
-    return vec4(x.x, x.y, 0.0, 1.0);
-    /* vec4 y;
-    y[0] = x[0]*5.0/(x[2] + 5.0);
-    y[1] = x[1]*5.0/(x[2] + 5.0);
-    y[2] = x[2];
-    y[3] = 1.0;
-    return y;*/
 }
 
 vec3 to3DTextureCoordinates(vec2 uv) {
@@ -79,12 +64,30 @@ vec3 to3DTextureCoordinates(vec2 uv) {
 }
 
 void main() {
-    if (debugShow2DTexture) {
-        gl_Position = vec4(2.0*(uvIndex - vec2(0.5, 0.5)), 0.0, 1.0);
-        return;
-    }
-    UV = uvIndex.xy;
-    vec4 viewPos = vec4(to3DTextureCoordinates(UV), 1.0)
-                   - vec4(0.5, 0.5, 0.5, 0.0);
-    gl_Position = project(2.0*scale*rotate(viewPos, debugRotation));
-}
+    vec3 uvw = to3DTextureCoordinates(UV);
+    vec3 dimensions3D = vec3(
+        float(texelDimensions3D[0]),
+        float(texelDimensions3D[1]),
+        float(texelDimensions3D[2])
+    );
+    fragColor = texture2D(tex, UV);
+    if (uvw[0] < 1.0/dimensions3D[0] || 
+        uvw[0] > (dimensions3D[0] - 1.0)/dimensions3D[0] ||
+        uvw[1] <  1.0/dimensions3D[1] || 
+        uvw[1] > (dimensions3D[1] - 1.0)/dimensions3D[1] ||
+        uvw[2] <  1.0/dimensions3D[2] || 
+        uvw[2] > (dimensions3D[2] - 1.0)/dimensions3D[2])
+        fragColor = vec4(0.0);
+    vec4 viewPosition 
+        = vec4(uvw - vec3(0.5), 1.0);
+    float viewScaleAdj = viewScale;
+    vec3 r = rotate(viewPosition, rotation).xyz*viewScaleAdj
+         + vec3(0.5);
+    if (r[0] < 1.0/dimensions3D[0] || 
+        r[0] > (dimensions3D[0] - 1.0)/dimensions3D[0] ||
+        r[1] <  1.0/dimensions3D[1] || 
+        r[1] > (dimensions3D[1] - 1.0)/dimensions3D[1] ||
+        r[2] <  1.0/dimensions3D[2] || 
+        r[2] > (dimensions3D[2] - 1.0)/dimensions3D[2])
+        fragColor = vec4(0.0);
+} 

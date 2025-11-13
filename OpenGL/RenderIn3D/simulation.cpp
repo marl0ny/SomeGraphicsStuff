@@ -133,7 +133,7 @@ const RenderTarget &Simulation
             return t;
         this->m_frames.render_tmp.draw(
             m_programs.blur,
-            {{"tex", &t}, 
+            {{"tex", RenderTargetRefContainer{t}}, 
              {"textureDimensions2D", m_frames.render.texture_dimensions()},
              {"orientation", int(0)},
             {"size", int(params.blurSize)}},
@@ -141,7 +141,7 @@ const RenderTarget &Simulation
         );
         this->m_frames.render.draw(
             m_programs.blur,
-            {{"tex", &m_frames.render_tmp}, 
+            {{"tex", RenderTargetRefContainer{m_frames.render_tmp}}, 
              {"textureDimensions2D", m_frames.render.texture_dimensions()},
              {"orientation", int(1)},
             {"size", int(params.blurSize)}},

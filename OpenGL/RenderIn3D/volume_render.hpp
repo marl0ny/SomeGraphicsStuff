@@ -13,6 +13,7 @@ namespace volume_render {
         uint32_t sample_data_show_volume;
         uint32_t cube_outline;
         uint32_t zero_boundaries_3d;
+        uint32_t modify_boundaries;
         Programs();
     };
 
