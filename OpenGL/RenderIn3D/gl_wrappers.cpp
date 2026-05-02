@@ -20,6 +20,7 @@ introduction to OpenGL without any prior graphics knowledge.
 #include <GLES3/gl32.h>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 size_t s_frames_count = 0;
 
@@ -177,11 +178,24 @@ Quaternion Quaternion::operator*(const Quaternion &q) const {
     };
 }
 
+Quaternion Quaternion::operator*(float f) const {
+    return {
+        .real=this->real*f,
+        .i=this->i*f,
+        .j=this->j*f,
+        .k=this->k*f
+    };
+}
+
 Quaternion Quaternion::operator/(double val) const {
     return {
         .real=real/(float)val, 
         .i=i/(float)val, .j=j/(float)val, .k=k/(float)val
     };
+}
+
+Quaternion operator*(float f, const Quaternion &q) {
+    return q*f;
 }
 
 /* Assume rotation is normalized.

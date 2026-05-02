@@ -9,7 +9,6 @@ namespace planar_slice {
 class PlanarSlices {
     WireFrame m_planar_slice;
     WireFrame m_quartered_outline;
-    RenderTarget m_render_target;
     uint32_t m_planar_slice_program;
     uint32_t m_quartered_square_program;
     enum SLICE_INDICES {XY_INDEX=0, YX_INDEX=1, XZ_INDEX=2};
@@ -24,7 +23,8 @@ class PlanarSlices {
     //     Quaternion rotation, int plane_slice);
     public:
     PlanarSlices(const TextureParams &);
-    const RenderTarget& view(
+    void view(
+        RenderTarget &dst,
         const Quad &src, IVec3 id_3d,
         Quaternion rotate,
         float scale,

@@ -1,11 +1,12 @@
 CPP_SOURCES = simulation.cpp \
-	volume_render.cpp planar_slice.cpp arrows3d.cpp \
+	volume_render.cpp planar_slice.cpp arrows3d.cpp cube_outline.cpp \
 	main.cpp \
 	interactor.cpp gl_wrappers.cpp glfw_window.cpp parse.cpp user_edit_glsl.cpp matrix.cpp
 OBJECTS = simulation.o \
-	volume_render.o planar_slice.o arrows3d.o \
+	volume_render.o planar_slice.o arrows3d.o cube_outline.o \
 	main.o \
 	interactor.o gl_wrappers.o glfw_window.o parse.o user_edit_glsl.o matrix.o
+SHADERS = ./shaders/gradient/gradient3d.frag ./shaders/slices/planar-slice.vert ./shaders/slices/quartered-square-outline.vert ./shaders/vol-render/sample-display.frag ./shaders/vol-render/display.frag ./shaders/vol-render/sample.frag ./shaders/vol-render/color-height-map1.frag ./shaders/vol-render/domain-coloring.frag ./shaders/vol-render/gray-scale.frag ./shaders/vol-render/modify-boundaries.frag ./shaders/vol-render/uniform-color-scale.frag ./shaders/vol-render/display.vert ./shaders/util/copy.frag ./shaders/util/scale.frag ./shaders/util/zero-boundaries-3d.frag ./shaders/util/not-used/surface/single-color.frag ./shaders/util/not-used/surface/mag-color-map.frag ./shaders/util/not-used/surface/surface.vert ./shaders/util/not-used/surface/domain-coloring.frag ./shaders/util/not-used/domain-color.frag ./shaders/util/not-used/mag-color-map.frag ./shaders/util/not-used/flip-horizontal.frag ./shaders/util/not-used/sub-window.frag ./shaders/util/uniform-color.frag ./shaders/util/blur.frag ./shaders/util/slice-of-3d.frag ./shaders/cube-outline/cube-outline.vert ./shaders/arrows/arrows3d.vert
 
 SHELL = /bin/bash
 FLAGS = -O2 -g
@@ -40,7 +41,7 @@ all: ${TARGET}
 ${TARGET}: ${OBJECTS}
 	${CPP_COMPILE} ${FLAGS} -o $@ ${OBJECTS} ${LIBS}
 
-${WEB_TARGET}: ${SOURCES} ${GENERATED_DEPENDENCIES}
+${WEB_TARGET}: ${SOURCES} ${GENERATED_DEPENDENCIES} ${SHADERS}
 	emcc -lembind -o $@ ${SOURCES} ${INCLUDE} -std=c++17 -O3 -v -s WASM=2 -s USE_GLFW=3 -s MAX_WEBGL_VERSION=2 \
 	-s ALLOW_MEMORY_GROWTH=1 -s LLD_REPORT_UNDEFINED --embed-file shaders
 

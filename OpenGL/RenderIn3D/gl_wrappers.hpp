@@ -77,8 +77,11 @@ struct Quaternion {
     Quaternion inverse() const;
     static Quaternion rotator(float angle, const Vec3 &axis);
     Quaternion operator*(const Quaternion &) const;
+    Quaternion operator*(float f) const;
     Quaternion operator/(double val) const;
 };
+
+Quaternion operator*(float, const Quaternion &);
 
 Quaternion rotate(const Quaternion &q, const Quaternion &rotation);
 

@@ -22,7 +22,8 @@ function createScalarParameterSlider(
     let label = document.createElement("label");
     label.for = spec['id']
     label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    label.textContent = `${sliderLabelName} = ${spec.value}`
+    label.textContent = `${sliderLabelName} = ${spec.value}`;
+    label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
     let slider = document.createElement("input");
     slider.type = "range";
@@ -30,6 +31,7 @@ function createScalarParameterSlider(
     for (let k of Object.keys(spec))
         slider[k] = spec[k];
     slider.value = spec.value;
+    slider.id = `slider-${enumCode}`;
     controls.appendChild(document.createElement("br"));
     controls.appendChild(slider);
     controls.appendChild(document.createElement("br"));
@@ -90,11 +92,29 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
 
 let gVecParams = {};
 
+function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
+    let slider = document.getElementById(`slider-${enumCode}`);
+    let label = document.getElementById(`slider-label-${enumCode}`);
+    slider.value = value;
+    label.textContent 
+       = `${sliderLabelName} = ${value}`;
+}
+
+function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, value) {
+    let slider = document.getElementById(`slider-${enumCode}-${index}`);
+    let label = document.getElementById(`slider-label-${enumCode}`);
+    slider.value = value;
+    gVecParams[sliderLabelName][Number.parseInt(index)] = value;
+    label.textContent 
+        = `${sliderLabelName} = (${gVecParams[sliderLabelName]})`;
+}
+
 function createVectorParameterSliders(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
     label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    label.textContent = `${sliderLabelName} = (${spec.value})`
+    label.textContent = `${sliderLabelName} = (${spec.value})`;
+    label.id = `slider-label-${enumCode}`;
     gVecParams[sliderLabelName] = spec.value;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -105,6 +125,7 @@ function createVectorParameterSliders(
         for (let k of Object.keys(spec))
             slider[k] = spec[k][i];
         slider.value = spec.value[i];
+        slider.id = `slider-${enumCode}-${i}`;
         controls.appendChild(slider);
         controls.appendChild(document.createElement("br"));
         slider.style.touchAction = 'none';
@@ -779,10 +800,21 @@ def write_imgui_controls(
     with open(dst_file_name, "w") as f:
         f.write(file_contents)
 
-with open('parameters.json', 'r') as f:
-    parameters = json.loads(''.join([line for line in f]))
+def print_shaders():
+    import glob
+    shaders = glob.glob('./shaders/**', recursive=True)
+    print('SHADERS =', end=' ')
+    for e in shaders:
+        if e.endswith('.frag') or e.endswith('.vert'):
+            print(e, end=' ')
+    print()
 
-write_sliders_js(parameters, "sliders.js")
-write_imgui_controls(
-    parameters, "sim_2d", "parameters.hpp", "imgui_wrappers.hpp")
-write_typed_sim_parameters_hpp(parameters, "sim_2d", "parameters.hpp")
+if __name__ == '__main__':
+
+    with open('parameters.json', 'r') as f:
+        parameters = json.loads(''.join([line for line in f]))
+
+    write_sliders_js(parameters, "sliders.js")
+    write_imgui_controls(
+        parameters, "sim_2d", "parameters.hpp", "imgui_wrappers.hpp")
+    write_typed_sim_parameters_hpp(parameters, "sim_2d", "parameters.hpp")

@@ -11,7 +11,7 @@ namespace volume_render {
         uint32_t gradient;
         uint32_t show_volume;
         uint32_t sample_data_show_volume;
-        uint32_t cube_outline;
+        // uint32_t cube_outline;
         uint32_t zero_boundaries_3d;
         uint32_t modify_boundaries;
         Programs();
@@ -29,9 +29,9 @@ namespace volume_render {
         Quad gradient_data_half_precision;
         Quad volume;
         Quad volume_grad;
-        RenderTarget view;
+        // RenderTarget view;
         WireFrame wire_frame;
-        WireFrame cube_outline;
+        // WireFrame cube_outline;
         public:
         void reset_data(IVec2 data_dimensions2d);
         void reset_volume(
@@ -73,11 +73,20 @@ namespace volume_render {
             IVec3 volume_dimensions3d);
         void reset_data_dimensions(IVec3 data_dimensions3d);
         void reset_volume_dimensions(IVec3 volume_dimensions3d);
-        const RenderTarget &view(
-            const Quad &src_data, float scale,
+        void reset_filtering(unsigned int filtering);
+        // const RenderTarget &view(
+        //     const Quad &src_data, float scale,
+        //     Quaternion rotation,
+        //     float alpha_brightness=1.0, float color_brightness=1.0,
+        //     Uniforms additional_uniforms={});
+        void view(
+            RenderTarget &dst, const Quad &src_data, 
+            float scale,
             Quaternion rotation,
-            float alpha_brightness=1.0, float color_brightness=1.0,
-            Uniforms additional_uniforms={});
+            float alpha_brightness=1.0,
+            float color_brightness=1.0,
+            Uniforms additional_uniforms={}
+        );
         const Quad &get_gradient_half_precision() const;
         const Quad &volume_quad() const;
         const Quad &volume_gradient_quad() const;

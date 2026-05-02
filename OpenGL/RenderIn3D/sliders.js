@@ -8,19 +8,20 @@ const ENUM_CODES = {
     VISUALIZATION_SELECT: 6,
     VOL_RENDER_LINE_DIV: 7,
     VOLUME_RENDER_TITLE: 8,
-    ALPHA_BRIGHTNESS: 9,
-    COLOR_BRIGHTNESS: 10,
-    VOLUME_TEXEL_DIMENSIONS3_D: 11,
-    NOISE_SCALE: 12,
-    APPLY_BLUR: 13,
-    BLUR_SIZE: 14,
-    PLANAR_SLICES_LINE_DIV: 15,
-    PLANAR_SLICES_LABEL: 16,
-    PLANAR_NORM_COORD_OFFSETS: 17,
-    ARROWS3_D_LINE_DIV: 18,
-    ARROWS3_D_LABEL: 19,
-    ARROW_DIMENSIONS: 20,
-    DUMMY_VALUE: 21,
+    USE_LINEAR: 9,
+    ALPHA_BRIGHTNESS: 10,
+    COLOR_BRIGHTNESS: 11,
+    VOLUME_TEXEL_DIMENSIONS3_D: 12,
+    NOISE_SCALE: 13,
+    APPLY_BLUR: 14,
+    BLUR_SIZE: 15,
+    PLANAR_SLICES_LINE_DIV: 16,
+    PLANAR_SLICES_LABEL: 17,
+    PLANAR_NORM_COORD_OFFSETS: 18,
+    ARROWS3_D_LINE_DIV: 19,
+    ARROWS3_D_LABEL: 20,
+    ARROW_DIMENSIONS: 21,
+    DUMMY_VALUE: 22,
 };
 
 function createScalarParameterSlider(
@@ -28,7 +29,8 @@ function createScalarParameterSlider(
     let label = document.createElement("label");
     label.for = spec['id']
     label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    label.textContent = `${sliderLabelName} = ${spec.value}`
+    label.textContent = `${sliderLabelName} = ${spec.value}`;
+    label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
     let slider = document.createElement("input");
     slider.type = "range";
@@ -36,6 +38,7 @@ function createScalarParameterSlider(
     for (let k of Object.keys(spec))
         slider[k] = spec[k];
     slider.value = spec.value;
+    slider.id = `slider-${enumCode}`;
     controls.appendChild(document.createElement("br"));
     controls.appendChild(slider);
     controls.appendChild(document.createElement("br"));
@@ -96,11 +99,29 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
 
 let gVecParams = {};
 
+function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
+    let slider = document.getElementById(`slider-${enumCode}`);
+    let label = document.getElementById(`slider-label-${enumCode}`);
+    slider.value = value;
+    label.textContent 
+       = `${sliderLabelName} = ${value}`;
+}
+
+function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, value) {
+    let slider = document.getElementById(`slider-${enumCode}-${index}`);
+    let label = document.getElementById(`slider-label-${enumCode}`);
+    slider.value = value;
+    gVecParams[sliderLabelName][Number.parseInt(index)] = value;
+    label.textContent 
+        = `${sliderLabelName} = (${gVecParams[sliderLabelName]})`;
+}
+
 function createVectorParameterSliders(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
     label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    label.textContent = `${sliderLabelName} = (${spec.value})`
+    label.textContent = `${sliderLabelName} = (${spec.value})`;
+    label.id = `slider-label-${enumCode}`;
     gVecParams[sliderLabelName] = spec.value;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -111,6 +132,7 @@ function createVectorParameterSliders(
         for (let k of Object.keys(spec))
             slider[k] = spec[k][i];
         slider.value = spec.value[i];
+        slider.id = `slider-${enumCode}-${i}`;
         controls.appendChild(slider);
         controls.appendChild(document.createElement("br"));
         slider.style.touchAction = 'none';
@@ -344,22 +366,23 @@ function createLineDivider(controls) {
 let controls = document.getElementById('controls');
 createScalarParameterSlider(controls, 1, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
 createVectorParameterSliders(controls, 2, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
-createVectorParameterSliders(controls, 3, "Discretization dimensions", "IVec3", {'value': [128, 128, 128], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createVectorParameterSliders(controls, 3, "Discretization dimensions", "IVec3", {'value': [64, 64, 64], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
 createSelectionList(controls, 4, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
 createEntryBoxes(controls, 5, "Enter function f(x, y, z)", 1, []);
 createSelectionList(controls, 6, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field"]);
 createLineDivider(controls);
 createLabel(controls, 8, "Volume Render Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createScalarParameterSlider(controls, 9, "Alpha brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createScalarParameterSlider(controls, 10, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createVectorParameterSliders(controls, 11, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createScalarParameterSlider(controls, 12, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
-createCheckbox(controls, 13, "Apply blur", true);
-createScalarParameterSlider(controls, 14, "Size", "int", {'value': 1, 'min': 0, 'max': 10});
+createCheckbox(controls, 9, "Linear interpolation", false);
+createScalarParameterSlider(controls, 10, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createScalarParameterSlider(controls, 11, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createVectorParameterSliders(controls, 12, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createScalarParameterSlider(controls, 13, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
+createCheckbox(controls, 14, "Apply blur", true);
+createScalarParameterSlider(controls, 15, "Size", "int", {'value': 5, 'min': 0, 'max': 10});
 createLineDivider(controls);
-createLabel(controls, 16, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 17, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createLabel(controls, 17, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createVectorParameterSliders(controls, 18, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 createLineDivider(controls);
-createLabel(controls, 19, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 20, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createLabel(controls, 20, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
+createVectorParameterSliders(controls, 21, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
 

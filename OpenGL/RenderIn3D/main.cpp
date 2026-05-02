@@ -68,6 +68,12 @@ void simulation_ui_interface_handler(
                 user_text_edit.queue_current();
             if (c == params.BRIGHTNESS)
                 user_text_edit.queue_current();
+            if (c == params.USE_LINEAR) {
+                if (u.b32 == true)
+                    sim.reset_volume_filtering(GL_LINEAR);
+                else
+                    sim.reset_volume_filtering(GL_NEAREST);
+            }
             params.set(c, u);
         };
         /* Get those parameters of the Parameters struct that can be

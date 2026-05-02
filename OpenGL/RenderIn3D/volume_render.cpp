@@ -2,33 +2,6 @@
 
 using namespace volume_render;
 
-static std::vector<float> get_cube_outline_vertices_set_elements(
-    std::vector<int> &elements
-) {
-    std::vector<float> vertices {
-        -1.0, -1.0, -1.0, // 0 - bottom left
-        1.0, -1.0, -1.0, // 1 - bottom right
-        1.0, 1.0, -1.0, // 2 - upper right
-        -1.0, 1.0, -1.0, // 3 - upper left
-        -1.0, -1.0, 1.0, // 4
-        1.0, -1.0, 1.0, // 5
-        1.0, 1.0, 1.0, // 6
-        -1.0, 1.0, 1.0, // 7
-    };
-    elements = {
-        0, 1, 1, 2, 2, 3, 3, 0,
-        0, 4, 3, 7, 2, 6, 1, 5,
-        4, 5, 5, 6, 6, 7, 7, 4
-    };
-    // for (auto &e: elements) {
-    //     printf("%g ", vertices[3*e]);
-    //     printf("%g ", vertices[3*e + 1]);
-    //     printf("%g\n", vertices[3*e + 2]);
-    // }
-    return vertices;
-
-}
-
 #include <iostream>
 
 static std::vector<float> get_vertices_set_elements(
@@ -121,18 +94,6 @@ static WireFrame get_volume_render_wire_frame(
     );
 }
 
-static WireFrame get_cube_outline_wire_frame(
-) {
-    std::vector<int> elements{};
-    std::vector<float> vertices = get_cube_outline_vertices_set_elements(
-        elements);
-    return WireFrame(
-        {{"position", Attribute{
-                .size=3, .type=GL_FLOAT, .normalized=false,
-                .stride=0, .offset=0}}
-        }, vertices, elements, WireFrame::LINES);
-}
-
 Programs::Programs() {
     this->copy = Quad::make_program_from_path(
         "./shaders/util/copy.frag"
@@ -151,10 +112,10 @@ Programs::Programs() {
         "./shaders/vol-render/display.vert",
         "./shaders/vol-render/sample-display.frag"
     );
-    this->cube_outline = make_program_from_paths(
-        "./shaders/vol-render/cube-outline.vert",
-        "./shaders/util/uniform-color.frag"
-    );
+    // this->cube_outline = make_program_from_paths(
+    //     "./shaders/vol-render/cube-outline.vert",
+    //     "./shaders/util/uniform-color.frag"
+    // );
     this->zero_boundaries_3d = Quad::make_program_from_path(
         "./shaders/util/zero-boundaries-3d.frag"
     );
@@ -237,11 +198,11 @@ Frames::Frames(
     gradient_data_half_precision(data_f16),
     volume(volume_f16),
     volume_grad(volume_f32),
-    view(view_tex),
+    // view(view_tex),
     wire_frame(get_volume_render_wire_frame(
         volume_texel_dimensions2d,
-        volume_texel_dimensions3d)),
-    cube_outline(get_cube_outline_wire_frame())
+        volume_texel_dimensions3d))
+    // cube_outline(get_cube_outline_wire_frame())
  {
 
 }
@@ -318,7 +279,8 @@ static void sample_data(
     Quad &dst,
     const Quad &src_data,
     uint32_t sample_data_program,
-    float view_scale,
+    Vec3 pre_rotation_scale,
+    float post_rotation_scale,
     Quaternion rotation,
     IVec3 volume_texel_dimensions3d,
     IVec2 volume_texel_dimensions2d,
@@ -329,8 +291,9 @@ static void sample_data(
         sample_data_program,
         {
             {"tex", &src_data},
-            {"viewScale", float(view_scale)},
+            {"preRotationScale", pre_rotation_scale},
             {"rotation", rotation},
+            {"postRotationScale", post_rotation_scale},
             {"volumeTexelDimensions3D", volume_texel_dimensions3d},
             {"dataTexelDimensions3D", data_texel_dimensions3d},
             {"volumeTexelDimensions2D", volume_texel_dimensions2d},
@@ -415,14 +378,32 @@ void VolumeRender::reset_volume_dimensions(
     this->frames.reset_volume(volume_dimensions2d, volume_dimensions3d);
 }
 
+void VolumeRender::reset_filtering(unsigned int filtering) {
+    this->frames.volume_f16.min_filter = filtering;
+    this->frames.volume_f16.mag_filter = filtering;
+    this->frames.volume_f32.min_filter = filtering;
+    this->frames.volume_f32.mag_filter = filtering;
+    this->frames.data_f16.min_filter = filtering;
+    this->frames.data_f16.mag_filter = filtering;
+    this->frames.data_f32.min_filter = filtering;
+    this->frames.data_f32.mag_filter = filtering;
+    this->frames.view_tex.min_filter = filtering;
+    this->frames.view_tex.mag_filter = filtering;
+    this->frames.reset_data(this->data_texel_dimensions2d);
+    this->frames.reset_volume(
+        this->volume_texel_dimensions2d,
+        this->volume_texel_dimensions3d);
+    // this->frames.reset_view(this->view_dimensions);
+}
+
 enum BoundaryType {
     USE_TEXTURE_WRAPPING = 0,
     DIRICHLET=1, DIRICHLET_MASK=2
 };
 
 
-const RenderTarget &VolumeRender
-::view(
+void VolumeRender::view(
+    RenderTarget &dst,
     const Quad &src_data, float scale, Quaternion rotation,
     float alpha_brightness, float color_brightness,
     Uniforms additional_uniforms
@@ -436,8 +417,15 @@ const RenderTarget &VolumeRender
         max_z = (z > max_z)? z: max_z;
 
     }
-    float rot_scale = (scale > 1.0)?
-        scale: 1.0/std::max(max_x, std::max(max_y, max_z));
+    Vec3 sample_scale = Vec3{.x=1.0, 1.0, scale*max_z};
+    Vec3 display_scale = Vec3{.x=1.0, 1.0, 1.0};
+    if (scale*max_x < 1.0 && scale*max_y < 1.0) {
+        sample_scale.x = scale*max_x;
+        sample_scale.y = scale*max_y;
+        display_scale = Vec3{.x=scale*max_x, scale*max_y, 1.0};
+    }
+    // float rot_scale = (scale > 1.0)?
+    //     scale: 1.0/std::max(max_x, std::max(max_y, max_z));
     // IVec2 src_data_dimensions = {
     //     .ind{(int)src_data.width(), (int)src_data.height()}};
     // // if (src_data_dimensions[0] != this->data_texel_dimensions2d[0] ||
@@ -453,7 +441,6 @@ const RenderTarget &VolumeRender
             {"tex", &src_data},
             {"texelDimensions2D", this->data_texel_dimensions2d},
             {"texelDimensions3D", this->data_texel_dimensions3d},
-            {"viewScale", float(rot_scale)},
             {"rotation", rotation}
         }
     );
@@ -473,7 +460,8 @@ const RenderTarget &VolumeRender
         this->frames.volume,
         this->frames.data_half_precision,
         this->programs.sample_data,
-        rot_scale,
+        sample_scale,
+        scale,
         rotation,
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
@@ -484,17 +472,18 @@ const RenderTarget &VolumeRender
         this->frames.volume_grad,
         this->frames.gradient_data,
         this->programs.sample_data,
-        rot_scale,
+        sample_scale,
+        scale,
         rotation,
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
         this->data_texel_dimensions3d,
         this->data_texel_dimensions2d
     );
-    this->frames.view.clear();
+    // this->frames.view.clear();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    this->frames.view.draw(
+    /* dst.draw(
         this->programs.cube_outline,
         {
             {"rotation", rotation},
@@ -502,7 +491,7 @@ const RenderTarget &VolumeRender
             {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}}
         },
         this->frames.cube_outline
-    );
+    );*/
     // glDisable(GL_BLEND);
     Uniforms view_uniforms = {
         {"colorBrightness", color_brightness},
@@ -524,12 +513,11 @@ const RenderTarget &VolumeRender
         {"texelDimensions3D", this->volume_texel_dimensions3d});
     view_uniforms.insert({"debugRotation", this->debug_rotation});
     view_uniforms.insert({"debugShow2DTexture", int(0)});
-    view_uniforms.insert({"scale", float(scale/rot_scale)});
-    display_volume(this->frames.view, 
+    view_uniforms.insert({"scale", display_scale});
+    display_volume(dst, 
         this->programs.show_volume,
         view_uniforms,
         this->frames.wire_frame);
-    return this->frames.view;
 }
 
 const Quad &VolumeRender::get_gradient_half_precision() const {

@@ -18,6 +18,8 @@ in vec3 position;
 
 uniform float viewScale;
 uniform vec4 rotation;
+uniform bool usePerspectiveProjection;
+uniform ivec2 screenDimensions;
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -40,8 +42,20 @@ quaternion rotate(quaternion x, quaternion r) {
     return x2; 
 }
 
+vec4 project(vec4 x) {
+    vec4 y;
+    y[0] = x[0]*4.0/(x[2] + 4.0);
+    y[1] = float(screenDimensions[0])/float(screenDimensions[1])
+            *x[1]*4.0/(x[2] + 4.0);
+    y[2] = x[2]/4.0;
+    y[3] = 1.0;
+    return y;
+}
+
 void main() {
     vec3 r = rotate(quaternion(position, 1.0), 
                     rotation).xyz*viewScale;
     gl_Position = vec4(r, 1.0);
+    if (usePerspectiveProjection)
+        gl_Position = project(vec4(r, 1.0));
 }

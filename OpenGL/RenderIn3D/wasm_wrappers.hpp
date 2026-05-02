@@ -36,6 +36,43 @@ void edit_label_display(int c, std::string text_content) {
     #endif
 }
 
+#include <iostream>
+
+void edit_scalar_parameter_slider_display(
+    int c, std::string name, float value) {
+    std::string string_val = "";
+    string_val += "editScalarParameterSliderDisplay(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += "\"" + name + "\"";
+    string_val += ", ";
+    string_val += std::to_string(value);
+    string_val += ");";
+    std::cout << string_val << std::endl;;
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif
+}
+
+void edit_vector_parameter_slider_display(
+    int c, std::string name, int index, float value
+) {
+    std::string string_val = "";
+    string_val += "editVectorParameterSliderDisplay(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += "\"" + name + "\"";
+    string_val += ", ";
+    string_val += std::to_string(index);
+    string_val += ", ";
+    string_val += std::to_string(value);
+    string_val += ");";
+    std::cout << string_val << std::endl;;
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif  
+}
+
 void display_parameters_as_sliders(
     int c, std::set<std::string> variables, std::set<std::string> do_not_show={}) {
     for (auto &e: do_not_show)

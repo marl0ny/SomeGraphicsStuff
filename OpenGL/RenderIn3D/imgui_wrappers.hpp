@@ -113,6 +113,7 @@ void imgui_controls(void *void_params) {
     }
     ImGui::Text("--------------------------------------------------------------------------------");
     ImGui::Text("Volume Render Controls");
+    ImGui::Checkbox("Linear interpolation", &params->useLinear);
     if (ImGui::SliderFloat("Alpha brightness", &params->alphaBrightness, 0.0, 10.0))
            s_sim_params_set(params->ALPHA_BRIGHTNESS, params->alphaBrightness);
     if (ImGui::SliderFloat("Color brightness", &params->colorBrightness, 0.0, 10.0))

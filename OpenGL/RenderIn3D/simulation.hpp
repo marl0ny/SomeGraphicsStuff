@@ -13,6 +13,7 @@ struct Frames {
     TextureParams data_tex_params;
     Quad data, tmp;
     RenderTarget render_tmp;
+    RenderTarget render_tmp2;
     RenderTarget render;
     WireFrame quad_wire_frame;
     WireFrame arrows3d_frame;
@@ -28,6 +29,7 @@ struct Programs {
     // For arrows
     // unsigned int arrows3d;
     unsigned int gradient;
+    unsigned int cube_outline;
     Programs();
 };
 
@@ -54,6 +56,7 @@ class Simulation {
         const std::map<std::string, float> &uniforms);
     void reset_data_dimensions(IVec3 texel_dimensions_3d);
     void reset_volume_dimensions(IVec3 volume_dimensions_3d);
+    void reset_volume_filtering(unsigned int filtering);
 };
 
 #endif

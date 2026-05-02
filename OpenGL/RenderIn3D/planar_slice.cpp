@@ -80,8 +80,8 @@ static WireFrame get_planar_slice_wire_frame() {
 
 PlanarSlices::PlanarSlices(const TextureParams &tex_params):
     m_planar_slice(get_planar_slice_wire_frame()),
-    m_quartered_outline(get_quartered_square_outline_wire_frame()),
-    m_render_target(RenderTarget(tex_params))
+    m_quartered_outline(get_quartered_square_outline_wire_frame())
+    // m_render_target(RenderTarget(tex_params))
 {
     m_planar_slice_program = make_program_from_paths(
         "./shaders/slices/planar-slice.vert", 
@@ -253,7 +253,8 @@ Vec3 PlanarSlices::most_perpendicular_intersection(
     return intersection;
 }
 
-const RenderTarget& PlanarSlices::view(
+void PlanarSlices::view(
+    RenderTarget &dst,
     const Quad &src, IVec3 id_3d, 
     Quaternion rotate, float scale,
     int offset_xy, int offset_yz, int offset_xz,
@@ -273,7 +274,7 @@ const RenderTarget& PlanarSlices::view(
     auto offset_vectors = get_offset_vectors(
         id_3d, offset_xy, offset_yz, offset_xz, true);
     auto s = get_planar_vectors(rotations[PlanarSlices::XY_INDEX]);
-    m_render_target.clear();
+    // m_render_target.clear();
     { 
         // Enables _({GL_DEPTH_TEST, GL_BLEND});
         glEnable(GL_DEPTH_TEST);
@@ -285,9 +286,9 @@ const RenderTarget& PlanarSlices::view(
         // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         // glDepthFunc(GL_LESS);
         
-        IVec2 screen_dimensions = m_render_target.texture_dimensions();
+        IVec2 screen_dimensions = dst.texture_dimensions();
         for (int slice_index = 0; slice_index < 3; slice_index++) {
-            m_render_target.draw(
+            dst.draw(
                 m_planar_slice_program,
                 {
                     {"scale", {scale}},
@@ -307,7 +308,7 @@ const RenderTarget& PlanarSlices::view(
                 },
                 m_planar_slice
             );
-            m_render_target.draw(
+            dst.draw(
                 m_quartered_square_program,
                 {
                     // {"cursorPosition", {Vec3{.ind={-1.0, 1.0, 0.0}}}},
@@ -325,5 +326,4 @@ const RenderTarget& PlanarSlices::view(
         // glDisable(GL_BLEND);
         // glDisable(GL_DEPTH_TEST);
     }
-    return m_render_target;
 }

@@ -29,6 +29,7 @@ uniform ivec2 texelDimensions2D;
 uniform ivec3 texelDimensions3D;
 uniform ivec2 arrowsDimensions2D;
 uniform ivec3 arrowsDimensions3D;
+uniform bool useOrthogonalProjection;
 
 
 quaternion mul(quaternion q1, quaternion q2) {
@@ -167,10 +168,12 @@ void main() {
     direction.z = -direction.z;
     if (length(direction) > maxLength)
         direction = normalize(direction)*maxLength;
-    vec3 arrowRelPoint = arrowScale*direction - vec3(0.0, 0.0, 0.1);
+    vec3 arrowRelPoint = arrowScale*direction; // - vec3(0.0, 0.0, 0.1);
     vec4 position2 = scale*(vec4(arrowPos - vec3(0.5), 0.0) 
                             + vec4(arrowRelPoint, 0.0));
     vec4 finalPosition = rotate(position2, rotation) + vec4(translate, 0.0);
     gl_Position = project(finalPosition);
+    if (useOrthogonalProjection)
+        gl_Position = finalPosition;
     
 }

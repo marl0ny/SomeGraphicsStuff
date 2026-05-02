@@ -92,22 +92,25 @@ view(
     IVec3 tex_d3d = src_texel_dimensions3d;
     IVec2 tex_d2d = get_2d_from_3d_dimensions(tex_d3d);
     IVec2 arrows_2d = get_2d_from_3d_dimensions(m_frames.dimensions3d);
+    Uniforms uniforms = {
+        {"vecTex", &src},
+        {"arrowScale", float(1.0)},
+        {"maxLength", float(0.1)},
+        {"rotation", rotation},
+        {"translate", Vec3{.x=0.0, .y=0.0, .z=0.0}},
+        {"scale", float(scale)},
+        {"screenDimensions", dst.texture_dimensions()},
+        {"arrowsDimensions3D", m_frames.dimensions3d},
+        {"arrowsDimensions2D", arrows_2d},
+        {"texelDimensions3D", tex_d3d},
+        {"texelDimensions2D", tex_d2d},
+        {"color", Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}
+    };
+    for (auto &e: additional_uniforms)
+        uniforms.insert(e);
     dst.draw(
         m_programs.arrows3d, 
-        {
-            {"vecTex", &src},
-            {"arrowScale", float(1.0)},
-            {"maxLength", float(0.1)},
-            {"rotation", rotation},
-            {"translate", Vec3{.x=0.0, .y=0.0, .z=0.0}},
-            {"scale", float(scale)},
-            {"screenDimensions", dst.texture_dimensions()},
-            {"arrowsDimensions3D", m_frames.dimensions3d},
-            {"arrowsDimensions2D", arrows_2d},
-            {"texelDimensions3D", tex_d3d},
-            {"texelDimensions2D", tex_d2d},
-            {"color", Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}
-        },
+        uniforms,
         m_frames.arrows3d
     );
 }

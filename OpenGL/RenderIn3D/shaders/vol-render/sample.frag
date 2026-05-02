@@ -30,8 +30,10 @@ out vec4 fragColor;
 #define quaternion vec4
 
 uniform sampler2D tex;
-uniform float viewScale;
+uniform vec3 preRotationScale;
 uniform vec4 rotation;
+uniform float postRotationScale;
+uniform float scalePostRotation;
 uniform ivec3 volumeTexelDimensions3D;
 uniform ivec2 volumeTexelDimensions2D;
 uniform ivec3 dataTexelDimensions3D;
@@ -98,22 +100,6 @@ vec4 blI(vec2 r, float x0, float y0, float x1, float y1,
     return mix(mix(w00, w10, ax), mix(w01, w11, ax), ay);
 }
 
-void applyBoundaries(inout vec4 val, vec3 uvw) {
-    vec3 dimensions3D = vec3(
-        float(dataTexelDimensions3D[0]),
-        float(dataTexelDimensions3D[1]),
-        float(dataTexelDimensions3D[2])
-    );
-    if (uvw[0] < 1.0/dimensions3D[0] || 
-        uvw[0] > (dimensions3D[0] - 1.0)/dimensions3D[0] ||
-        uvw[1] <  1.0/dimensions3D[1] || 
-        uvw[1] > (dimensions3D[1] - 1.0)/dimensions3D[1] ||
-        uvw[2] <  1.0/dimensions3D[2] || 
-        uvw[2] > (dimensions3D[2] - 1.0)/dimensions3D[2])
-        val = vec4(0.0);
-
-}
-
 /*
 Currently this assumes that the texture being sampled from
 is smaller for all dimensions than the texture being
@@ -146,14 +132,6 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     vec4 f101 = texture2D(tex, to2DDataTextureCoordinates(r101));
     vec4 f011 = texture2D(tex, to2DDataTextureCoordinates(r011));
     vec4 f111 = texture2D(tex, to2DDataTextureCoordinates(r111));
-    // applyBoundaries(f000, r000);
-    // applyBoundaries(f100, r100);
-    // applyBoundaries(f010, r010);
-    // applyBoundaries(f001, r001);
-    // applyBoundaries(f110, r110);
-    // applyBoundaries(f101, r101);
-    // applyBoundaries(f011, r011);
-    // applyBoundaries(f111, r111);
     vec4 f0 = blI(r.xy, x0, y0, x1, y1, f000, f100, f010, f110);
     vec4 f1 = blI(r.xy, x0, y0, x1, y1, f001, f101, f011, f111);
     // Originally I made a mistake with the interpolation
@@ -167,17 +145,15 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
 void main() {
     vec4 viewPosition 
         = vec4(to3DVolumeTextureCoordinates(UV) - vec3(0.5), 1.0);
-    // float viewScaleAdj = max(viewScale, 2.0);
-    float viewScaleAdj = viewScale;
-    vec3 r = rotate(viewPosition, conj(rotation)).xyz/viewScaleAdj
-         + vec3(0.5);
+    for (int i = 0; i < 3; i += 1)
+        viewPosition[i] *= preRotationScale[i];
+    vec3 r = rotate(viewPosition, conj(rotation)).xyz/postRotationScale
+        + vec3(0.5);
     // This check needs to be done to avoid a repeating effect
     // caused by sampling beyond the initial boundary.
     if (r.x < 0.0 || r.x >= 1.0 ||
         r.y < 0.0 || r.y >= 1.0 ||
         r.z < 0.0 || r.z >= 1.0) discard;
-    fragColor = sample2DTextureAs3D(tex, 
-        r // + vec3(0.005*cos(10.0*UV.x), 0.005*sin(10.0*UV.y), 0.0)
-        );
+    fragColor = sample2DTextureAs3D(tex, r);
     // fragColor = vec4(1.0);
 }

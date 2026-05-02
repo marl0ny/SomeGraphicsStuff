@@ -41,7 +41,6 @@ uniform ivec3 fragmentTexelDimensions3D;
 uniform ivec2 fragmentTexelDimensions2D;
 uniform float alphaBrightness;
 uniform float colorBrightness;
-uniform float noiseScale;
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -296,80 +295,51 @@ vec4 laplacian(sampler2D tex, vec4 vc, vec3 r) {
             + (vxF + vxB - 2.0*vc)/(dz[2]*dz[2]);
 }
 
-/* 
-GLSL implementation of random.
-
-Reference:
- Vivo P., Lowe J. Random. In the Book of Shaders.
- https://thebookofshaders.com/10/
-*/
-vec2 rand2D() {
-    if (noiseScale == 0.0)
-        return vec2(0.0, 0.0);
-    float w3D = float(fragmentTexelDimensions3D[0]);
-    float h3D = float(fragmentTexelDimensions3D[1]);
-    return vec2(
-        noiseScale*(fract(sin(dot(UV, vec2(2.71828, 137.036)))) - 0.5)/w3D,
-        noiseScale*(fract(cos(dot(UV, vec2(82817.2, 630.731)))) - 0.5)/h3D
-    );
-}
-
 void main() {
     vec3 r = to3DTextureCoordinates(UV);
-
-    vec2 uv2 = to2DTextureCoordinates(r + vec3(rand2D(), 0.0));
+    vec2 uv2 = to2DTextureCoordinates(r);
+    
     vec3 grad = texture2D(gradientTex, uv2).xyz;
+    // if (r.z < 1.0/float(fragmentTexelDimensions3D[2]) || 
+    //     r.z > 1.0 - 1.0/float(fragmentTexelDimensions3D[2]))
+    //     grad = vec3(0.0, 0.0, 1.0);
+    
     vec4 density = texture2D(densityTex, uv2);
-
     // density += 0.00001*laplacian(densityTex, density, r);
 
     // vec4 density = averageOutZSlice(densityTex, r, vec3(0.0, 0.0, 0.0));
 
-    // vec4 density = gaussianFilter3x3x3(densityTex, r + vec3(rand2D(), 0.0));
-    // vec3 grad = gaussianFilter3x3x3(gradientTex, r + vec3(rand2D(), 0.0)).xyz;
-    // vec4 density = gaussianZDir(densityTex, r + vec3(rand2D(), 0.0));
+    // vec4 density = gaussianFilter3x3x3(densityTex, r);
+    // vec3 grad = gaussianFilter3x3x3(gradientTex, r).xyz;
+    // vec4 density = gaussianZDir(densityTex, r);
 
-    // vec3 grad = averageOutZDir(gradientTex, r + vec3(rand2D(), 0.0)).xyz;
-    // vec4 density = averageOutZDir(densityTex, r + vec3(rand2D(), 0.0));
+    // vec3 grad = averageOutZDir(gradientTex, r).xyz;
+    // vec4 density = averageOutZDir(densityTex, r);
 
     // vec3 grad = averageOut(gradientTex, r).xyz;
     // vec4 density = averageOut(densityTex, r);
 
     // vec3 grad = sample2DTextureAs3D(gradientTex, r).xyz;
     // vec4 density = sample2DTextureAs3D(densityTex, r);
-
-    if (density.a < 0.05)
-        discard;
     vec3 normal = rotate(quaternion(0.0, 0.0, 1.0, 1.0),
-                         conj(rotation)).xyz;
-    vec3 normal2 = rotate(quaternion(0.0, 1.0, 0.0, 1.0),
                          conj(rotation)).xyz;
     vec4 pix = density;
     
     // pix.a = pix.b;
     // lf (length(grad) < 0.0000001) discard;
-    // if (pix.a < 0.05) discard;
-    // if (dot(grad, grad) == 0.0) discard;
+    if (pix.a < 0.05) discard;
+    if (dot(grad, grad) == 0.0) discard;
     // fragColor = 4.0*pix;
-    // if (dot(grad, grad) > 1.0)
-    //     grad = normalize(grad);
-    // float a = dot(normal, grad);
     float a = dot(normal, normalize(grad));
-    // a += dot(normal2, normalize(grad));
     if (a <= 0.0) discard;
-    // a = 0.1;
 
-    // float a = pix.a;
-    // if (a <= 0.1) discard;
-    
     // fragColor = vec4(1.0*normalize(density.rgb), a*a);
     
     // float densityLength = length(density.rgb);
     // if (densityLength == 0.0) discard;
     // fragColor = vec4(density.rgb/densityLength, a);
     
-    fragColor = vec4(
-        colorBrightness*normalize(density.rgb), a*alphaBrightness);
+    fragColor = vec4(normalize(density.rgb)*colorBrightness, a*alphaBrightness);
     
     // fragColor = vec4(4.0*normalize(density.rgb), 0.1*a);
     // fragColor = vec4(1.0);
