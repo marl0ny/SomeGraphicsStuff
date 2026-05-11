@@ -1,9 +1,15 @@
-#include "arrows3d.hpp"
+#include "line_arrows3d.hpp"
 
 static std::vector<int> get_elements(IVec3 d_3d) {
     std::vector<int> elements {};
-    for (int i = 0; i < 2*d_3d[0]*d_3d[1]*d_3d[2]; i++)
-        elements.push_back(i);
+    for (int i = 0; i < d_3d[0]*d_3d[1]*d_3d[2]; i++) {
+        elements.push_back(4*i);
+        elements.push_back(4*i + 1);
+        elements.push_back(4*i + 1);
+        elements.push_back(4*i + 2);
+        elements.push_back(4*i + 1);
+        elements.push_back(4*i + 3);
+    }
     return elements;
 }
 
@@ -17,6 +23,7 @@ static std::vector<float> get_vertices(IVec3 d_3d) {
             float v = (float(i) + 0.5F)/float(d_2d[1]);
             float offset0 = 0.0;
             float offset1 = 1.0;
+            float ratio = 0.1;
             vertices.push_back(u);
             vertices.push_back(v);
             vertices.push_back(0.0);
@@ -25,13 +32,20 @@ static std::vector<float> get_vertices(IVec3 d_3d) {
             vertices.push_back(v);
             vertices.push_back(0.0);
             vertices.push_back(offset1);
+            vertices.push_back(u);
+            vertices.push_back(v);
+            vertices.push_back(ratio);
+            vertices.push_back(offset1);
+            vertices.push_back(u);
+            vertices.push_back(v);
+            vertices.push_back(-ratio);
+            vertices.push_back(offset1);
         }
     }
     return vertices;
 }
 
-
-WireFrame arrows3d::get_3d_vector_field_wire_frame(IVec3 d_3d) {
+WireFrame line_arrows3d::get_3d_vector_field_wire_frame(IVec3 d_3d) {
     Attributes attributes = {
         {"position", {
             .size=4, .type=GL_FLOAT, .normalized=false, .stride=0, .offset=0
@@ -41,33 +55,33 @@ WireFrame arrows3d::get_3d_vector_field_wire_frame(IVec3 d_3d) {
     return WireFrame(attributes, vertices, elements, WireFrame::LINES);
 }
 
-arrows3d::Programs
+line_arrows3d::Programs
 ::Programs() {
     this->arrows3d = make_program_from_paths(
-        "./shaders/arrows/arrows3d.vert", 
+        "./shaders/arrows/line-arrows3d.vert", 
         "./shaders/util/uniform-color.frag"
     );
 }
 
-arrows3d::Frames::
+line_arrows3d::Frames::
 Frames(const TextureParams &default_tex_params, IVec3 d_3d) :
     arrows3d(get_3d_vector_field_wire_frame(d_3d)),
     dimensions3d(d_3d) {
 }
 
-void arrows3d::Frames
+void line_arrows3d::Frames
 ::reset_dimensions(IVec3 d_3d) {
     this->dimensions3d = d_3d;
     this->arrows3d = get_3d_vector_field_wire_frame(d_3d);
 }
 
-arrows3d::Arrows::
+line_arrows3d::Arrows::
 Arrows(IVec3 d_3d, TextureParams default_tex_params):
-    m_programs(arrows3d::Programs()),
-    m_frames(arrows3d::Frames(default_tex_params, d_3d)) {
+    m_programs(line_arrows3d::Programs()),
+    m_frames(line_arrows3d::Frames(default_tex_params, d_3d)) {
 }
 
-void arrows3d::Arrows::
+void line_arrows3d::Arrows::
 view(
     RenderTarget &dst, const Quad &src,
     float scale, Quaternion rotation,
@@ -83,7 +97,7 @@ view(
         src_texel_dimensions3d, additional_uniforms);
 }
 
-void arrows3d::Arrows::
+void line_arrows3d::Arrows::
 view(
     RenderTarget &dst, const Quad &src,
     float scale, Quaternion rotation,

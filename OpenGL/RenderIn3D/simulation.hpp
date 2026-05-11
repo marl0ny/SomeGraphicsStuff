@@ -2,7 +2,8 @@
 #include "parameters.hpp"
 #include "volume_render.hpp"
 #include "planar_slice.hpp"
-#include "arrows3d.hpp"
+#include "line_arrows3d.hpp"
+#include "conical_arrow3d.hpp"
 
 #ifndef _SIMULATION_
 #define _SIMULATION_
@@ -17,6 +18,7 @@ struct Frames {
     RenderTarget render;
     WireFrame quad_wire_frame;
     WireFrame arrows3d_frame;
+    WireFrame conical_arrows3d_frame;
     Frames(const TextureParams &default_tex_params, const SimParams &params);
     void reset_data_dimensions(IVec3 texel_dimensions_3d);
 };
@@ -36,9 +38,16 @@ struct Programs {
 class Simulation {
     volume_render::VolumeRender m_volume_render;
     planar_slice::PlanarSlices m_planar_slices;
-    arrows3d::Arrows m_arrows3d;
+    line_arrows3d::Arrows m_arrows3d;
+    conical_arrows3d::Arrows m_conical_arrows3d;
     Programs m_programs;
     Frames m_frames;
+    const RenderTarget
+    &view_volume_render(
+        SimParams &params, ::Quaternion rotation, float scale);
+    const RenderTarget
+    &view_planar_slices(
+        SimParams &params, ::Quaternion rotation, float scale);
     public:
     Simulation(const TextureParams &default_tex_params,
                const SimParams &params);

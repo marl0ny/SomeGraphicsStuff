@@ -11,7 +11,6 @@ namespace volume_render {
         uint32_t gradient;
         uint32_t show_volume;
         uint32_t sample_data_show_volume;
-        // uint32_t cube_outline;
         uint32_t zero_boundaries_3d;
         uint32_t modify_boundaries;
         Programs();
@@ -29,9 +28,7 @@ namespace volume_render {
         Quad gradient_data_half_precision;
         Quad volume;
         Quad volume_grad;
-        // RenderTarget view;
         WireFrame wire_frame;
-        // WireFrame cube_outline;
         public:
         void reset_data(IVec2 data_dimensions2d);
         void reset_volume(

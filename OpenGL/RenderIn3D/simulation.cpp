@@ -58,8 +58,11 @@ Frames(const TextureParams &default_tex_params, const SimParams &params):
     render(default_tex_params),
     quad_wire_frame(get_quad_wire_frame()),
     arrows3d_frame(
-        arrows3d::get_3d_vector_field_wire_frame(
-            params.arrowDimensions)) {
+        line_arrows3d::get_3d_vector_field_wire_frame(
+            params.arrowDimensions)),
+    conical_arrows3d_frame(
+        conical_arrows3d::get_3d_vector_field_wire_frame(
+            params.arrowDimensions, 13)) {
 }
 
 void Frames::reset_data_dimensions(IVec3 texel_dimensions3d) {
@@ -77,6 +80,7 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
     params.dataTexelDimensions3D),
     m_planar_slices(default_tex_params),
     m_arrows3d(params.arrowDimensions, default_tex_params),
+    m_conical_arrows3d(params.arrowDimensions, 13, default_tex_params),
     m_frames(default_tex_params, params) {
 }
 
@@ -86,6 +90,8 @@ const RenderTarget &Simulation
     switch(params.visualizationSelect.selected) {
         case PLANAR_SLICES_VIEW: {
             this->m_frames.render.clear();
+            this->m_frames.render_tmp.clear();
+                // this->m_frames.render.clear();
             m_planar_slices.view(
                 this->m_frames.render,
                 this->m_frames.data, params.dataTexelDimensions3D,
@@ -121,15 +127,15 @@ const RenderTarget &Simulation
 
                     }
                 );
-                // this->m_frames.render_tmp.clear();
+                this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
-                /* m_arrows3d.view(
+                m_conical_arrows3d.view(
                     this->m_frames.render, this->m_frames.tmp,
                     2.0*scale, rotation, 
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {{"useOrthogonalProjection", int(1)}}
-                    );*/
+                    );
                 
             }
             WireFrame cube_outline = get_cube_outline_wire_frame();
@@ -170,7 +176,7 @@ const RenderTarget &Simulation
             );
             this->m_frames.render_tmp.clear();
             this->m_frames.render.clear();
-            m_arrows3d.view(
+            m_conical_arrows3d.view(
                 this->m_frames.render, this->m_frames.tmp,
                 float(2.0*scale), rotation, 
                 params.arrowDimensions,
@@ -236,7 +242,7 @@ const RenderTarget &Simulation
             //     {{"tex", {this->m_frames.render_tmp2}}},
             //     m_frames.quad_wire_frame
             // );
-            /* {
+            {
                 IVec3 arrows_d3d = params.arrowDimensions;
                 IVec2 arrows_d2d = get_2d_from_3d_dimensions(arrows_d3d);
                 IVec3 tex_d3d = params.dataTexelDimensions3D;
@@ -261,13 +267,13 @@ const RenderTarget &Simulation
                 );
                 // this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
-                m_arrows3d.view(
+                m_conical_arrows3d.view(
                     this->m_frames.render, this->m_frames.tmp,
                     2.0*scale, rotation, 
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {{"useOrthogonalProjection", int(1)}});
-            }*/
+            }
             return this->m_frames.render;
         }
     }

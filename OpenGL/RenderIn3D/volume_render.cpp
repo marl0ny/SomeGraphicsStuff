@@ -424,15 +424,6 @@ void VolumeRender::view(
         sample_scale.y = scale*max_y;
         display_scale = Vec3{.x=scale*max_x, scale*max_y, 1.0};
     }
-    // float rot_scale = (scale > 1.0)?
-    //     scale: 1.0/std::max(max_x, std::max(max_y, max_z));
-    // IVec2 src_data_dimensions = {
-    //     .ind{(int)src_data.width(), (int)src_data.height()}};
-    // // if (src_data_dimensions[0] != this->data_texel_dimensions2d[0] ||
-    // //     src_data_dimensions[1] != this->data_texel_dimensions2d[1]) {
-    // //    // this->data_texel_dimensions2d[0]
-    // //     this->frames.reset_data(src_data_dimensions);
-    // // }
     this->frames.data_half_precision.draw(
         // this->programs.modify_boundaries,
         this->programs.zero_boundaries_3d,
@@ -483,16 +474,6 @@ void VolumeRender::view(
     // this->frames.view.clear();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    /* dst.draw(
-        this->programs.cube_outline,
-        {
-            {"rotation", rotation},
-            {"viewScale", scale},
-            {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}}
-        },
-        this->frames.cube_outline
-    );*/
-    // glDisable(GL_BLEND);
     Uniforms view_uniforms = {
         {"colorBrightness", color_brightness},
         {"alphaBrightness", alpha_brightness}

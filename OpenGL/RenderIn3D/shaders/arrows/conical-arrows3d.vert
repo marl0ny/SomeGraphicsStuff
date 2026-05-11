@@ -1,9 +1,13 @@
 #if __VERSION__ <= 120
 attribute vec4 position;
 varying vec2 UV;
+varying vec3 FINAL_VERTEX_POSITION;
+varying vec3 NORMAL;
 #else
 in vec4 position;
 out vec2 UV;
+out vec3 NORMAL;
+out vec3 FINAL_VERTEX_POSITION;
 #endif
 
 #if (__VERSION__ >= 330) || (defined(GL_ES) && __VERSION__ >= 300)
@@ -15,6 +19,8 @@ out vec2 UV;
 #if (__VERSION__ > 120) || defined(GL_ES)
 precision highp float;
 #endif
+
+#define PI 3.141592653589793
 
 #define quaternion vec4
 
@@ -160,20 +166,103 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     return mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }
 
+vec2 rotate2D(vec2 r, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    return vec2(
+        c*r.x - s*r.y,
+        s*r.x + c*r.y
+    );
+}
+
+const float TAIL_RATIO = 0.05;
+const float HEAD_BASE_RATIO = 0.125;
+const float TOTAL_LENGTH_NORM = 1.0;
+// The tail goes into the arrowhead or cone,
+// so it's length is greater than the
+// arrowhead's base.
+const float TAIL_LENGTH = 0.8;
+const float HEAD_BASE_OFFSET = 0.75;
+
+bool inTailBase(float z) {
+    float eps = 1e-30;
+    return abs(z) < eps;
+}
+
+bool inTail(float z) {
+    float eps = 1e-30;
+    return (abs(z) < eps || abs(z - TAIL_LENGTH) < eps);
+}
+
+bool inArrowTip(float z) {
+    float eps = 1e-30;
+    return (abs(z - TOTAL_LENGTH_NORM) < eps);
+}
+
+float getRadius(float angle, float z, float arrowLength) {
+    float eps = 1e-30;
+    if (angle < 0.0 || inArrowTip(z))
+        return 0.0;
+    if (inTail(z))
+        return TAIL_RATIO*arrowLength;
+    return HEAD_BASE_RATIO*arrowLength;
+}
+
+vec3 getNonRotatedNormal(
+    float angle, float z, vec3 xH, vec3 yH, vec3 zH) {
+    float eps = 1e-30;
+    if (inTailBase(z))
+        return -zH;
+    if (inTail(z))
+        return vec3(rotate2D(vec2(1.0, 0.0), angle - PI/4.0), 0.0);
+    if (inArrowTip(z))
+        return zH;
+    if (angle < 0.0)
+        return -zH;
+    float headLength = TOTAL_LENGTH_NORM - HEAD_BASE_OFFSET;
+    float headRadius = HEAD_BASE_RATIO;
+    float c = headLength/sqrt(
+        headLength*headLength + headRadius*headRadius);
+    float s = headRadius/sqrt(
+        headLength*headLength + headRadius*headRadius);
+    vec3 arrowTipNorm = vec3(c*rotate2D(vec2(1.0, 0.0), angle), s);
+    return 
+        arrowTipNorm.x*xH + arrowTipNorm.y*yH + arrowTipNorm.z*zH;
+
+
+}
+
 void main() {
     vec3 arrowPos = arrow3DPosition(position.xy);
-    float ratio = position[2];
-    float arrowScale = position[3];
+    UV = position.xy;
+    float angle = position[2];
+    float z = position[3];
     vec3 direction = sample2DTextureAs3D(vecTex, arrowPos).xyz;
     direction.z = -direction.z;
     if (length(direction) > maxLength)
         direction = normalize(direction)*maxLength;
-    vec3 arrowRelPoint = arrowScale*direction; // - vec3(0.0, 0.0, 0.1);
-    vec4 position2 = scale*(vec4(arrowPos - vec3(0.5), 0.0) 
-                            + vec4(arrowRelPoint, 0.0));
-    vec4 finalPosition = rotate(position2, rotation) + vec4(translate, 0.0);
-    gl_Position = project(finalPosition);
-    if (useOrthogonalProjection)
-        gl_Position = finalPosition;
+    float radius = getRadius(angle, z, length(direction));
+    vec3 perp1 = cross(direction, vec3(0.0, 0.0, 1.0));
+    if (dot(perp1, perp1) == 0.0)
+        perp1 = (cross(direction, vec3(0.0, 1.0, 0.0)));
+    perp1 = normalize(perp1);
+    vec3 perp2 = cross(normalize(direction), perp1);
+    vec2 rOffset = rotate2D(vec2(radius, 0.0), angle);
+    vec3 zOffset = z*direction;
+    vec3 offset = rOffset.x*perp1 + rOffset.y*perp2 + zOffset;
+    if (length(direction) < 1e-2) {
+        offset = vec3(0.0);
+    }
+    vec4 finalPosition = scale*rotate(
+        vec4(arrowPos - vec3(0.5) + offset, 0.0), rotation) 
+        + vec4(translate, 0.0);
+    vec3 nonRotatedNormal = getNonRotatedNormal(
+        angle, z, perp1, perp2, normalize(direction));
+    NORMAL = rotate(quaternion(
+        nonRotatedNormal, 1.0), conj(rotation)).xyz;
+    FINAL_VERTEX_POSITION = finalPosition.xyz;
+    gl_Position
+        = (useOrthogonalProjection)? 
+            vec4(finalPosition.xyz, 1.0): project(finalPosition);
     
 }
