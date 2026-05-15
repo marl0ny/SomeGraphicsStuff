@@ -58,4 +58,6 @@ void main() {
     gl_Position = vec4(r, 1.0);
     if (usePerspectiveProjection)
         gl_Position = project(vec4(r, 1.0));
+    else
+        gl_Position.z *= 0.1;
 }

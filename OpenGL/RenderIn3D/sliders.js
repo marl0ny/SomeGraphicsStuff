@@ -21,7 +21,8 @@ const ENUM_CODES = {
     ARROWS3_D_LINE_DIV: 19,
     ARROWS3_D_LABEL: 20,
     ARROW_DIMENSIONS: 21,
-    DUMMY_VALUE: 22,
+    USE_CONES: 22,
+    DUMMY_VALUE: 23,
 };
 
 function createScalarParameterSlider(
@@ -369,7 +370,7 @@ createVectorParameterSliders(controls, 2, "Domain dimensions", "Vec3", {'value':
 createVectorParameterSliders(controls, 3, "Discretization dimensions", "IVec3", {'value': [64, 64, 64], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
 createSelectionList(controls, 4, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
 createEntryBoxes(controls, 5, "Enter function f(x, y, z)", 1, []);
-createSelectionList(controls, 6, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field"]);
+createSelectionList(controls, 6, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
 createLineDivider(controls);
 createLabel(controls, 8, "Volume Render Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
 createCheckbox(controls, 9, "Linear interpolation", false);
@@ -385,4 +386,5 @@ createVectorParameterSliders(controls, 18, "Planar slices offsets (in normalized
 createLineDivider(controls);
 createLabel(controls, 20, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
 createVectorParameterSliders(controls, 21, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createCheckbox(controls, 22, "Use conical arrows", false);
 

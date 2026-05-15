@@ -1287,7 +1287,7 @@ void WireFrame::draw(uint32_t program) {
             id, attribute.size, attribute.type,
             (GLboolean)attribute.normalized, attribute.stride,
             (attribute.offset == 0)?
-                NULL: (&this->vertices[0] + attribute.offset)
+                NULL: (void *)attribute.offset
             );
     }
     switch(this->draw_type) {

@@ -86,9 +86,10 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
 
 const RenderTarget &Simulation
 ::view(SimParams &params, ::Quaternion rotation, float scale) {
-    enum {VOL_RENDER_VIEW=0, PLANAR_SLICES_VIEW=1, VECTOR_FIELD_VIEW=2};
+    enum {VOL_RENDER_VIEW=0, PLANAR_SLICES_VIEW=1, VECTOR_FIELD_VIEW=2, 
+        PLANR_SLICES_VECTOR_FIELD_VIEW=3, VOL_RENDER_VECTOR_FIELD_VIEW=4};
     switch(params.visualizationSelect.selected) {
-        case PLANAR_SLICES_VIEW: {
+        case PLANAR_SLICES_VIEW: case PLANR_SLICES_VECTOR_FIELD_VIEW: {
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
@@ -129,13 +130,30 @@ const RenderTarget &Simulation
                 );
                 this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
-                m_conical_arrows3d.view(
-                    this->m_frames.render, this->m_frames.tmp,
-                    2.0*scale, rotation, 
-                    params.arrowDimensions,
-                    params.dataTexelDimensions3D,
-                    {{"useOrthogonalProjection", int(1)}}
-                    );
+                if (params.visualizationSelect.selected 
+                        == PLANR_SLICES_VECTOR_FIELD_VIEW) {
+                    if (params.useCones) {
+                        m_conical_arrows3d.view(
+                            this->m_frames.render, this->m_frames.tmp,
+                            2.0*scale, rotation, 
+                            params.arrowDimensions,
+                            params.dataTexelDimensions3D,
+                            {
+                                {"useOrthogonalProjection", int(1)},
+                                {"rescaleZ", int(0)}
+                            });
+                    } else {
+                        m_arrows3d.view(
+                            this->m_frames.render, this->m_frames.tmp,
+                            2.0*scale, rotation, 
+                            params.arrowDimensions,
+                            params.dataTexelDimensions3D,
+                            {
+                                {"useOrthogonalProjection", int(1)},
+                                {"rescaleZ", int(0)}
+                            });
+                    }
+                }
                 
             }
             WireFrame cube_outline = get_cube_outline_wire_frame();
@@ -176,18 +194,34 @@ const RenderTarget &Simulation
             );
             this->m_frames.render_tmp.clear();
             this->m_frames.render.clear();
-            m_conical_arrows3d.view(
-                this->m_frames.render, this->m_frames.tmp,
-                float(2.0*scale), rotation, 
-                params.arrowDimensions,
-                params.dataTexelDimensions3D);
+            if (params.useCones) {
+                m_conical_arrows3d.view(
+                    this->m_frames.render, this->m_frames.tmp,
+                    2.0*scale, rotation, 
+                    params.arrowDimensions,
+                    params.dataTexelDimensions3D,
+                    {
+                        {"useOrthogonalProjection", int(1)},
+                        {"rescaleZ", int(0)}
+                    });
+            } else {
+                m_arrows3d.view(
+                    this->m_frames.render, this->m_frames.tmp,
+                    2.0*scale, rotation, 
+                    params.arrowDimensions,
+                    params.dataTexelDimensions3D,
+                    {
+                        {"useOrthogonalProjection", int(1)},
+                        {"rescaleZ", int(0)}
+                    });
+            }
             WireFrame cube_outline = get_cube_outline_wire_frame();
             this->m_frames.render.draw(
                 m_programs.cube_outline,
                 {
                     {"rotation", rotation},
                     {"viewScale", scale},
-                    {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
+                    {"color", Vec4{.ind{0.25, 0.25, 1.0, 0.5}}},
                     {"usePerspectiveProjection", int(1)},
                     {"screenDimensions", m_frames.render.texture_dimensions()}
                 },
@@ -195,7 +229,7 @@ const RenderTarget &Simulation
             );
             return this->m_frames.render;
         }
-        case VOL_RENDER_VIEW: {
+        case VOL_RENDER_VIEW: case VOL_RENDER_VECTOR_FIELD_VIEW: {
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
             this->m_frames.render_tmp2.clear();
@@ -227,16 +261,6 @@ const RenderTarget &Simulation
                     m_frames.quad_wire_frame
                 );
             }
-            this->m_frames.render.draw(
-                m_programs.cube_outline,
-                {
-                    {"rotation", rotation},
-                    {"viewScale", scale},
-                    {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
-                    {"usePerspectiveProjection", int(0)}
-                },
-                cube_outline
-            );
             // this->m_frames.render.draw(
             //     m_programs.copy,
             //     {{"tex", {this->m_frames.render_tmp2}}},
@@ -267,13 +291,41 @@ const RenderTarget &Simulation
                 );
                 // this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
-                m_conical_arrows3d.view(
-                    this->m_frames.render, this->m_frames.tmp,
-                    2.0*scale, rotation, 
-                    params.arrowDimensions,
-                    params.dataTexelDimensions3D,
-                    {{"useOrthogonalProjection", int(1)}});
+                if (params.visualizationSelect.selected
+                        == VOL_RENDER_VECTOR_FIELD_VIEW) {
+                    if (params.useCones) {
+                        m_conical_arrows3d.view(
+                            this->m_frames.render, this->m_frames.tmp,
+                            2.0*scale, rotation, 
+                            params.arrowDimensions,
+                            params.dataTexelDimensions3D,
+                            {
+                                {"useOrthogonalProjection", int(1)},
+                                {"rescaleZ", int(1)}
+                            });
+                    } else {
+                        m_arrows3d.view(
+                            this->m_frames.render, this->m_frames.tmp,
+                            2.0*scale, rotation, 
+                            params.arrowDimensions,
+                            params.dataTexelDimensions3D,
+                            {
+                                {"useOrthogonalProjection", int(1)},
+                                {"rescaleZ", int(1)}
+                            });
+                    }
+                }
             }
+            this->m_frames.render.draw(
+                m_programs.cube_outline,
+                {
+                    {"rotation", rotation},
+                    {"viewScale", scale},
+                    {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
+                    {"usePerspectiveProjection", int(0)}
+                },
+                cube_outline
+            );
             return this->m_frames.render;
         }
     }

@@ -109,6 +109,14 @@ void imgui_controls(void *void_params) {
             s_selection_set(params->VISUALIZATION_SELECT, 1);
         if (ImGui::MenuItem( "Vector field"))
             s_selection_set(params->VISUALIZATION_SELECT, 2);
+        if (ImGui::MenuItem( "Three orthogonal planar slices))
+            s_selection_set(params->VISUALIZATION_SELECT, 3);
+        if (ImGui::MenuItem( vector field"))
+            s_selection_set(params->VISUALIZATION_SELECT, 4);
+        if (ImGui::MenuItem( "Volume render))
+            s_selection_set(params->VISUALIZATION_SELECT, 5);
+        if (ImGui::MenuItem( vector field"))
+            s_selection_set(params->VISUALIZATION_SELECT, 6);
         ImGui::EndMenu();
     }
     ImGui::Text("--------------------------------------------------------------------------------");
@@ -134,6 +142,7 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
     ImGui::Text("--------------------------------------------------------------------------------");
     ImGui::Text("Arrows Plot");
+    ImGui::Checkbox("Use conical arrows", &params->useCones);
 
 }
 
