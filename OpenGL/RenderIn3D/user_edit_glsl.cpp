@@ -135,8 +135,23 @@ complex tanhC(complex z) {
 }
 
 complex powC(complex z, complex w) {
-    if (z.y == 0.0 && w.y == 0.0)
+    if (z.y == 0.0 && w.y == 0.0) {
+        #if (!defined(GL_ES) && __VERSION__ >= 120) || (defined(GL_ES) && __VERSION__ > 300)
+        float eps = 1e-30;
+        float val = 1.0;
+        if (w.x > 0.0 && abs(mod(w.x, 1.0)) < eps) {
+            for (float n = 0.0; n < w.x; n += 1.0)
+                val *= z.x;
+            return complex(val, 0.0);
+        }
+        if (w.x < 0.0 && abs(mod(-w.x, 1.0)) < eps) {
+            for (float n = 0.0; n < -w.x; n += 1.0)
+                val *= (1.0/z.x);
+            return complex(val, 0.0);
+        }
+        #endif
         return complex(pow(z.x, w.x), 0.0);
+    }
     if (w.x == 0.0 && w.y == 0.0)
         return complex(1.0, 0.0);
     return expC(mul(logC(z), w));

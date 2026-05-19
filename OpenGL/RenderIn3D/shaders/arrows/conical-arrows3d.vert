@@ -193,9 +193,9 @@ vec3 getNonRotatedNormal(
     float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
     vec3 localNorm = vec3(
         sinTheta*rotate2D(vec2(1.0, 0.0), phi), cosTheta);
-    if (inTail(z))
-        localNorm = vec3(
-            sinTheta*rotate2D(vec2(1.0, 0.0), phi - PI/4.0), cosTheta);
+    // if (inTail(z))
+    //     localNorm = vec3(
+    //         sinTheta*rotate2D(vec2(1.0, 0.0), phi - PI/4.0), cosTheta);
     return localNorm.x*xH + localNorm.y*yH + localNorm.z*zH;
 }
 

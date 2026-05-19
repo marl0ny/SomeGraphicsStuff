@@ -6,30 +6,34 @@ const ENUM_CODES = {
     PRESET_FUNCTIONS_DROPDOWN: 4,
     USER_TEXT_ENTRY: 5,
     VISUALIZATION_SELECT: 6,
-    VOL_RENDER_LINE_DIV: 7,
-    VOLUME_RENDER_TITLE: 8,
-    USE_LINEAR: 9,
-    ALPHA_BRIGHTNESS: 10,
-    COLOR_BRIGHTNESS: 11,
-    VOLUME_TEXEL_DIMENSIONS3_D: 12,
-    NOISE_SCALE: 13,
-    APPLY_BLUR: 14,
-    BLUR_SIZE: 15,
-    PLANAR_SLICES_LINE_DIV: 16,
-    PLANAR_SLICES_LABEL: 17,
-    PLANAR_NORM_COORD_OFFSETS: 18,
-    ARROWS3_D_LINE_DIV: 19,
-    ARROWS3_D_LABEL: 20,
-    ARROW_DIMENSIONS: 21,
-    USE_CONES: 22,
+    VOLUME_RENDER_SECTION_START: 7,
+    USE_LINEAR: 8,
+    ALPHA_BRIGHTNESS: 9,
+    COLOR_BRIGHTNESS: 10,
+    VOLUME_TEXEL_DIMENSIONS3_D: 11,
+    NOISE_SCALE: 12,
+    APPLY_BLUR: 13,
+    BLUR_SIZE: 14,
+    VOLUME_RENDER_SECTION_END: 15,
+    PLANAR_SLICES_SECTION_START: 16,
+    PLANAR_NORM_COORD_OFFSETS: 17,
+    PLANAR_SLICES_SECTION_END: 18,
+    ARROWS3_D_LINE_SECTION_START: 19,
+    ARROW_DIMENSIONS: 20,
+    USE_CONES: 21,
+    ARROWS3_D_LINE_SECTION_END: 22,
     DUMMY_VALUE: 23,
 };
+
+let gVecParams = {};
+let gUserParams = {};
+let gCheckboxXorLists = {};
 
 function createScalarParameterSlider(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
     label.for = spec['id']
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = `${sliderLabelName} = ${spec.value}`;
     label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
@@ -59,12 +63,10 @@ function createScalarParameterSlider(
     });
 };
 
-gCheckboxXorLists = {};
-
 function createCheckbox(controls, enumCode, name, value, xorListName='') {
     let label = document.createElement("label");
     // label.for = spec['id']
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.innerHTML = `${name}`
     let checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -98,8 +100,6 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
     );
 }
 
-let gVecParams = {};
-
 function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
     let slider = document.getElementById(`slider-${enumCode}`);
     let label = document.getElementById(`slider-label-${enumCode}`);
@@ -120,7 +120,7 @@ function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, valu
 function createVectorParameterSliders(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = `${sliderLabelName} = (${spec.value})`;
     label.id = `slider-label-${enumCode}`;
     gVecParams[sliderLabelName] = spec.value;
@@ -165,7 +165,7 @@ function createSelectionList(
     controls, enumCode, defaultVal, selectionBoxName, textOptions
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = selectionBoxName;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -189,7 +189,7 @@ function createUploadImage(
     controls, enumCode, name, w_code, h_code
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = name;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -255,8 +255,6 @@ function createUploadImage(
     );
 }
 
-let gUserParams = {};
-
 function modifyUserSliders(enumCode, variableList) {
     if (!(`${enumCode}` in gUserParams))
         gUserParams[`${enumCode}`] = {}; 
@@ -269,7 +267,7 @@ function modifyUserSliders(enumCode, variableList) {
     userSliders.textContent = ``;
     for (let v of variableList) {
         let label = document.createElement("label");
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+        // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
         label.textContent = `${v} = ${gUserParams[`${enumCode}`][v]}`;
         userSliders.appendChild(label);
         let slider = document.createElement("input");
@@ -295,7 +293,7 @@ function createEntryBoxes(
     controls, enumCode, entryBoxName, count, subLabels
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = entryBoxName;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -307,7 +305,7 @@ function createEntryBoxes(
         entryBox.id = `entry-box-${enumCode}-${i}`;
         entryBox.style = "width: 95%;";
         let label = document.createElement("label");
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+        // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
         label.textContent = `${subLabels[i]}`;
         if (count >= 2) {
             controls.appendChild(label);
@@ -342,12 +340,11 @@ function createLabel(
     controls, enumCode, labelName, style=''
 ) {
     let label = document.createElement("label");
-    if (style === '')
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    else
+    if (style !== '')
         label.style = style;
     label.textContent = `${labelName}`;
     label.id = `label-${enumCode}`;
+    label.className = 'top-label';
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
 }
@@ -364,6 +361,34 @@ function createLineDivider(controls) {
     controls.appendChild(hr);
 }
 
+function createSubDiv(controls, name, style) {
+    let div = document.createElement("div");
+    let hr = document.createElement("hr");
+    hr.style = "color:white;"
+    controls.appendChild(hr);
+    let label = document.createElement("label");
+    if (style !== '')
+        label.style = style;
+    label.textContent = `+ ${name}`;
+    // label.id = `label-${enumCode}`;
+    label.className = 'top-label';
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
+    controls.appendChild(div);
+    div.hidden = true;
+    label.addEventListener(
+        "click", e => {
+            div.hidden = !div.hidden;
+            if (label.textContent.at(0) === '+')
+                label.textContent 
+                    = '-' + label.textContent.substring(1);
+            else
+                label.textContent 
+                    = '+' + label.textContent.substring(1);
+        });
+    return div;
+}
+
 let controls = document.getElementById('controls');
 createScalarParameterSlider(controls, 1, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
 createVectorParameterSliders(controls, 2, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
@@ -371,20 +396,17 @@ createVectorParameterSliders(controls, 3, "Discretization dimensions", "IVec3", 
 createSelectionList(controls, 4, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
 createEntryBoxes(controls, 5, "Enter function f(x, y, z)", 1, []);
 createSelectionList(controls, 6, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
-createLineDivider(controls);
-createLabel(controls, 8, "Volume Render Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createCheckbox(controls, 9, "Linear interpolation", false);
-createScalarParameterSlider(controls, 10, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createScalarParameterSlider(controls, 11, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createVectorParameterSliders(controls, 12, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createScalarParameterSlider(controls, 13, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
-createCheckbox(controls, 14, "Apply blur", true);
-createScalarParameterSlider(controls, 15, "Size", "int", {'value': 5, 'min': 0, 'max': 10});
-createLineDivider(controls);
-createLabel(controls, 17, "Three Orthogonal Planar Slices Controls", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 18, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
-createLineDivider(controls);
-createLabel(controls, 20, "Arrows Plot", "color:white; font-family:Arial, Helvetica, sans-serif; font-weight: bold;");
-createVectorParameterSliders(controls, 21, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
-createCheckbox(controls, 22, "Use conical arrows", false);
+let subControls0 = createSubDiv(controls, "Volume Render Controls", "");
+createCheckbox(subControls0, 8, "Linear interpolation", false);
+createScalarParameterSlider(subControls0, 9, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createScalarParameterSlider(subControls0, 10, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createVectorParameterSliders(subControls0, 11, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createScalarParameterSlider(subControls0, 12, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
+createCheckbox(subControls0, 13, "Enable bloom", true);
+createScalarParameterSlider(subControls0, 14, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
+let subControls1 = createSubDiv(controls, "Three Orthogonal Planar Slices Controls", "");
+createVectorParameterSliders(subControls1, 17, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+let subControls2 = createSubDiv(controls, "Arrows Plot", "");
+createVectorParameterSliders(subControls2, 20, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createCheckbox(subControls2, 21, "Use conical arrows", false);
 

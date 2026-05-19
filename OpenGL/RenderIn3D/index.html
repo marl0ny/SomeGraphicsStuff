@@ -17,13 +17,18 @@
         <style>
             .body-style {
                 font-family: Arial;
-                background-color: rgb(0, 0, 0);
+                background-color: rgb(255, 255, 255);
                 -moz-text-size-adjust: none; 
                 text-size-adjust: none;
             }
             h3 {font-family:Arial, Helvetica, sans-serif; }
-            label {font-family:Arial, Helvetica, sans-serif; color: white; }
+            label {font-family:Arial, Helvetica, sans-serif; }
 			text {font-family:Arial, Helvetica, sans-serif; }
+            canvas {background-color: rgb(125, 125, 125); 
+                touch-action: none; 
+                border: solid black 1px; top: 0px; bottom: 0px;
+                text-align: center;}
+            .top-label {font-weight: bold;}
             @media (orientation: landscape) {
                 .outer-div {
                     display: grid; grid-template-columns: 1fr 1fr;
@@ -62,10 +67,7 @@
                 <div class="controls-div" id="controls"></div>
             </div>
             <div class="inner-div2">
-                <canvas id="canvas" oncontextmenu="event.preventDefault()"
-                    style="touch-action: none; 
-                        border: solid white 1px; top: 0px; bottom: 0px;
-                        text-align: center;">
+                <canvas id="canvas" oncontextmenu="event.preventDefault()">
                 </canvas>
             </div>
         </div>
@@ -85,8 +87,8 @@
             && !window.navigator.userAgent.includes('iPhone')
             && !window.navigator.userAgent.includes('Chrome')) {
             let elements = document.getElementsByClassName('body-style');
-            for (let e of elements)
-                e.style['background-color'] = `rgba(75, 75, 75)`;
+            // for (let e of elements)
+            //     e.style['background-color'] = `rgba(75, 75, 75)`;
         }
 
         let gOnMobile = 

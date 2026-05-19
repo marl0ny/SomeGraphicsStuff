@@ -201,7 +201,7 @@ const RenderTarget &Simulation
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {
-                        {"useOrthogonalProjection", int(1)},
+                        {"useOrthogonalProjection", int(0)},
                         {"rescaleZ", int(0)}
                     });
             } else {
@@ -211,7 +211,7 @@ const RenderTarget &Simulation
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {
-                        {"useOrthogonalProjection", int(1)},
+                        {"useOrthogonalProjection", int(0)},
                         {"rescaleZ", int(0)}
                     });
             }
@@ -221,7 +221,7 @@ const RenderTarget &Simulation
                 {
                     {"rotation", rotation},
                     {"viewScale", scale},
-                    {"color", Vec4{.ind{0.25, 0.25, 1.0, 0.5}}},
+                    {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
                     {"usePerspectiveProjection", int(1)},
                     {"screenDimensions", m_frames.render.texture_dimensions()}
                 },

@@ -17,11 +17,15 @@ def camel_to_snake(camel: str, scream: bool = False) -> str:
 
 
 SLIDER_JS_FUNCTIONS = """
+let gVecParams = {};
+let gUserParams = {};
+let gCheckboxXorLists = {};
+
 function createScalarParameterSlider(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
     label.for = spec['id']
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = `${sliderLabelName} = ${spec.value}`;
     label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
@@ -51,12 +55,10 @@ function createScalarParameterSlider(
     });
 };
 
-gCheckboxXorLists = {};
-
 function createCheckbox(controls, enumCode, name, value, xorListName='') {
     let label = document.createElement("label");
     // label.for = spec['id']
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.innerHTML = `${name}`
     let checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -90,8 +92,6 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
     );
 }
 
-let gVecParams = {};
-
 function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
     let slider = document.getElementById(`slider-${enumCode}`);
     let label = document.getElementById(`slider-label-${enumCode}`);
@@ -112,7 +112,7 @@ function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, valu
 function createVectorParameterSliders(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = `${sliderLabelName} = (${spec.value})`;
     label.id = `slider-label-${enumCode}`;
     gVecParams[sliderLabelName] = spec.value;
@@ -157,7 +157,7 @@ function createSelectionList(
     controls, enumCode, defaultVal, selectionBoxName, textOptions
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = selectionBoxName;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -181,7 +181,7 @@ function createUploadImage(
     controls, enumCode, name, w_code, h_code
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = name;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -247,8 +247,6 @@ function createUploadImage(
     );
 }
 
-let gUserParams = {};
-
 function modifyUserSliders(enumCode, variableList) {
     if (!(`${enumCode}` in gUserParams))
         gUserParams[`${enumCode}`] = {}; 
@@ -261,7 +259,7 @@ function modifyUserSliders(enumCode, variableList) {
     userSliders.textContent = ``;
     for (let v of variableList) {
         let label = document.createElement("label");
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+        // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
         label.textContent = `${v} = ${gUserParams[`${enumCode}`][v]}`;
         userSliders.appendChild(label);
         let slider = document.createElement("input");
@@ -287,7 +285,7 @@ function createEntryBoxes(
     controls, enumCode, entryBoxName, count, subLabels
 ) {
     let label = document.createElement("label");
-    label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+    // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = entryBoxName;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
@@ -299,7 +297,7 @@ function createEntryBoxes(
         entryBox.id = `entry-box-${enumCode}-${i}`;
         entryBox.style = "width: 95%;";
         let label = document.createElement("label");
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
+        // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
         label.textContent = `${subLabels[i]}`;
         if (count >= 2) {
             controls.appendChild(label);
@@ -334,12 +332,11 @@ function createLabel(
     controls, enumCode, labelName, style=''
 ) {
     let label = document.createElement("label");
-    if (style === '')
-        label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    else
+    if (style !== '')
         label.style = style;
     label.textContent = `${labelName}`;
     label.id = `label-${enumCode}`;
+    label.className = 'top-label';
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
 }
@@ -356,18 +353,49 @@ function createLineDivider(controls) {
     controls.appendChild(hr);
 }
 
+function createSubDiv(controls, name, style) {
+    let div = document.createElement("div");
+    let hr = document.createElement("hr");
+    hr.style = "color:white;"
+    controls.appendChild(hr);
+    let label = document.createElement("label");
+    if (style !== '')
+        label.style = style;
+    label.textContent = `+ ${name}`;
+    // label.id = `label-${enumCode}`;
+    label.className = 'top-label';
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
+    controls.appendChild(div);
+    div.hidden = true;
+    label.addEventListener(
+        "click", e => {
+            div.hidden = !div.hidden;
+            if (label.textContent.at(0) === '+')
+                label.textContent 
+                    = '-' + label.textContent.substring(1);
+            else
+                label.textContent 
+                    = '+' + label.textContent.substring(1);
+        });
+    return div;
+}
+
 """
 
 def write_sliders_js(parameters, dst_file_name):
     parameters = {k: parameters[k] for k in parameters if k[0:2] != '__'}
     file_contents = ""
     enum_codes = "const ENUM_CODES = {\n"
+    controls = ['controls']
+    controls_counter = 0
     for i, k in enumerate(parameters.keys()):
         enum_codes += f"    {camel_to_snake(k, scream=True)}: {i},\n"
     enum_codes += "};\n"
     file_contents += enum_codes
     file_contents += SLIDER_JS_FUNCTIONS
-    file_contents += "let controls = document.getElementById('controls');\n"
+    file_contents += \
+        f"let {controls[-1]} = document.getElementById('{controls[-1]}');\n"
     for i, k in enumerate(parameters.keys()):
         parameter = parameters[k]
         type_ = parameter["type"]
@@ -383,12 +411,13 @@ def write_sliders_js(parameters, dst_file_name):
                 else [f"{i}" for i in range(len(list_val))]
             file_contents += \
                 f'createEntryBoxes('\
-                f'controls, {i}, \"{name}\", {len(list_val)}, {str(labels)});\n'
+                f'{controls[-1]}, {i}, \"{name}\", '\
+                f'{len(list_val)}, {str(labels)});\n'
         if parameter['type'] == 'SelectionList':
             val2 = ''.join([c for c in value if (c != '}' and c != '{')])
             list_val = val2.split(',')[1:]
             print(val2)
-            file_contents += f'createSelectionList(controls'
+            file_contents += f'createSelectionList({controls[-1]}'
             file_contents += f', {i}, {val2[0]}, \"{name}\", '
             file_contents += '['
             for i, val in enumerate(list_val):
@@ -398,44 +427,58 @@ def write_sliders_js(parameters, dst_file_name):
         if parameter['type'] == 'UploadImage':
             width, height = parameter["width"], parameter["height"]
             file_contents += 'createUploadImage('\
-                + f'controls, {i}, \"{name}\", \"{width}\", \"{height}\");\n'
+                + f'{controls[-1]}, {i}, \"{name}\", '\
+                    f'\"{width}\", \"{height}\");\n'
         if parameter['type'] == 'Button':
             if "style" in parameter:
                 file_contents += \
-                    f'createButton(controls, {i}, ' + \
+                    f'createButton({controls[-1]}, {i}, ' + \
                         f' \"{name}\", \"{parameter["style"]}\");\n'
             else:
-                file_contents += f'createButton(controls, {i}, \"{name}\");\n'
+                file_contents \
+                    += f'createButton({controls[-1]}, {i}, \"{name}\");\n'
         if parameter['type'] == 'Label':
             if "style" in parameter:
                 file_contents += \
-                    f'createLabel(controls, {i}, ' \
+                    f'createLabel({controls[-1]}, {i}, ' \
                         + f'\"{name}\", \"{parameter["style"]}\");\n'
             else:
-                file_contents += f'createLabel(controls, {i}, \"{name}\", \"\");\n'
+                file_contents \
+                    += f'createLabel({controls[-1]}, {i}, '\
+                        f'\"{name}\", \"\");\n'
         if parameter['type'] == 'LineDivider':
-            file_contents += f'createLineDivider(controls);\n'
+            file_contents += f'createLineDivider({controls[-1]});\n'
         if 'min' in parameter and 'max' in parameter:
             p = {k: parameter[k] for k in parameter.keys() 
                      if k in {'min', 'max', 'value', 'step'}}
             if parameter['type'] in ['Vec2', 'Vec3', 'Vec4', 
                                      'IVec2', 'IVec3', 'IVec4']:
                 file_contents += \
-                    'createVectorParameterSliders(controls, '\
+                    f'createVectorParameterSliders({controls[-1]}, '\
                         f'{i}, "{name}", "{type_}", '\
                             + f'{str(p)});\n'
             else:
                 file_contents += \
-                    'createScalarParameterSlider(controls, '\
+                    f'createScalarParameterSlider({controls[-1]}, '\
                         f'{i}, "{name}", "{type_}", '\
                             + f'{str(p)});\n'
         if parameter['type'] == 'bool':
             p = parameter['value']
             file_contents += f'createCheckbox('\
-                  + f'controls, {i}, "{name}", {"true" if p else "false"}'\
+                  + f'{controls[-1]}, {i}, "{name}", '\
+                    f'{"true" if p else "false"}'\
                   + (f', "{parameter["xorListName"]}"' if 
                         "xorListName" in parameter else "") \
                   + f');\n'
+        if parameter['type'] == 'SubSectionStart':
+            controls.append(f'subControls{controls_counter}')
+            file_contents += \
+                f'let {controls[-1]}'\
+                f' = createSubDiv({controls[-2]}, "{name}", "")'\
+                f';\n'
+            controls_counter += 1
+        if parameter['type'] == 'SubSectionEnd':
+            controls.pop()
     file_contents += '\n'
     with open(dst_file_name, "w") as f:
         f.write(file_contents)
@@ -527,6 +570,8 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
     file_contents += "    int selected;\n"
     file_contents += "    std::vector<std::string> options;\n};\n"
     file_contents += "\nstruct LineDivider {};\n"
+    file_contents += "\nstruct SubSectionStart {};\n"
+    file_contents += "\nstruct SubSectionEnd {};\n"
     file_contents += "\nstruct NotUsed {};\n"
     file_contents += "\nstruct SimParams {\n"
     parameters = {k: parameters[k] for k in parameters if k[0:2] != '__'}

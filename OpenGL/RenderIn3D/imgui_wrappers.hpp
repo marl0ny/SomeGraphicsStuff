@@ -119,8 +119,6 @@ void imgui_controls(void *void_params) {
             s_selection_set(params->VISUALIZATION_SELECT, 6);
         ImGui::EndMenu();
     }
-    ImGui::Text("--------------------------------------------------------------------------------");
-    ImGui::Text("Volume Render Controls");
     ImGui::Checkbox("Linear interpolation", &params->useLinear);
     if (ImGui::SliderFloat("Alpha brightness", &params->alphaBrightness, 0.0, 10.0))
            s_sim_params_set(params->ALPHA_BRIGHTNESS, params->alphaBrightness);
@@ -128,11 +126,9 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->COLOR_BRIGHTNESS, params->colorBrightness);
     if (ImGui::SliderFloat("Noise sampling strength", &params->noiseScale, 0.0, 1.5))
            s_sim_params_set(params->NOISE_SCALE, params->noiseScale);
-    ImGui::Checkbox("Apply blur", &params->applyBlur);
-    if (ImGui::SliderInt("Size", &params->blurSize, 0, 10))
+    ImGui::Checkbox("Enable bloom", &params->applyBlur);
+    if (ImGui::SliderInt("Bloominess", &params->blurSize, 0, 10))
             s_sim_params_set(params->BLUR_SIZE, params->blurSize);
-    ImGui::Text("--------------------------------------------------------------------------------");
-    ImGui::Text("Three Orthogonal Planar Slices Controls");
     ImGui::Text("Planar slices offsets (in normalized coordinates) for xy, yz, xz");
     if (ImGui::SliderFloat("planarNormCoordOffsets[0]", &params->planarNormCoordOffsets.ind[0], 0.0, 1.0))
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
@@ -140,8 +136,6 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
     if (ImGui::SliderFloat("planarNormCoordOffsets[2]", &params->planarNormCoordOffsets.ind[2], 0.0, 1.0))
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
-    ImGui::Text("--------------------------------------------------------------------------------");
-    ImGui::Text("Arrows Plot");
     ImGui::Checkbox("Use conical arrows", &params->useCones);
 
 }
