@@ -39,6 +39,7 @@ void simulation_ui_interface_handler(
     UserProgramsManager user_text_edit {};
 
     // For handling mouse or touch interation.
+    std::optional<Vec2> hover_position;
     std::optional<Vec2> start_position;
     std::vector<Vec2> cursor_positions {};
     std::optional<std::pair<Vec2, Vec2>> start_double_touches;
@@ -177,7 +178,8 @@ void simulation_ui_interface_handler(
 
         }
         main_render.draw(
-            sim.view(params, rotation, 0.05*Interactor::get_scroll()));
+            sim.view(params, hover_position, 
+                rotation, 0.05*Interactor::get_scroll()));
 
         auto poll_events = [&] {
             // Tell GLFW to poll events
@@ -189,11 +191,15 @@ void simulation_ui_interface_handler(
             // Handle mouse or single touch events
             Vec2 pos = interactor.get_mouse_position();
             if (pos.x > 0.0 && pos.x < 1.0 && 
-                pos.y > 0.0 && pos.y < 1.0 && 
-                interactor.left_pressed()) {
-                if (!start_position.has_value())
-                    start_position = pos;
-                cursor_positions.push_back(pos);
+                pos.y > 0.0 && pos.y < 1.0) { 
+                if (interactor.left_pressed()) {
+                    if (!start_position.has_value())
+                        start_position = pos;
+                    cursor_positions.push_back(pos);
+                }
+                hover_position = pos;
+            } else {
+                hover_position.reset();
             }
             if (interactor.left_released()) {
                 if (start_position.has_value()) {

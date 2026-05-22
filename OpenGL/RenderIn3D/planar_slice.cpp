@@ -2,6 +2,8 @@
 #include "planar_slice.hpp"
 #include "matrix.hpp"
 
+#include <iostream>
+
 using namespace planar_slice;
 
 static std::vector<float> get_planar_vertices() {
@@ -216,8 +218,39 @@ static Vec3 most_perpendicular_intersection_helper(
 
 }
 
+/* int PlanarSlices::find_most_perpendicular_plane(
+    IVec3 id_3d, float scale,
+    Quaternion rotation,
+    int offset_xy, int offset_yz, int offset_xz
+) {
+    Quaternion rotate_xy = Quaternion{1.0, 0.0, 0.0, 0.0};
+    Quaternion rotate_yz = Quaternion::rotator(
+        PI/2.0, {.x=0.0, .y=1.0, .z=0.0});
+    Quaternion rotate_xz = Quaternion::rotator(
+        -PI/2.0, {.x=1.0, .y=0.0, .z=0.0});
+    auto planar_rotations = std::vector<Quaternion> {
+        rotate_xy, rotate_yz, rotate_xz
+    };
+    auto offset_vectors = get_offset_vectors(
+        id_3d, offset_xy, offset_yz, offset_xz, true);
+    std::vector<Vec3> line_of_sight = line_from_screen_cursor(
+        rotation, scale, screen_cursor_pos);
+    std::vector<float> dots {};
+    for (Quaternion &rotation: planar_rotations) {
+        Vec3 normal = get_unnormalized_normal(rotation);
+        dots.push_back(
+            dot(normal, line_of_sight[1] - line_of_sight[0])
+        );
+    }
+    int most_perp_slice = 0;
+    for (int i = 0; i < 3; i++) {
+        if (abs(dots[i]) > abs(dots[most_perp_slice]))
+            most_perp_slice = i;
+    }
+}*/
+
 Vec3 PlanarSlices::most_perpendicular_intersection(
-    IVec3 id_3d,
+    int &most_perp, IVec3 id_3d,
     Quaternion user_rotate, float scale,
     int offset_xy, int offset_yz, int offset_xz,
     Vec2 screen_cursor_pos
@@ -246,11 +279,27 @@ Vec3 PlanarSlices::most_perpendicular_intersection(
         if (abs(dots[i]) > abs(dots[most_perp_slice]))
             most_perp_slice = i;
     }
+    most_perp = most_perp_slice;
     Vec3 intersection = most_perpendicular_intersection_helper(
         planar_rotations[most_perp_slice], 
         scale, offset_vectors[most_perp_slice],
         line_of_sight[0], line_of_sight[1]);
     return intersection;
+}
+
+Vec3 PlanarSlices::most_perpendicular_intersection(
+    IVec3 id_3d,
+    Quaternion user_rotate, float scale,
+    int offset_xy, int offset_yz, int offset_xz,
+    Vec2 screen_cursor_pos
+) {
+    int most_perp;
+    return most_perpendicular_intersection(
+        most_perp, id_3d,
+        user_rotate, scale,
+        offset_xy, offset_yz, offset_xz,
+        screen_cursor_pos
+    );
 }
 
 void PlanarSlices::view(
@@ -285,7 +334,7 @@ void PlanarSlices::view(
         // glEnable(GL_BLEND);
         // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         // glDepthFunc(GL_LESS);
-        
+        Vec3 intersection_point {};
         IVec2 screen_dimensions = dst.texture_dimensions();
         for (int slice_index = 0; slice_index < 3; slice_index++) {
             dst.draw(
@@ -308,18 +357,47 @@ void PlanarSlices::view(
                 },
                 m_planar_slice
             );
-            dst.draw(
-                m_quartered_square_program,
-                {
-                    // {"cursorPosition", {Vec3{.ind={-1.0, 1.0, 0.0}}}},
-                    {"offset", {offset_vectors[slice_index]}},
-                    {"scale", {float(1.01*scale)}},
-                    {"rotation", {rotations[slice_index]}},
-                    {"screenDimensions", {screen_dimensions}},
-                    {"color", {Vec4{.r=0.7, .g=0.7, .b=0.7, .a=0.5}}},
-                },
-                m_quartered_outline
+        }
+        {
+            int most_perp;
+            intersection_point = most_perpendicular_intersection(
+                most_perp, id_3d,
+                rotate, scale,
+                offset_xy, offset_yz, offset_xz,
+                screen_cursor_pos
             );
+            Vec3 cursor_point {.x=0.0, 0.0, 0.0};
+            switch(most_perp) {
+                case 0:
+                cursor_point = {
+                    .x=intersection_point.x, 
+                    .y=intersection_point.y};
+                break;
+                case 1:
+                cursor_point = {
+                    .x=intersection_point.z, 
+                    .y=intersection_point.y};
+                break;
+                default:
+                cursor_point = {
+                    .x=intersection_point.x, 
+                    .y=intersection_point.z};
+                break;
+            }
+            if (cursor_point.x >= -1.0 && cursor_point.x < 1.0 &&
+                cursor_point.y >= -1.0 && cursor_point.y < 1.0)
+                dst.draw(
+                    m_quartered_square_program,
+                    {
+                        {"cursorPosition", cursor_point},
+                        {"offset", {offset_vectors[most_perp]}},
+                        {"scale", {float(1.01F*scale)}},
+                        {"rotation", {rotations[most_perp]}},
+                        {"screenDimensions", {screen_dimensions}},
+                        {"color", {Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}},
+                    },
+                    m_quartered_outline
+                );
         }
         glClear(GL_DEPTH_BUFFER_BIT);
         // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

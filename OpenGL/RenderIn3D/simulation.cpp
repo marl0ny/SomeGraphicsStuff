@@ -1,6 +1,8 @@
 #include "simulation.hpp"
 #include "cube_outline.hpp"
 
+#include <iostream>
+
 using namespace sim_2d;
 
 
@@ -85,7 +87,10 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
 }
 
 const RenderTarget &Simulation
-::view(SimParams &params, ::Quaternion rotation, float scale) {
+::view(
+    SimParams &params,
+    const std::optional<Vec2> &hover,
+    ::Quaternion rotation, float scale) {
     enum {VOL_RENDER_VIEW=0, PLANAR_SLICES_VIEW=1, VECTOR_FIELD_VIEW=2, 
         PLANR_SLICES_VECTOR_FIELD_VIEW=3, VOL_RENDER_VECTOR_FIELD_VIEW=4};
     switch(params.visualizationSelect.selected) {
@@ -93,6 +98,20 @@ const RenderTarget &Simulation
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
+            if (hover.has_value()) {
+                Vec3 intersection_point = m_planar_slices.most_perpendicular_intersection(
+                    params.dataTexelDimensions3D,
+                    rotation, scale,
+                    int(params.dataTexelDimensions3D.z
+                        *params.planarNormCoordOffsets[0]),
+                    int(params.dataTexelDimensions3D.x
+                        *params.planarNormCoordOffsets[1]),
+                    int(params.dataTexelDimensions3D.y
+                        *params.planarNormCoordOffsets[2]),
+                    *hover
+                );
+                std::cout << intersection_point.x << ", " << intersection_point.y << ", " << intersection_point.z << std::endl;
+            }
             m_planar_slices.view(
                 this->m_frames.render,
                 this->m_frames.data, params.dataTexelDimensions3D,
@@ -103,7 +122,7 @@ const RenderTarget &Simulation
                     *params.planarNormCoordOffsets[1]),
                 int(params.dataTexelDimensions3D.y
                     *params.planarNormCoordOffsets[2]),
-                Vec2{.ind {0.0, 0.0}}
+                (hover.has_value())? *hover: Vec2{.ind {0.0, 0.0}}
             );
             {
                 IVec3 arrows_d3d = params.arrowDimensions;
@@ -156,6 +175,7 @@ const RenderTarget &Simulation
                 }
                 
             }
+            /*glDisable(GL_DEPTH_TEST);
             WireFrame cube_outline = get_cube_outline_wire_frame();
             this->m_frames.render.draw(
                 m_programs.cube_outline,
@@ -163,10 +183,11 @@ const RenderTarget &Simulation
                     {"rotation", rotation},
                     {"viewScale", scale},
                     {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
-                    {"usePerspectiveProjection", int(0)}
+                    {"usePerspectiveProjection", int(0)},
+                    {"rescaleZ", int(0)}
                 },
                 cube_outline
-            );
+            );*/
             return m_frames.render;
         }
         case VECTOR_FIELD_VIEW: {

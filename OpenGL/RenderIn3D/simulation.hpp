@@ -52,7 +52,9 @@ class Simulation {
     Simulation(const TextureParams &default_tex_params,
                const SimParams &params);
     const RenderTarget 
-    &view(SimParams &params, ::Quaternion rotation, float scale);
+    &view(SimParams &params,
+        const std::optional<Vec2> &hover,
+        ::Quaternion rotation, float scale);
     const RenderTarget &view_data_texture(
         SimParams &params, ::Quaternion rotation, float scale
     );
