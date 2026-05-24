@@ -1519,12 +1519,12 @@ void RenderTarget::draw(
             glUniform1i(location, value.multidimensional_data_quad->get_id());
             break;
             case Uniform::QUAD_CONTAINER:
-            printf("Quad value: %d\n", value.quad_ref_container.ref.get_id());
+            // printf("Quad value: %d\n", value.quad_ref_container.ref.get_id());
             glUniform1i(location, value.quad_ref_container.ref.get_id());
             break;
             case Uniform::RENDER_TARGET_CONTAINER:
-            printf("Render target value: %d\n",
-                value.render_target_ref_container.ref.get_id());
+            // printf("Render target value: %d\n",
+            //     value.render_target_ref_container.ref.get_id());
             glUniform1i(
                 location,
                 value.render_target_ref_container.ref.get_id());

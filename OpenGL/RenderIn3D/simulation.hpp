@@ -32,6 +32,7 @@ struct Programs {
     // unsigned int arrows3d;
     unsigned int gradient;
     unsigned int cube_outline;
+    unsigned int cursor_outline;
     Programs();
 };
 
@@ -40,6 +41,7 @@ class Simulation {
     planar_slice::PlanarSlices m_planar_slices;
     line_arrows3d::Arrows m_arrows3d;
     conical_arrows3d::Arrows m_conical_arrows3d;
+    Vec3 m_cursor_location;
     Programs m_programs;
     Frames m_frames;
     const RenderTarget
@@ -52,7 +54,7 @@ class Simulation {
     Simulation(const TextureParams &default_tex_params,
                const SimParams &params);
     const RenderTarget 
-    &view(SimParams &params,
+    &view(const SimParams &params,
         const std::optional<Vec2> &hover,
         ::Quaternion rotation, float scale);
     const RenderTarget &view_data_texture(
@@ -68,6 +70,8 @@ class Simulation {
     void reset_data_dimensions(IVec3 texel_dimensions_3d);
     void reset_volume_dimensions(IVec3 volume_dimensions_3d);
     void reset_volume_filtering(unsigned int filtering);
+    Vec3 get_cursor_location();
+    Vec3 get_scaled_cursor_location(const SimParams &params);
 };
 
 #endif

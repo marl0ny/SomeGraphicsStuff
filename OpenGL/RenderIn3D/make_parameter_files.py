@@ -381,6 +381,23 @@ function createSubDiv(controls, name, style) {
     return div;
 }
 
+function createHoveringLabelOnCanvas(enumCode, labelContent) {
+    let div = document.createElement("div");
+    div.style = `position: absolute; z-index: 10;`;
+    div.id = `hovering-canvas-label-${enumCode}`;
+    let label = document.createElement("label");
+    label.textContent = labelContent;
+    div.appendChild(label);
+    document.getElementById('inner-div2').prepend(div);
+}
+
+
+function editHoveringCanvasLabel(enumCode, textContent) {
+    let idVal = `hovering-canvas-label-${enumCode}`;
+    let label = document.getElementById(idVal);
+    label.textContent = textContent;
+}
+
 """
 
 def write_sliders_js(parameters, dst_file_name):
@@ -479,6 +496,8 @@ def write_sliders_js(parameters, dst_file_name):
             controls_counter += 1
         if parameter['type'] == 'SubSectionEnd':
             controls.pop()
+        if parameter['type'] == 'HoveringCanvasLabel':
+            file_contents += f'createHoveringLabelOnCanvas({i}, "{name}");'
     file_contents += '\n'
     with open(dst_file_name, "w") as f:
         f.write(file_contents)
@@ -572,6 +591,7 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
     file_contents += "\nstruct LineDivider {};\n"
     file_contents += "\nstruct SubSectionStart {};\n"
     file_contents += "\nstruct SubSectionEnd {};\n"
+    file_contents += "\nstruct HoveringCanvasLabel { std::string contents; };\n"
     file_contents += "\nstruct NotUsed {};\n"
     file_contents += "\nstruct SimParams {\n"
     parameters = {k: parameters[k] for k in parameters if k[0:2] != '__'}

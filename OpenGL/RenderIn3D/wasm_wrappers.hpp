@@ -36,6 +36,19 @@ void edit_label_display(int c, std::string text_content) {
     #endif
 }
 
+void edit_hovering_canvas_label_display(
+    int c, bool opacity, std::string text_content) {
+    std::string string_val = "";
+    string_val += "editHoveringCanvasLabel(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += "\"" + text_content + "\"";
+    string_val += ");";
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif
+}
+
 #include <iostream>
 
 void edit_scalar_parameter_slider_display(

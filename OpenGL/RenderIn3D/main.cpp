@@ -70,7 +70,7 @@ void simulation_ui_interface_handler(
             if (c == params.BRIGHTNESS)
                 user_text_edit.queue_current();
             if (c == params.USE_LINEAR) {
-                if (u.b32 == true)
+                if (u.b32)
                     sim.reset_volume_filtering(GL_LINEAR);
                 else
                     sim.reset_volume_filtering(GL_NEAREST);
@@ -180,6 +180,20 @@ void simulation_ui_interface_handler(
         main_render.draw(
             sim.view(params, hover_position, 
                 rotation, 0.05*Interactor::get_scroll()));
+
+        if (hover_position.has_value()) {
+            Vec3 loc = sim.get_cursor_location();
+            Vec3 scaled_loc = sim.get_scaled_cursor_location(params);
+            if (hover_position.has_value()
+                && loc.x >= -1.0 && loc.x < 1.0 && loc.y >= -1.0 && loc.y < 1.0
+                && loc.z >= -1.0 && loc.z < 1.0)
+                edit_hovering_canvas_label_display(
+                    SimParams::CANVAS_HOVER_DISPLAY, true,
+                    "x: " + std::to_string(scaled_loc.x) + ", "
+                    + "y: " + std::to_string(scaled_loc.y) + ", "
+                    + "z: " + std::to_string(scaled_loc.z)
+                );
+        }
 
         auto poll_events = [&] {
             // Tell GLFW to poll events

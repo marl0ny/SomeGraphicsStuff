@@ -343,6 +343,7 @@ VolumeRender
         data_texel_dimensions2d, 
         volume_texel_dimensions2d,
         volume_dimensions3d,
+        // GL_NEAREST, GL_NEAREST)
         default_tex_params.min_filter,
         default_tex_params.mag_filter)
     {

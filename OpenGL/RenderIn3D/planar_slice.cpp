@@ -264,7 +264,7 @@ Vec3 PlanarSlices::most_perpendicular_intersection(
         rotate_xy, rotate_yz, rotate_xz
     };
     auto offset_vectors = get_offset_vectors(
-        id_3d, offset_xy, offset_yz, offset_xz, true);
+        id_3d, offset_xy, offset_yz, offset_xz);
     std::vector<Vec3> line_of_sight = line_from_screen_cursor(
         user_rotate, scale, screen_cursor_pos);
     std::vector<float> dots {};
@@ -385,12 +385,13 @@ void PlanarSlices::view(
                 break;
             }
             if (cursor_point.x >= -1.0 && cursor_point.x < 1.0 &&
-                cursor_point.y >= -1.0 && cursor_point.y < 1.0)
+                cursor_point.y >= -1.0 && cursor_point.y < 1.0) {
                 dst.draw(
                     m_quartered_square_program,
                     {
                         {"cursorPosition", cursor_point},
-                        {"offset", {offset_vectors[most_perp]}},
+                        {"offset", {offset_vectors[most_perp] 
+                                        + Vec3{.x=0.0, .y=0.0, .z=-0.01}}},
                         {"scale", {float(1.01F*scale)}},
                         {"rotation", {rotations[most_perp]}},
                         {"screenDimensions", {screen_dimensions}},
@@ -398,6 +399,20 @@ void PlanarSlices::view(
                     },
                     m_quartered_outline
                 );
+                dst.draw(
+                    m_quartered_square_program,
+                    {
+                        {"cursorPosition", cursor_point},
+                        {"offset", {offset_vectors[most_perp] 
+                                        + Vec3{.x=0.0, .y=0.0, .z=0.01}}},
+                        {"scale", {float(1.01F*scale)}},
+                        {"rotation", {rotations[most_perp]}},
+                        {"screenDimensions", {screen_dimensions}},
+                        {"color", {Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}},
+                    },
+                    m_quartered_outline
+                );
+            }
         }
         glClear(GL_DEPTH_BUFFER_BIT);
         // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

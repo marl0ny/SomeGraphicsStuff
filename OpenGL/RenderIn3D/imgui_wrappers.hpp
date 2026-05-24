@@ -124,8 +124,6 @@ void imgui_controls(void *void_params) {
            s_sim_params_set(params->ALPHA_BRIGHTNESS, params->alphaBrightness);
     if (ImGui::SliderFloat("Color brightness", &params->colorBrightness, 0.0, 10.0))
            s_sim_params_set(params->COLOR_BRIGHTNESS, params->colorBrightness);
-    if (ImGui::SliderFloat("Noise sampling strength", &params->noiseScale, 0.0, 1.5))
-           s_sim_params_set(params->NOISE_SCALE, params->noiseScale);
     ImGui::Checkbox("Enable bloom", &params->applyBlur);
     if (ImGui::SliderInt("Bloominess", &params->blurSize, 0, 10))
             s_sim_params_set(params->BLUR_SIZE, params->blurSize);
@@ -137,6 +135,7 @@ void imgui_controls(void *void_params) {
     if (ImGui::SliderFloat("planarNormCoordOffsets[2]", &params->planarNormCoordOffsets.ind[2], 0.0, 1.0))
            s_sim_params_set(params->PLANAR_NORM_COORD_OFFSETS, params->planarNormCoordOffsets);
     ImGui::Checkbox("Use conical arrows", &params->useCones);
+    ImGui::Text("");
 
 }
 

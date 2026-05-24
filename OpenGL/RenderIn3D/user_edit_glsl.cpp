@@ -292,14 +292,14 @@ initialize_glsl_program_from_strings(
             expression_variables.insert(e);
         }
         // Print stuff 
-        {
+        /* {
             std::cout << "Original text: " << text << std::endl;
             std::cout << "RPN: ";
             for (auto &e: rpn_list)
                 std::cout << e << ", ";
             std::cout << std::endl;
             std::cout << expression_string << std::endl;
-        }
+        }*/
     }
     std::string user_defined_function_frag (USER_DEFINED_FUNCTION_FRAG);
     for (uint8_t i = 0; i < 4 && i < expression_strings.size(); i++) {

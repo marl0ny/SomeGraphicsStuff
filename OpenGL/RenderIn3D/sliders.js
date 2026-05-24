@@ -11,17 +11,17 @@ const ENUM_CODES = {
     ALPHA_BRIGHTNESS: 9,
     COLOR_BRIGHTNESS: 10,
     VOLUME_TEXEL_DIMENSIONS3_D: 11,
-    NOISE_SCALE: 12,
-    APPLY_BLUR: 13,
-    BLUR_SIZE: 14,
-    VOLUME_RENDER_SECTION_END: 15,
-    PLANAR_SLICES_SECTION_START: 16,
-    PLANAR_NORM_COORD_OFFSETS: 17,
-    PLANAR_SLICES_SECTION_END: 18,
-    ARROWS3_D_LINE_SECTION_START: 19,
-    ARROW_DIMENSIONS: 20,
-    USE_CONES: 21,
-    ARROWS3_D_LINE_SECTION_END: 22,
+    APPLY_BLUR: 12,
+    BLUR_SIZE: 13,
+    VOLUME_RENDER_SECTION_END: 14,
+    PLANAR_SLICES_SECTION_START: 15,
+    PLANAR_NORM_COORD_OFFSETS: 16,
+    PLANAR_SLICES_SECTION_END: 17,
+    ARROWS3_D_LINE_SECTION_START: 18,
+    ARROW_DIMENSIONS: 19,
+    USE_CONES: 20,
+    ARROWS3_D_LINE_SECTION_END: 21,
+    CANVAS_HOVER_DISPLAY: 22,
     DUMMY_VALUE: 23,
 };
 
@@ -389,6 +389,23 @@ function createSubDiv(controls, name, style) {
     return div;
 }
 
+function createHoveringLabelOnCanvas(enumCode, labelContent) {
+    let div = document.createElement("div");
+    div.style = `position: absolute; z-index: 10;`;
+    div.id = `hovering-canvas-label-${enumCode}`;
+    let label = document.createElement("label");
+    label.textContent = labelContent;
+    div.appendChild(label);
+    document.getElementById('inner-div2').prepend(div);
+}
+
+
+function editHoveringCanvasLabel(enumCode, textContent) {
+    let idVal = `hovering-canvas-label-${enumCode}`;
+    let label = document.getElementById(idVal);
+    label.textContent = textContent;
+}
+
 let controls = document.getElementById('controls');
 createScalarParameterSlider(controls, 1, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
 createVectorParameterSliders(controls, 2, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
@@ -401,12 +418,11 @@ createCheckbox(subControls0, 8, "Linear interpolation", false);
 createScalarParameterSlider(subControls0, 9, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
 createScalarParameterSlider(subControls0, 10, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
 createVectorParameterSliders(subControls0, 11, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createScalarParameterSlider(subControls0, 12, "Noise sampling strength", "float", {'value': 0.25, 'min': 0.0, 'max': 1.5, 'step': 0.01});
-createCheckbox(subControls0, 13, "Enable bloom", true);
-createScalarParameterSlider(subControls0, 14, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
+createCheckbox(subControls0, 12, "Enable bloom", true);
+createScalarParameterSlider(subControls0, 13, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
 let subControls1 = createSubDiv(controls, "Three Orthogonal Planar Slices Controls", "");
-createVectorParameterSliders(subControls1, 17, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createVectorParameterSliders(subControls1, 16, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 let subControls2 = createSubDiv(controls, "Arrows Plot", "");
-createVectorParameterSliders(subControls2, 20, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
-createCheckbox(subControls2, 21, "Use conical arrows", false);
-
+createVectorParameterSliders(subControls2, 19, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createCheckbox(subControls2, 20, "Use conical arrows", false);
+createHoveringLabelOnCanvas(22, "");

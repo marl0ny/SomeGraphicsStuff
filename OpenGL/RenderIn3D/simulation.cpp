@@ -1,5 +1,6 @@
 #include "simulation.hpp"
 #include "cube_outline.hpp"
+#include "cursor_outline3d.hpp"
 
 #include <iostream>
 
@@ -34,6 +35,10 @@ Programs::Programs() {
     );
     this->cube_outline = make_program_from_paths(
         "./shaders/cube-outline/cube-outline.vert",
+        "./shaders/util/uniform-color.frag"
+    );
+    this->cursor_outline = make_program_from_paths(
+        "./shaders/cursor/outline3d.vert",
         "./shaders/util/uniform-color.frag"
     );
     this->user_defined = 0;
@@ -75,6 +80,14 @@ void Frames::reset_data_dimensions(IVec3 texel_dimensions3d) {
     tmp.reset(this->data_tex_params);
 }
 
+static Vec3 scale_rotate(Vec3 r, float scale, Quaternion rotation) {
+    Vec3 r2 = r - Vec3{.x=0.5, 0.5, 0.0};
+    Quaternion q = rotate(
+        Quaternion{.real=1.0, r2.x, r2.y, r2.z},
+        rotation.conj());
+    return Vec3{.x=q.i/scale, q.j/scale, q.k/scale};
+}
+
 Simulation::
 Simulation(const TextureParams &default_tex_params, const SimParams &params
 ) : m_volume_render(default_tex_params,
@@ -88,7 +101,7 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
 
 const RenderTarget &Simulation
 ::view(
-    SimParams &params,
+    const SimParams &params,
     const std::optional<Vec2> &hover,
     ::Quaternion rotation, float scale) {
     enum {VOL_RENDER_VIEW=0, PLANAR_SLICES_VIEW=1, VECTOR_FIELD_VIEW=2, 
@@ -124,6 +137,17 @@ const RenderTarget &Simulation
                     *params.planarNormCoordOffsets[2]),
                 (hover.has_value())? *hover: Vec2{.ind {0.0, 0.0}}
             );
+            this->m_cursor_location = m_planar_slices.most_perpendicular_intersection(
+                params.dataTexelDimensions3D,
+                rotation, scale,
+                int(params.dataTexelDimensions3D.z
+                    *params.planarNormCoordOffsets[0]),
+                int(params.dataTexelDimensions3D.x
+                    *params.planarNormCoordOffsets[1]),
+                int(params.dataTexelDimensions3D.y
+                    *params.planarNormCoordOffsets[2]),
+                (hover.has_value())? *hover: Vec2{.ind {0.0, 0.0}}
+            );
             {
                 IVec3 arrows_d3d = params.arrowDimensions;
                 IVec2 arrows_d2d = get_2d_from_3d_dimensions(arrows_d3d);
@@ -147,6 +171,7 @@ const RenderTarget &Simulation
 
                     }
                 );
+
                 this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
                 if (params.visualizationSelect.selected 
@@ -248,6 +273,29 @@ const RenderTarget &Simulation
                 },
                 cube_outline
             );
+            if (hover.has_value()) {
+                Vec3 r = Vec3{.x=hover->x, hover->y, 0.0};
+                r = 2.0*scale_rotate(r, scale, rotation);
+                if (r.x >= -1.0 && r.x < 1.0 && 
+                    r.y >= -1.0 && r.y < 1.0 &&
+                    r.z >= -1.0 && r.z < 1.0) {
+                    this->m_cursor_location = r;
+                    std::cout << r.x << ", " << r.y << ", " << r.z << std::endl;
+                    WireFrame cursor_frame 
+                        = cursor_outline3d::get_cursor_wire_frame();
+                    this->m_frames.render.draw(
+                        m_programs.cursor_outline,
+                        {
+                            {"rotation", rotation},
+                            {"viewScale", scale},
+                            {"cursorPosition", r},
+                            {"color", Vec4{.ind{0.3, 0.3, 0.3, 0.1}}},
+                            {"usePerspectiveProjection", int(1)}
+                        },
+                        cursor_frame
+                    );
+                }
+            }
             return this->m_frames.render;
         }
         case VOL_RENDER_VIEW: case VOL_RENDER_VECTOR_FIELD_VIEW: {
@@ -259,8 +307,8 @@ const RenderTarget &Simulation
                 this->m_frames.render, this->m_frames.data,
                 scale, rotation,
                 params.alphaBrightness, 
-                params.colorBrightness,
-                {{"noiseScale", params.noiseScale}}
+                params.colorBrightness
+                // {{"noiseScale", params.noiseScale}}
             );
             if (params.blurSize >= 1 && params.applyBlur) { 
                 this->m_frames.render_tmp.draw(
@@ -287,7 +335,8 @@ const RenderTarget &Simulation
             //     {{"tex", {this->m_frames.render_tmp2}}},
             //     m_frames.quad_wire_frame
             // );
-            {
+            if (params.visualizationSelect.selected
+                    == VOL_RENDER_VECTOR_FIELD_VIEW) {
                 IVec3 arrows_d3d = params.arrowDimensions;
                 IVec2 arrows_d2d = get_2d_from_3d_dimensions(arrows_d3d);
                 IVec3 tex_d3d = params.dataTexelDimensions3D;
@@ -310,31 +359,26 @@ const RenderTarget &Simulation
 
                     }
                 );
-                // this->m_frames.render_tmp.clear();
-                // this->m_frames.render.clear();
-                if (params.visualizationSelect.selected
-                        == VOL_RENDER_VECTOR_FIELD_VIEW) {
-                    if (params.useCones) {
-                        m_conical_arrows3d.view(
-                            this->m_frames.render, this->m_frames.tmp,
-                            2.0*scale, rotation, 
-                            params.arrowDimensions,
-                            params.dataTexelDimensions3D,
-                            {
-                                {"useOrthogonalProjection", int(1)},
-                                {"rescaleZ", int(1)}
-                            });
-                    } else {
-                        m_arrows3d.view(
-                            this->m_frames.render, this->m_frames.tmp,
-                            2.0*scale, rotation, 
-                            params.arrowDimensions,
-                            params.dataTexelDimensions3D,
-                            {
-                                {"useOrthogonalProjection", int(1)},
-                                {"rescaleZ", int(1)}
-                            });
-                    }
+                if (params.useCones) {
+                    m_conical_arrows3d.view(
+                        this->m_frames.render, this->m_frames.tmp,
+                        2.0*scale, rotation, 
+                        params.arrowDimensions,
+                        params.dataTexelDimensions3D,
+                        {
+                            {"useOrthogonalProjection", int(1)},
+                            {"rescaleZ", int(1)}
+                        });
+                } else {
+                    m_arrows3d.view(
+                        this->m_frames.render, this->m_frames.tmp,
+                        2.0*scale, rotation, 
+                        params.arrowDimensions,
+                        params.dataTexelDimensions3D,
+                        {
+                            {"useOrthogonalProjection", int(1)},
+                            {"rescaleZ", int(1)}
+                        });
                 }
             }
             this->m_frames.render.draw(
@@ -347,6 +391,29 @@ const RenderTarget &Simulation
                 },
                 cube_outline
             );
+            if (hover.has_value()) {
+                Vec3 r = Vec3{.x=hover->x, hover->y, 0.0};
+                r = 2.0*scale_rotate(r, scale, rotation);
+                if (r.x >= -1.0 && r.x < 1.0 && 
+                    r.y >= -1.0 && r.y < 1.0 &&
+                    r.z >= -1.0 && r.z < 1.0) {
+                    this->m_cursor_location = r;
+                    std::cout << r.x << ", " << r.y << ", " << r.z << std::endl;
+                    WireFrame cursor_frame 
+                        = cursor_outline3d::get_cursor_wire_frame();
+                    this->m_frames.render.draw(
+                        m_programs.cursor_outline,
+                        {
+                            {"rotation", rotation},
+                            {"viewScale", scale},
+                            {"cursorPosition", r},
+                            {"color", Vec4{.ind{0.3, 0.3, 0.3, 0.1}}},
+                            {"usePerspectiveProjection", int(0)}
+                        },
+                        cursor_frame
+                    );
+                }
+            }
             return this->m_frames.render;
         }
     }
@@ -438,4 +505,16 @@ void Simulation::reset_volume_dimensions(IVec3 texel_dimensions_3d) {
 
 void Simulation::reset_volume_filtering(unsigned int filtering) {
     m_volume_render.reset_filtering(filtering);
+}
+
+Vec3 Simulation::get_cursor_location() {
+    return m_cursor_location;
+}
+
+Vec3 Simulation::get_scaled_cursor_location(const SimParams &params) {
+    return Vec3{
+        .x=m_cursor_location.x*params.dataTexelDimensions3D.x,
+        .y=m_cursor_location.y*params.dataTexelDimensions3D.y,
+        .z=m_cursor_location.z*params.dataTexelDimensions3D.z,
+    };
 }

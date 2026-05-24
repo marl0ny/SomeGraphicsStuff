@@ -1,9 +1,9 @@
 CPP_SOURCES = simulation.cpp \
-	volume_render.cpp planar_slice.cpp line_arrows3d.cpp conical_arrow3d.cpp cube_outline.cpp \
+	volume_render.cpp planar_slice.cpp line_arrows3d.cpp conical_arrow3d.cpp cube_outline.cpp cursor_outline3d.cpp \
 	main.cpp \
 	interactor.cpp gl_wrappers.cpp glfw_window.cpp parse.cpp user_edit_glsl.cpp matrix.cpp
 OBJECTS = simulation.o \
-	volume_render.o planar_slice.o line_arrows3d.o conical_arrow3d.o cube_outline.o \
+	volume_render.o planar_slice.o line_arrows3d.o conical_arrow3d.o cube_outline.o cursor_outline3d.o \
 	main.o \
 	interactor.o gl_wrappers.o glfw_window.o parse.o user_edit_glsl.o matrix.o
 SHADERS = ./shaders/gradient/gradient3d.frag ./shaders/slices/planar-slice.vert ./shaders/slices/quartered-square-outline.vert ./shaders/vol-render/sample-display.frag ./shaders/vol-render/display.frag ./shaders/vol-render/sample.frag ./shaders/vol-render/color-height-map1.frag ./shaders/vol-render/domain-coloring.frag ./shaders/vol-render/gray-scale.frag ./shaders/vol-render/modify-boundaries.frag ./shaders/vol-render/uniform-color-scale.frag ./shaders/vol-render/display.vert ./shaders/util/copy.frag ./shaders/util/scale.frag ./shaders/util/zero-boundaries-3d.frag ./shaders/util/not-used/surface/single-color.frag ./shaders/util/not-used/surface/mag-color-map.frag ./shaders/util/not-used/surface/surface.vert ./shaders/util/not-used/surface/domain-coloring.frag ./shaders/util/not-used/domain-color.frag ./shaders/util/not-used/mag-color-map.frag ./shaders/util/not-used/flip-horizontal.frag ./shaders/util/not-used/sub-window.frag ./shaders/util/uniform-color.frag ./shaders/util/blur.frag ./shaders/util/slice-of-3d.frag ./shaders/cube-outline/cube-outline.vert ./shaders/arrows/line-arrows3d.vert ./shaders/arrows/conical-arrows3d.vert

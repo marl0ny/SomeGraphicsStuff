@@ -26,6 +26,8 @@ struct SubSectionStart {};
 
 struct SubSectionEnd {};
 
+struct HoveringCanvasLabel { std::string contents; };
+
 struct NotUsed {};
 
 struct SimParams {
@@ -41,7 +43,6 @@ struct SimParams {
     float alphaBrightness = (float)(2.0F);
     float colorBrightness = (float)(1.0F);
     IVec3 volumeTexelDimensions3D = (IVec3)(IVec3 {.ind={128, 128, 192}});
-    float noiseScale = (float)(0.25F);
     bool applyBlur = (bool)(true);
     int blurSize = (int)(5);
     SubSectionEnd volumeRenderSectionEnd = SubSectionEnd{};
@@ -52,6 +53,7 @@ struct SimParams {
     IVec3 arrowDimensions = (IVec3)(IVec3 {.ind={8, 8, 8}});
     bool useCones = (bool)(false);
     SubSectionEnd arrows3DLineSectionEnd = SubSectionEnd{};
+    HoveringCanvasLabel canvasHoverDisplay = HoveringCanvasLabel{};
     int dummyValue = (int)(0);
     enum {
         T=0,
@@ -66,17 +68,17 @@ struct SimParams {
         ALPHA_BRIGHTNESS=9,
         COLOR_BRIGHTNESS=10,
         VOLUME_TEXEL_DIMENSIONS3_D=11,
-        NOISE_SCALE=12,
-        APPLY_BLUR=13,
-        BLUR_SIZE=14,
-        VOLUME_RENDER_SECTION_END=15,
-        PLANAR_SLICES_SECTION_START=16,
-        PLANAR_NORM_COORD_OFFSETS=17,
-        PLANAR_SLICES_SECTION_END=18,
-        ARROWS3_D_LINE_SECTION_START=19,
-        ARROW_DIMENSIONS=20,
-        USE_CONES=21,
-        ARROWS3_D_LINE_SECTION_END=22,
+        APPLY_BLUR=12,
+        BLUR_SIZE=13,
+        VOLUME_RENDER_SECTION_END=14,
+        PLANAR_SLICES_SECTION_START=15,
+        PLANAR_NORM_COORD_OFFSETS=16,
+        PLANAR_SLICES_SECTION_END=17,
+        ARROWS3_D_LINE_SECTION_START=18,
+        ARROW_DIMENSIONS=19,
+        USE_CONES=20,
+        ARROWS3_D_LINE_SECTION_END=21,
+        CANVAS_HOVER_DISPLAY=22,
         DUMMY_VALUE=23,
     };
     void set(int enum_val, Uniform val) {
@@ -104,9 +106,6 @@ struct SimParams {
             break;
             case VOLUME_TEXEL_DIMENSIONS3_D:
             volumeTexelDimensions3D = val.ivec3;
-            break;
-            case NOISE_SCALE:
-            noiseScale = val.f32;
             break;
             case APPLY_BLUR:
             applyBlur = val.b32;
@@ -146,8 +145,6 @@ struct SimParams {
             return {(float)colorBrightness};
             case VOLUME_TEXEL_DIMENSIONS3_D:
             return {(IVec3)volumeTexelDimensions3D};
-            case NOISE_SCALE:
-            return {(float)noiseScale};
             case APPLY_BLUR:
             return {(bool)applyBlur};
             case BLUR_SIZE:
