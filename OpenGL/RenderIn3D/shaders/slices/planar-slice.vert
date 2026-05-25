@@ -40,7 +40,7 @@ quaternion rotate(quaternion x, quaternion r) {
     return quaternion(mul(conj(r), mul(x, r)).xyz, 1.0);
 }
 
-vec4 project(vec4 x) {
+vec4 perspectiveProject(vec4 x) {
     vec4 y;
     y[0] = x[0]*4.0/(x[2] + 4.0);
     y[1] = float(screenDimensions[0])/float(screenDimensions[1])
@@ -50,9 +50,19 @@ vec4 project(vec4 x) {
     return y;
 }
 
+vec4 orthoProject(vec4 x) {
+    vec4 y;
+    y[0] = x[0]; // *4.0/(x[2] + 4.0);
+    y[1] = float(screenDimensions[0])/float(screenDimensions[1])
+            *x[1]; // *4.0/(x[2] + 4.0);
+    y[2] = x[2]; // /4.0;
+    y[3] = 1.0;
+    return y;
+}
+
 void main() {
     UV = position.xy/2.0 + vec2(0.5, 0.5);
-    gl_Position = rotate(quaternion(scale*(position + offset), 1.0),
-                         rotation);
+    gl_Position = orthoProject(
+        rotate(quaternion(scale*(position + offset), 1.0), rotation));
 }
 

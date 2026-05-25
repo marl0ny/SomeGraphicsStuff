@@ -38,6 +38,7 @@ uniform ivec3 volumeTexelDimensions3D;
 uniform ivec2 volumeTexelDimensions2D;
 uniform ivec3 dataTexelDimensions3D;
 uniform ivec2 dataTexelDimensions2D;
+uniform ivec2 screenDimensions;
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -145,6 +146,7 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
 void main() {
     vec4 viewPosition 
         = vec4(to3DVolumeTextureCoordinates(UV) - vec3(0.5), 1.0);
+    viewPosition.y *= float(screenDimensions[1])/float(screenDimensions[0]);
     for (int i = 0; i < 3; i += 1)
         viewPosition[i] *= preRotationScale[i];
     vec3 r = rotate(viewPosition, conj(rotation)).xyz/postRotationScale

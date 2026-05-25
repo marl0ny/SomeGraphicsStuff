@@ -285,7 +285,8 @@ static void sample_data(
     IVec3 volume_texel_dimensions3d,
     IVec2 volume_texel_dimensions2d,
     IVec3 data_texel_dimensions3d,
-    IVec2 data_texel_dimensions2d
+    IVec2 data_texel_dimensions2d,
+    IVec2 screen_dimensions
     ) {
     dst.draw(
         sample_data_program,
@@ -298,6 +299,7 @@ static void sample_data(
             {"dataTexelDimensions3D", data_texel_dimensions3d},
             {"volumeTexelDimensions2D", volume_texel_dimensions2d},
             {"dataTexelDimensions2D", data_texel_dimensions2d},
+            {"screenDimensions", screen_dimensions}
         }
     );
 }
@@ -420,10 +422,12 @@ void VolumeRender::view(
     }
     Vec3 sample_scale = Vec3{.x=1.0, 1.0, scale*max_z};
     Vec3 display_scale = Vec3{.x=1.0, 1.0, 1.0};
-    if (scale*max_x < 1.0 && scale*max_y < 1.0) {
+    float w2h_prop = float(this->view_dimensions[0])
+        / float(this->view_dimensions[1]);
+    if (scale*max_x < 1.0 && scale*max_y < w2h_prop){
         sample_scale.x = scale*max_x;
-        sample_scale.y = scale*max_y;
-        display_scale = Vec3{.x=scale*max_x, scale*max_y, 1.0};
+        sample_scale.y = scale*max_y*w2h_prop;
+        display_scale = Vec3{.x=scale*max_x, scale*max_y*w2h_prop, 1.0};
     }
     this->frames.data_half_precision.draw(
         // this->programs.modify_boundaries,
@@ -458,7 +462,8 @@ void VolumeRender::view(
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
         this->data_texel_dimensions3d,
-        this->data_texel_dimensions2d
+        this->data_texel_dimensions2d,
+        this->view_dimensions
     );
     sample_data(
         this->frames.volume_grad,
@@ -470,7 +475,8 @@ void VolumeRender::view(
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
         this->data_texel_dimensions3d,
-        this->data_texel_dimensions2d
+        this->data_texel_dimensions2d,
+        this->view_dimensions
     );
     // this->frames.view.clear();
     glEnable(GL_BLEND);

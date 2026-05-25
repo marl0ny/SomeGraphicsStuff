@@ -111,19 +111,27 @@ const RenderTarget &Simulation
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
                 // this->m_frames.render.clear();
+            Vec2 scaled_hover;
             if (hover.has_value()) {
-                Vec3 intersection_point = m_planar_slices.most_perpendicular_intersection(
-                    params.dataTexelDimensions3D,
-                    rotation, scale,
-                    int(params.dataTexelDimensions3D.z
-                        *params.planarNormCoordOffsets[0]),
-                    int(params.dataTexelDimensions3D.x
-                        *params.planarNormCoordOffsets[1]),
-                    int(params.dataTexelDimensions3D.y
-                        *params.planarNormCoordOffsets[2]),
-                    *hover
-                );
-                std::cout << intersection_point.x << ", " << intersection_point.y << ", " << intersection_point.z << std::endl;
+                IVec2 tex_dims = m_frames.render.texture_dimensions();
+                scaled_hover = Vec2{
+                    .x=hover->x,
+                    .y=hover->y*(float(tex_dims[1])/float(tex_dims[0]))
+                        + 0.5F*(1.0F - float(tex_dims[1])/float(tex_dims[0])) 
+                };
+                // std::cout << "Scaled hover y: " << scaled_hover.y << std::endl; 
+                // Vec3 intersection_point = m_planar_slices.most_perpendicular_intersection(
+                //     params.dataTexelDimensions3D,
+                //     rotation, scale,
+                //     int(params.dataTexelDimensions3D.z
+                //         *params.planarNormCoordOffsets[0]),
+                //     int(params.dataTexelDimensions3D.x
+                //         *params.planarNormCoordOffsets[1]),
+                //     int(params.dataTexelDimensions3D.y
+                //         *params.planarNormCoordOffsets[2]),
+                //     scaled_hover
+                // );
+                // std::cout << intersection_point.x << ", " << intersection_point.y << ", " << intersection_point.z << std::endl;
             }
             m_planar_slices.view(
                 this->m_frames.render,
@@ -135,7 +143,7 @@ const RenderTarget &Simulation
                     *params.planarNormCoordOffsets[1]),
                 int(params.dataTexelDimensions3D.y
                     *params.planarNormCoordOffsets[2]),
-                (hover.has_value())? *hover: Vec2{.ind {0.0, 0.0}}
+                (hover.has_value())? scaled_hover: Vec2{.ind {0.0, 0.0}}
             );
             this->m_cursor_location = m_planar_slices.most_perpendicular_intersection(
                 params.dataTexelDimensions3D,
@@ -146,7 +154,7 @@ const RenderTarget &Simulation
                     *params.planarNormCoordOffsets[1]),
                 int(params.dataTexelDimensions3D.y
                     *params.planarNormCoordOffsets[2]),
-                (hover.has_value())? *hover: Vec2{.ind {0.0, 0.0}}
+                (hover.has_value())? scaled_hover: Vec2{.ind {0.0, 0.0}}
             );
             {
                 IVec3 arrows_d3d = params.arrowDimensions;
@@ -274,7 +282,12 @@ const RenderTarget &Simulation
                 cube_outline
             );
             if (hover.has_value()) {
-                Vec3 r = Vec3{.x=hover->x, hover->y, 0.0};
+                IVec2 tex_dims = m_frames.render.texture_dimensions();
+                Vec3 r = Vec3{
+                    .x=hover->x,
+                    .y=hover->y*2.0F*(float(tex_dims[1])/float(tex_dims[0]))
+                        + 1.0F*(1.0F - float(tex_dims[1])/float(tex_dims[0])),
+                    .z=0.0};
                 r = 2.0*scale_rotate(r, scale, rotation);
                 if (r.x >= -1.0 && r.x < 1.0 && 
                     r.y >= -1.0 && r.y < 1.0 &&
@@ -387,18 +400,24 @@ const RenderTarget &Simulation
                     {"rotation", rotation},
                     {"viewScale", scale},
                     {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
-                    {"usePerspectiveProjection", int(0)}
+                    {"usePerspectiveProjection", int(0)},
+                    {"screenDimensions", m_frames.render.texture_dimensions()}
                 },
                 cube_outline
             );
             if (hover.has_value()) {
-                Vec3 r = Vec3{.x=hover->x, hover->y, 0.0};
+                IVec2 tex_dims = m_frames.render.texture_dimensions();
+                Vec3 r = Vec3{
+                    .x=hover->x,
+                    .y=hover->y*(float(tex_dims[1])/float(tex_dims[0]))
+                        + 0.5F*(1.0F - float(tex_dims[1])/float(tex_dims[0])),
+                    .z=0.0};
                 r = 2.0*scale_rotate(r, scale, rotation);
                 if (r.x >= -1.0 && r.x < 1.0 && 
                     r.y >= -1.0 && r.y < 1.0 &&
                     r.z >= -1.0 && r.z < 1.0) {
                     this->m_cursor_location = r;
-                    std::cout << r.x << ", " << r.y << ", " << r.z << std::endl;
+                    // std::cout << r.x << ", " << r.y << ", " << r.z << std::endl;
                     WireFrame cursor_frame 
                         = cursor_outline3d::get_cursor_wire_frame();
                     this->m_frames.render.draw(
@@ -408,7 +427,8 @@ const RenderTarget &Simulation
                             {"viewScale", scale},
                             {"cursorPosition", r},
                             {"color", Vec4{.ind{0.3, 0.3, 0.3, 0.1}}},
-                            {"usePerspectiveProjection", int(0)}
+                            {"usePerspectiveProjection", int(0)},
+                            {"screenDimensions", m_frames.render.texture_dimensions()}
                         },
                         cursor_frame
                     );

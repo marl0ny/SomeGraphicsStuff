@@ -62,8 +62,11 @@ void main() {
     vec3 r = rotate(quaternion(position2.xyz, 1.0), 
                     rotation).xyz*viewScale;
     gl_Position = vec4(r, 1.0);
-    if (usePerspectiveProjection)
+    if (usePerspectiveProjection) {
         gl_Position = project(vec4(r, 1.0));
-    else
+    } else {
         gl_Position.z *= 0.1;
+        gl_Position.y 
+            *= float(screenDimensions[0])/float(screenDimensions[1]);
+    }
 }
