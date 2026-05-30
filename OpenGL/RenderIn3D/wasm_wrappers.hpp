@@ -37,9 +37,47 @@ void edit_label_display(int c, std::string text_content) {
 }
 
 void edit_hovering_canvas_label_display(
-    int c, bool opacity, std::string text_content) {
+    int c, std::string text_content) {
     std::string string_val = "";
-    string_val += "editHoveringCanvasLabel(";
+    string_val += "editHoveringCanvasLabelTextContent(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += "\"" + text_content + "\", ";
+    string_val += "\"\"";
+    string_val += ");";
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif
+}
+
+std::string ww_place_in_quotes(std::string val) {
+    return "\"" + val + "\"";
+}
+
+void edit_hovering_canvas_visibility_top_left_offset(
+    int c, bool is_visible, int x_perc, int y_perc) {
+    std::string string_val = "";
+    string_val += "editHoveringCanvasVisibilityTopLeftOffset(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += (is_visible)? "true": "false";
+    string_val += ", ";
+    string_val += 
+        ww_place_in_quotes(std::to_string(x_perc));
+    string_val += ", ";
+    string_val += 
+        ww_place_in_quotes(std::to_string(y_perc));
+    string_val += ");";
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif
+}
+
+void edit_katex_label_display(
+    int c, std::string text_content
+) {
+    std::string string_val = "";
+    string_val += "editKaTeXLabel(";
     string_val += std::to_string(c);
     string_val += ", ";
     string_val += "\"" + text_content + "\"";

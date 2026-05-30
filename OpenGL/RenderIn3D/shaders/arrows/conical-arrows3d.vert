@@ -236,5 +236,8 @@ void main() {
         finalPosition.z = finalPosition.z/100.0 - 0.01;
     // finalPosition.z = -finalPosition.z;
     gl_Position = finalPosition;
+    if (useOrthogonalProjection)
+        gl_Position.y *=
+            float(screenDimensions[0])/float(screenDimensions[1]);
     
 }

@@ -341,6 +341,41 @@ function createLabel(
     controls.appendChild(document.createElement("br"));
 }
 
+function createKaTeXLabel(
+    controls, enumCode, latexText, style=''
+) {
+    let label = document.createElement("label");
+    if (style !== '')
+        label.style = style;
+    label.textContent = `${latexText}`;
+    label.id = `label-${enumCode}`;
+    label.className = 'top-label';
+    try {
+        katex.render(`\\\\KaTeX \\\\space \\\\text{rendering} \\\\space \\\\text{here}.`, 
+            label, {
+            throwOnError: true
+        });
+    } catch {
+
+    }
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
+}
+
+function editKaTeXLabel(
+    enumCode, latexText
+) {
+    let label = document.getElementById(`label-${enumCode}`);
+    try {
+        katex.render(latexText, 
+            label, {
+            throwOnError: true
+        });
+    } catch {
+
+    }
+}
+
 function editLabel(enumCode, textContent) {
     let idVal = `label-${enumCode}`;
     let label = document.getElementById(idVal);
@@ -392,10 +427,31 @@ function createHoveringLabelOnCanvas(enumCode, labelContent) {
 }
 
 
-function editHoveringCanvasLabel(enumCode, textContent) {
+function editHoveringCanvasLabelTextContent(
+    enumCode, textContent) {
     let idVal = `hovering-canvas-label-${enumCode}`;
     let label = document.getElementById(idVal);
     label.textContent = textContent;
+}
+
+function editHoveringCanvasVisibilityTopLeftOffset(
+    enumCode, isVisible, xPerc, yPerc
+) {
+    let idVal = `hovering-canvas-label-${enumCode}`;
+    let label = document.getElementById(idVal);
+    label.style['left'] = `${xPerc}%`;
+    label.style['top'] = `${yPerc}%`;
+    label.style['visibility'] = (isVisible)? 'visible': 'hidden';
+}
+
+function createLinkedLabel(controls, enumCode, labelContent, href) {
+    let label = document.createElement("a");
+    label.href = href;
+    label.textContent = `${labelContent}`;
+    label.id = `label-${enumCode}`;
+    label.className = 'link-label';
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
 }
 
 """
@@ -498,6 +554,13 @@ def write_sliders_js(parameters, dst_file_name):
             controls.pop()
         if parameter['type'] == 'HoveringCanvasLabel':
             file_contents += f'createHoveringLabelOnCanvas({i}, "{name}");'
+        if parameter['type'] == 'LinkedLabel':
+            file_contents \
+                += f'createLinkedLabel({controls[-1]}, {i}, '\
+                    f'\"{name}\", \"{parameter['value']}\");\n'
+        if parameter['type'] == 'KaTeXLabel':
+            file_contents += f'createKaTeXLabel({controls[-1]}, {i}, '\
+                    f'\"{name}\");\n'
     file_contents += '\n'
     with open(dst_file_name, "w") as f:
         f.write(file_contents)
@@ -592,6 +655,8 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
     file_contents += "\nstruct SubSectionStart {};\n"
     file_contents += "\nstruct SubSectionEnd {};\n"
     file_contents += "\nstruct HoveringCanvasLabel { std::string contents; };\n"
+    file_contents += "\nstruct LinkedLabel { std::string contents; };\n"
+    file_contents += "\nstruct KaTeXLabel {};\n"
     file_contents += "\nstruct NotUsed {};\n"
     file_contents += "\nstruct SimParams {\n"
     parameters = {k: parameters[k] for k in parameters if k[0:2] != '__'}
@@ -614,8 +679,12 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
             file_contents += f"    {type_} {k} = "\
                 + f"({type_})({value_str});\n"
         else:
-            file_contents += f"    {type_} {k} = "\
-                + f"{type_}{value_str};\n"
+            if 'LinkedLabel' in type_:
+                file_contents += f"    LinkedLabel {k} = " \
+                    + "{" + f'"{value_str}"' + "};\n"
+            else:
+                file_contents += f"    {type_} {k} = "\
+                    + f"{type_}{value_str};\n"
     file_contents += '    enum {\n'
     for i, k in enumerate(parameters.keys()):
         file_contents += \

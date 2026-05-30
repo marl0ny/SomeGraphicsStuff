@@ -90,11 +90,15 @@ void simulation_ui_interface_handler(
             params.set(c, index, val);
             if (c == params.USER_TEXT_ENTRY) {
                 int program;
+                std::vector<std::string> latex_out {""};
                 std::set<std::string> variables_set = 
                     initialize_glsl_program_from_strings(
-                        program, params.userTextEntry);
+                        program, latex_out, params.userTextEntry);
                 user_text_edit.add_new_program(program, variables_set);
                 display_parameters_as_sliders(c, variables_set,  {"t"});
+                edit_katex_label_display(params.LATEX_LABEL, 
+                    (latex_out[0].size() == 0)? 
+                    "": ("f(x, y, z) = " + latex_out[0]));
             }
         };
         /* Perform an action upon the press of a button. */
@@ -118,13 +122,17 @@ void simulation_ui_interface_handler(
             if (c == params.PRESET_FUNCTIONS_DROPDOWN) {
                 params.presetFunctionsDropdown.selected = val;
                 int program;
+                std::vector<std::string> latex_out = std::vector<std::string> {""};
                 std::set<std::string> variables_set = 
                     initialize_glsl_program_from_strings(
-                        program,
+                        program, latex_out,
                         {params.presetFunctionsDropdown.options[val]});
                 user_text_edit.add_new_program(program, variables_set);
                 display_parameters_as_sliders(
                     params.USER_TEXT_ENTRY, variables_set, {"t"});
+                edit_katex_label_display(params.LATEX_LABEL, 
+                    (latex_out[0].size() == 0)? 
+                    "": ("f(x, y, z) = " + latex_out[0]));
             }
             if (c == params.VISUALIZATION_SELECT) {
                 params.visualizationSelect.selected = val;
@@ -186,13 +194,17 @@ void simulation_ui_interface_handler(
             Vec3 scaled_loc = sim.get_scaled_cursor_location(params);
             if (hover_position.has_value()
                 && loc.x >= -1.0 && loc.x < 1.0 && loc.y >= -1.0 && loc.y < 1.0
-                && loc.z >= -1.0 && loc.z < 1.0)
+                && loc.z >= -1.0 && loc.z < 1.0) {
                 edit_hovering_canvas_label_display(
-                    SimParams::CANVAS_HOVER_DISPLAY, true,
+                    SimParams::CANVAS_HOVER_DISPLAY,
                     "x: " + std::to_string(scaled_loc.x) + ", "
                     + "y: " + std::to_string(scaled_loc.y) + ", "
                     + "z: " + std::to_string(scaled_loc.z)
                 );
+                /* edit_hovering_canvas_visibility_top_left_offset(
+                    SimParams::CANVAS_HOVER_DISPLAY, true, 50, 50
+                );*/
+            }
         }
 
         auto poll_events = [&] {

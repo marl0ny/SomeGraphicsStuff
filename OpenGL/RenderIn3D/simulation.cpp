@@ -110,7 +110,6 @@ const RenderTarget &Simulation
         case PLANAR_SLICES_VIEW: case PLANR_SLICES_VECTOR_FIELD_VIEW: {
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
-                // this->m_frames.render.clear();
             Vec2 scaled_hover;
             if (hover.has_value()) {
                 IVec2 tex_dims = m_frames.render.texture_dimensions();
@@ -119,19 +118,6 @@ const RenderTarget &Simulation
                     .y=hover->y*(float(tex_dims[1])/float(tex_dims[0]))
                         + 0.5F*(1.0F - float(tex_dims[1])/float(tex_dims[0])) 
                 };
-                // std::cout << "Scaled hover y: " << scaled_hover.y << std::endl; 
-                // Vec3 intersection_point = m_planar_slices.most_perpendicular_intersection(
-                //     params.dataTexelDimensions3D,
-                //     rotation, scale,
-                //     int(params.dataTexelDimensions3D.z
-                //         *params.planarNormCoordOffsets[0]),
-                //     int(params.dataTexelDimensions3D.x
-                //         *params.planarNormCoordOffsets[1]),
-                //     int(params.dataTexelDimensions3D.y
-                //         *params.planarNormCoordOffsets[2]),
-                //     scaled_hover
-                // );
-                // std::cout << intersection_point.x << ", " << intersection_point.y << ", " << intersection_point.z << std::endl;
             }
             m_planar_slices.view(
                 this->m_frames.render,
@@ -285,8 +271,8 @@ const RenderTarget &Simulation
                 IVec2 tex_dims = m_frames.render.texture_dimensions();
                 Vec3 r = Vec3{
                     .x=hover->x,
-                    .y=hover->y*2.0F*(float(tex_dims[1])/float(tex_dims[0]))
-                        + 1.0F*(1.0F - float(tex_dims[1])/float(tex_dims[0])),
+                    .y=hover->y*(float(tex_dims[1])/float(tex_dims[0]))
+                        + 0.5F*(1.0F - float(tex_dims[1])/float(tex_dims[0])),
                     .z=0.0};
                 r = 2.0*scale_rotate(r, scale, rotation);
                 if (r.x >= -1.0 && r.x < 1.0 && 
@@ -533,8 +519,8 @@ Vec3 Simulation::get_cursor_location() {
 
 Vec3 Simulation::get_scaled_cursor_location(const SimParams &params) {
     return Vec3{
-        .x=m_cursor_location.x*params.dataTexelDimensions3D.x,
-        .y=m_cursor_location.y*params.dataTexelDimensions3D.y,
-        .z=m_cursor_location.z*params.dataTexelDimensions3D.z,
+        .x=m_cursor_location.x*params.simulationDimensions3D.x/2.0F,
+        .y=m_cursor_location.y*params.simulationDimensions3D.y/2.0F,
+        .z=m_cursor_location.z*params.simulationDimensions3D.z/2.0F,
     };
 }

@@ -8,6 +8,11 @@ std::set<std::string>
 initialize_glsl_program_from_strings(
     int &dst_program, std::vector<std::string> texts);
 
+std::set<std::string>
+initialize_glsl_program_from_strings(
+    int &dst_program, std::vector<std::string> &latex_output,
+    std::vector<std::string> texts);
+
 
 struct UserDefinedProgram {
     bool is_time_dependent;

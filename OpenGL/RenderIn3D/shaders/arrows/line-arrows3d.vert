@@ -192,5 +192,8 @@ void main() {
     // gl_Position = finalPosition;
     gl_Position
         = (useOrthogonalProjection)? vec4(finalPosition.xyz, 1.0): project(finalPosition);
+    if (useOrthogonalProjection)
+        gl_Position.y *=
+            float(screenDimensions[0])/float(screenDimensions[1]);
     
 }

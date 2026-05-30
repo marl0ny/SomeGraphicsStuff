@@ -28,15 +28,21 @@ struct SubSectionEnd {};
 
 struct HoveringCanvasLabel { std::string contents; };
 
+struct LinkedLabel { std::string contents; };
+
+struct KaTeXLabel {};
+
 struct NotUsed {};
 
 struct SimParams {
+    LinkedLabel link = {"https://github.com/marl0ny/SomeGraphicsStuff/tree/master/OpenGL/RenderIn3D"};
     float t = (float)(0.0F);
     float brightness = (float)(10.0F);
     Vec3 simulationDimensions3D = (Vec3)(Vec3 {.ind={128.0, 128.0, 128.0}});
     IVec3 dataTexelDimensions3D = (IVec3)(IVec3 {.ind={64, 64, 64}});
     SelectionList presetFunctionsDropdown = SelectionList{2, {"exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)", "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))", "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6", "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))", "a*sin(x/10)*sin(y/10)*sin(z/10)", "step(sqrt(x^2 + y^2 + z^2) - 80)", "1 - step(x - 30) - step(-x - 30)", "abs(cos(k*x*y*z^2/1500000))^100", "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10", "cos(10*x*y*z/100000)^3", "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)", "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))", "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)", "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)", "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"}};
     EntryBoxes userTextEntry = EntryBoxes{"0"};
+    KaTeXLabel latexLabel = KaTeXLabel{};
     SelectionList visualizationSelect = SelectionList{0, {"Volume render", "Three orthogonal planar slices", "Vector field", "Three orthogonal planar slices, vector field", "Volume render, vector field"}};
     SubSectionStart volumeRenderSectionStart = SubSectionStart{};
     bool useLinear = (bool)(false);
@@ -56,30 +62,32 @@ struct SimParams {
     HoveringCanvasLabel canvasHoverDisplay = HoveringCanvasLabel{};
     int dummyValue = (int)(0);
     enum {
-        T=0,
-        BRIGHTNESS=1,
-        SIMULATION_DIMENSIONS3_D=2,
-        DATA_TEXEL_DIMENSIONS3_D=3,
-        PRESET_FUNCTIONS_DROPDOWN=4,
-        USER_TEXT_ENTRY=5,
-        VISUALIZATION_SELECT=6,
-        VOLUME_RENDER_SECTION_START=7,
-        USE_LINEAR=8,
-        ALPHA_BRIGHTNESS=9,
-        COLOR_BRIGHTNESS=10,
-        VOLUME_TEXEL_DIMENSIONS3_D=11,
-        APPLY_BLUR=12,
-        BLUR_SIZE=13,
-        VOLUME_RENDER_SECTION_END=14,
-        PLANAR_SLICES_SECTION_START=15,
-        PLANAR_NORM_COORD_OFFSETS=16,
-        PLANAR_SLICES_SECTION_END=17,
-        ARROWS3_D_LINE_SECTION_START=18,
-        ARROW_DIMENSIONS=19,
-        USE_CONES=20,
-        ARROWS3_D_LINE_SECTION_END=21,
-        CANVAS_HOVER_DISPLAY=22,
-        DUMMY_VALUE=23,
+        LINK=0,
+        T=1,
+        BRIGHTNESS=2,
+        SIMULATION_DIMENSIONS3_D=3,
+        DATA_TEXEL_DIMENSIONS3_D=4,
+        PRESET_FUNCTIONS_DROPDOWN=5,
+        USER_TEXT_ENTRY=6,
+        LATEX_LABEL=7,
+        VISUALIZATION_SELECT=8,
+        VOLUME_RENDER_SECTION_START=9,
+        USE_LINEAR=10,
+        ALPHA_BRIGHTNESS=11,
+        COLOR_BRIGHTNESS=12,
+        VOLUME_TEXEL_DIMENSIONS3_D=13,
+        APPLY_BLUR=14,
+        BLUR_SIZE=15,
+        VOLUME_RENDER_SECTION_END=16,
+        PLANAR_SLICES_SECTION_START=17,
+        PLANAR_NORM_COORD_OFFSETS=18,
+        PLANAR_SLICES_SECTION_END=19,
+        ARROWS3_D_LINE_SECTION_START=20,
+        ARROW_DIMENSIONS=21,
+        USE_CONES=22,
+        ARROWS3_D_LINE_SECTION_END=23,
+        CANVAS_HOVER_DISPLAY=24,
+        DUMMY_VALUE=25,
     };
     void set(int enum_val, Uniform val) {
         switch(enum_val) {

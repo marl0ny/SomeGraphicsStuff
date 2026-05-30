@@ -60,6 +60,7 @@ void imgui_controls(void *void_params) {
     SimParams *params = (SimParams *)void_params;
     for (auto &e: global_labels)
         params->set(e.first, 0, e.second);
+    ImGui::Text("Source");
     if (ImGui::SliderFloat("Scale", &params->brightness, 0.0, 20.0))
            s_sim_params_set(params->BRIGHTNESS, params->brightness);
     ImGui::Text("Domain dimensions");
@@ -102,6 +103,7 @@ void imgui_controls(void *void_params) {
             s_selection_set(params->PRESET_FUNCTIONS_DROPDOWN, 14);
         ImGui::EndMenu();
     }
+    ImGui::Text("KaTeX Label");
     if (ImGui::BeginMenu("Visualization select")) {
         if (ImGui::MenuItem( "Volume render"))
             s_selection_set(params->VISUALIZATION_SELECT, 0);

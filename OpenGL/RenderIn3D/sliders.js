@@ -1,28 +1,30 @@
 const ENUM_CODES = {
-    T: 0,
-    BRIGHTNESS: 1,
-    SIMULATION_DIMENSIONS3_D: 2,
-    DATA_TEXEL_DIMENSIONS3_D: 3,
-    PRESET_FUNCTIONS_DROPDOWN: 4,
-    USER_TEXT_ENTRY: 5,
-    VISUALIZATION_SELECT: 6,
-    VOLUME_RENDER_SECTION_START: 7,
-    USE_LINEAR: 8,
-    ALPHA_BRIGHTNESS: 9,
-    COLOR_BRIGHTNESS: 10,
-    VOLUME_TEXEL_DIMENSIONS3_D: 11,
-    APPLY_BLUR: 12,
-    BLUR_SIZE: 13,
-    VOLUME_RENDER_SECTION_END: 14,
-    PLANAR_SLICES_SECTION_START: 15,
-    PLANAR_NORM_COORD_OFFSETS: 16,
-    PLANAR_SLICES_SECTION_END: 17,
-    ARROWS3_D_LINE_SECTION_START: 18,
-    ARROW_DIMENSIONS: 19,
-    USE_CONES: 20,
-    ARROWS3_D_LINE_SECTION_END: 21,
-    CANVAS_HOVER_DISPLAY: 22,
-    DUMMY_VALUE: 23,
+    LINK: 0,
+    T: 1,
+    BRIGHTNESS: 2,
+    SIMULATION_DIMENSIONS3_D: 3,
+    DATA_TEXEL_DIMENSIONS3_D: 4,
+    PRESET_FUNCTIONS_DROPDOWN: 5,
+    USER_TEXT_ENTRY: 6,
+    LATEX_LABEL: 7,
+    VISUALIZATION_SELECT: 8,
+    VOLUME_RENDER_SECTION_START: 9,
+    USE_LINEAR: 10,
+    ALPHA_BRIGHTNESS: 11,
+    COLOR_BRIGHTNESS: 12,
+    VOLUME_TEXEL_DIMENSIONS3_D: 13,
+    APPLY_BLUR: 14,
+    BLUR_SIZE: 15,
+    VOLUME_RENDER_SECTION_END: 16,
+    PLANAR_SLICES_SECTION_START: 17,
+    PLANAR_NORM_COORD_OFFSETS: 18,
+    PLANAR_SLICES_SECTION_END: 19,
+    ARROWS3_D_LINE_SECTION_START: 20,
+    ARROW_DIMENSIONS: 21,
+    USE_CONES: 22,
+    ARROWS3_D_LINE_SECTION_END: 23,
+    CANVAS_HOVER_DISPLAY: 24,
+    DUMMY_VALUE: 25,
 };
 
 let gVecParams = {};
@@ -349,6 +351,41 @@ function createLabel(
     controls.appendChild(document.createElement("br"));
 }
 
+function createKaTeXLabel(
+    controls, enumCode, latexText, style=''
+) {
+    let label = document.createElement("label");
+    if (style !== '')
+        label.style = style;
+    label.textContent = `${latexText}`;
+    label.id = `label-${enumCode}`;
+    label.className = 'top-label';
+    try {
+        katex.render(`\\KaTeX \\space \\text{rendering} \\space \\text{here}.`, 
+            label, {
+            throwOnError: true
+        });
+    } catch {
+
+    }
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
+}
+
+function editKaTeXLabel(
+    enumCode, latexText
+) {
+    let label = document.getElementById(`label-${enumCode}`);
+    try {
+        katex.render(latexText, 
+            label, {
+            throwOnError: true
+        });
+    } catch {
+
+    }
+}
+
 function editLabel(enumCode, textContent) {
     let idVal = `label-${enumCode}`;
     let label = document.getElementById(idVal);
@@ -400,29 +437,52 @@ function createHoveringLabelOnCanvas(enumCode, labelContent) {
 }
 
 
-function editHoveringCanvasLabel(enumCode, textContent) {
+function editHoveringCanvasLabelTextContent(
+    enumCode, textContent) {
     let idVal = `hovering-canvas-label-${enumCode}`;
     let label = document.getElementById(idVal);
     label.textContent = textContent;
 }
 
+function editHoveringCanvasVisibilityTopLeftOffset(
+    enumCode, isVisible, xPerc, yPerc
+) {
+    let idVal = `hovering-canvas-label-${enumCode}`;
+    let label = document.getElementById(idVal);
+    label.style['left'] = `${xPerc}%`;
+    label.style['top'] = `${yPerc}%`;
+    label.style['visibility'] = (isVisible)? 'visible': 'hidden';
+}
+
+function createLinkedLabel(controls, enumCode, labelContent, href) {
+    let label = document.createElement("a");
+    label.href = href;
+    label.textContent = `${labelContent}`;
+    label.id = `label-${enumCode}`;
+    label.className = 'link-label';
+    controls.appendChild(label);
+    controls.appendChild(document.createElement("br"));
+}
+
 let controls = document.getElementById('controls');
-createScalarParameterSlider(controls, 1, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
-createVectorParameterSliders(controls, 2, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
-createVectorParameterSliders(controls, 3, "Discretization dimensions", "IVec3", {'value': [64, 64, 64], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createSelectionList(controls, 4, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
-createEntryBoxes(controls, 5, "Enter function f(x, y, z)", 1, []);
-createSelectionList(controls, 6, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
+createLinkedLabel(controls, 0, "Source", "https://github.com/marl0ny/SomeGraphicsStuff/tree/master/OpenGL/RenderIn3D");
+createScalarParameterSlider(controls, 2, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
+createVectorParameterSliders(controls, 3, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
+createVectorParameterSliders(controls, 4, "Discretization dimensions", "IVec3", {'value': [64, 64, 64], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createSelectionList(controls, 5, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
+createEntryBoxes(controls, 6, "Enter function f(x, y, z)", 1, []);
+createKaTeXLabel(controls, 7, "KaTeX Label");
+createSelectionList(controls, 8, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
 let subControls0 = createSubDiv(controls, "Volume Render Controls", "");
-createCheckbox(subControls0, 8, "Linear interpolation", false);
-createScalarParameterSlider(subControls0, 9, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createScalarParameterSlider(subControls0, 10, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createVectorParameterSliders(subControls0, 11, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createCheckbox(subControls0, 12, "Enable bloom", true);
-createScalarParameterSlider(subControls0, 13, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
+createCheckbox(subControls0, 10, "Linear interpolation", false);
+createScalarParameterSlider(subControls0, 11, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createScalarParameterSlider(subControls0, 12, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createVectorParameterSliders(subControls0, 13, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createCheckbox(subControls0, 14, "Enable bloom", true);
+createScalarParameterSlider(subControls0, 15, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
 let subControls1 = createSubDiv(controls, "Three Orthogonal Planar Slices Controls", "");
-createVectorParameterSliders(subControls1, 16, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createVectorParameterSliders(subControls1, 18, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 let subControls2 = createSubDiv(controls, "Arrows Plot", "");
-createVectorParameterSliders(subControls2, 19, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
-createCheckbox(subControls2, 20, "Use conical arrows", false);
-createHoveringLabelOnCanvas(22, "");
+createVectorParameterSliders(subControls2, 21, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createCheckbox(subControls2, 22, "Use conical arrows", false);
+createHoveringLabelOnCanvas(24, "");

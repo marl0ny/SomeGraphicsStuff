@@ -2,6 +2,11 @@
 
 3D visualization of functions who take as input values in a 3D cubical domain, and output real or complex values. The output is visualized using [domain colouring](https://en.wikipedia.org/wiki/Domain_coloring) techniques. These functions can be selected through a dropdown or defined by the user through a text entry box.
 
+## Library Credits
+
+For rendering LaTeX expressions, the KaTeX is used:
+ - Eisenberg E. and Alpert S. [KaTeX](https://github.com/KaTeX/KaTeX)
+
 ## References
 
 Parsing math expressions using the Shunting Yard algorithm:

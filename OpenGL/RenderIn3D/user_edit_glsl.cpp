@@ -269,15 +269,26 @@ void main() {
 static void remove_reserved_variables(
     std::set<std::string> &variables
 ) {
-    for (auto &v: {"i", "x", "y", "z", "width", "height", "depth"})
+    for (auto &v: {
+        "i", "x", "y", "z", "width", "height", "depth", "pi"})
         variables.erase(v);
 }
 
 std::set<std::string>
 initialize_glsl_program_from_strings(
     int &dst_program, std::vector<std::string> texts) {
+    std::vector<std::string> tmp{};
+    return initialize_glsl_program_from_strings(dst_program, tmp, texts);
+}
+
+std::set<std::string>
+initialize_glsl_program_from_strings(
+    int &dst_program, std::vector<std::string> &latex_output,
+    std::vector<std::string> texts) {
     std::vector<std::string> expression_strings = {};
     std::set<std::string> expression_variables {};
+    if (latex_output.size() != texts.size())
+        latex_output.resize(texts.size());
     for (int i = 0; i < texts.size(); i++) {
         std::string text = texts[i];
         std::vector<std::string> rpn_list 
@@ -287,19 +298,23 @@ initialize_glsl_program_from_strings(
         remove_reserved_variables(line_variables);
         std::string expression_string
             = turn_rpn_expression_to_glsl_expression_string(rpn_list);
+        std::string latex_string
+            = turn_rpn_expression_to_latex_string(rpn_list);
+        latex_output[i] = latex_string;
         expression_strings.push_back(expression_string);
         for (auto &e: line_variables) {
             expression_variables.insert(e);
         }
         // Print stuff 
-        /* {
-            std::cout << "Original text: " << text << std::endl;
+        {
+            std::cout << latex_string << std::endl;
+            /* std::cout << "Original text: " << text << std::endl;
             std::cout << "RPN: ";
             for (auto &e: rpn_list)
                 std::cout << e << ", ";
             std::cout << std::endl;
-            std::cout << expression_string << std::endl;
-        }*/
+            std::cout << expression_string << std::endl;*/
+        }
     }
     std::string user_defined_function_frag (USER_DEFINED_FUNCTION_FRAG);
     for (uint8_t i = 0; i < 4 && i < expression_strings.size(); i++) {

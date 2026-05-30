@@ -299,7 +299,8 @@ static void sample_data(
             {"dataTexelDimensions3D", data_texel_dimensions3d},
             {"volumeTexelDimensions2D", volume_texel_dimensions2d},
             {"dataTexelDimensions2D", data_texel_dimensions2d},
-            {"screenDimensions", screen_dimensions}
+            {"screenDimensions", screen_dimensions},
+            {"usePerspectiveProjection", int(0)}
         }
     );
 }

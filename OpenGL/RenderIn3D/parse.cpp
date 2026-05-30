@@ -11,13 +11,25 @@ using std::map;
 using std::set;
 
 static const string LETTERS 
-    = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
+    = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_";
 static const string OPS = "^/*+-";
 static const string NUMERICAL_CHARS = "0123456789e-+.";
 static vector<string> FUNCTIONS_LIST = {
     "abs", "exp", "sin", 
     "cos", "tan", "sinh", "cosh",
     "tanh", "log", "sqrt", "step"
+};
+
+static set<string> NON_LATEX_FUNCS = {
+    "abs", "step"
+};
+static set<string> GREEK_LETTER_NAME_LIST = {
+    "alpha", "beta", "delta", "epsilon", "phi", "gamma", "eta",
+    "iota", "kappa", "lambda", "mu", "nu", "omega", "pi",
+    "rho", "sigma", "tau", "theta", "upsilon", "chi", "zeta",
+    "Alpha", "Beta", "Delta", "Epsilon", "Phi", "Gamma", "Eta",
+    "Iota", "Kappa", "Lambda", "Mu", "Nu", "Omega", "Pi",
+    "Rho", "Sigma", "Tau", "Theta", "Upsilon", "Chi", "Zeta"
 };
 
 static double call_function(string name, double value) {
@@ -127,6 +139,133 @@ static bool is_right_parenthesis(char c) {
 static bool is_right_parenthesis(const string &s) {
     return s == ")";
 }
+
+static std::vector<std::string> split(std::string val, char delimiter) {
+    std::vector<std::string> strings {};
+    std::string tmp = "";
+    for (auto &e: val) {
+        if (e != delimiter) {
+            tmp += e;
+        } else if (tmp.size() > 0) {
+            strings.push_back(std::string{tmp});
+            tmp.clear();
+        }
+    }
+    if (tmp != "")
+        strings.push_back(tmp);
+    return strings;
+}
+
+/* static std::string add_left_frac_parenth(std::string original) {
+    int i = original.size() - 1;
+    int right_parenth_counter = 0;
+    for (; i >= 0; i--) {
+        if (is_right_parenthesis(original[i])) {
+            right_parenth_counter++;
+        } else if (is_left_parenthesis(original[i]))
+            right_parenth_counter--;
+            if (right_parenth_counter == 0)
+                break;
+    }
+    std::string left = original.substr(0, i);
+    std::string right = original.substr(i);
+    return left + "\\\\frac{" + right + "}";
+}
+
+static std::string add_left_frac_simple_val(std::string original) {
+    int i = original.size() - 1;
+    while (
+        is_a_letter(original[i]) 
+        || is_single_character_number(original[i])
+        || is_decimal_point(original[i]))
+        i--;
+    if (i <= 0)
+        return "\\\\frac{" + original + "}";
+    std::string left = original.substr(0, i + 1);
+    std::string right = original.substr(i + 1);
+    return left + "\\\\frac{" + right + "}";
+}
+
+static std::string add_curly_brackets_parenth(std::string original) {
+    int i = 0;
+    int left_parenth_counter = 0;
+    for (i = 0; i < original.size(); i++) {
+        // It is assumed that the first charater is a left parenthesis.
+        if (is_left_parenthesis(original[i])) {
+            left_parenth_counter++;
+        } else if (is_right_parenthesis(original[i]))
+            left_parenth_counter--;
+            if (left_parenth_counter == 0)
+                break;
+    }
+    std::string left = original.substr(0, i + 1);
+    std::string right = original.substr(i + 1);
+    return "{" + left + "}" + right;
+}
+
+static std::string add_curly_brackets_simple_val(std::string original) {
+    int i = 0;
+    while (
+        is_a_letter(original[i]) 
+        || is_single_character_number(original[i])
+        || is_decimal_point(original[i]))
+        i++;
+    if (i >= (original.size() - 1))
+        return "{" + original + "}";
+    std::string left = original.substr(0, i);
+    std::string right = original.substr(i);
+    return "{" + left + "}" + right;
+}
+
+
+
+static std::string turn_slashes_to_fracs(std::string original) {
+    int i;
+    for (i = 0; original[i] != '/' && i < original.size(); i++);
+    if (i == original.size())
+        return std::string{original};
+    std::string left = original.substr(0, i);
+    std::string right = original.substr(i + 1);
+    std::string left2, right2;
+    // std::cout << left << std::endl;
+    // std::cout << right << std::endl;
+    // return std::string{original};
+    if (left[left.size() - 1] == ')')
+        left2 = add_left_frac_parenth(left);
+    else
+        left2 = add_left_frac_simple_val(left);
+    if (right[0] == '(')
+        right2 = add_curly_brackets_parenth(right);
+    else
+        right2 = add_curly_brackets_simple_val(right);
+    return turn_slashes_to_fracs(left2 + right2);
+}
+
+void test_turn_slashes_to_fracs() {
+    std::cout << turn_slashes_to_fracs("x/y") << std::endl;
+    std::cout << turn_slashes_to_fracs("123/124") << std::endl;
+    std::cout << turn_slashes_to_fracs("x + a/b + c") << std::endl;
+    std::cout << turn_slashes_to_fracs("(x + a)/(b + c)") << std::endl;
+    std::cout << turn_slashes_to_fracs("(x + a)/(b + c/x + d)") << std::endl;
+    std::cout << turn_slashes_to_fracs("3 + (x + a)/(b + c/x + d) + 2") << std::endl;
+}
+
+static std::string turn_slashes_to_fracs(std::string original) {
+    std::vector<std::string> splitted_string = split(original, '/');
+    for (int i = 0; i < splitted_string.size() - 1; i++) {
+        std::string sub_str1 = splitted_string[i];
+        int j = splitted_string[i].size() - 1;
+        while(is_a_letter(sub_str1[j]) || is_single_character_number(sub_str1[j]))
+            j--;
+        std::string new_sub_str1 
+            = sub_str1.substr(0, j) + "\\\\frac{" + sub_str1.substr(j) + "}";
+        std::string sub_str2 = splitted_string[i + 1];
+        j = 0;
+        while(is_a_letter(sub_str1[j]) || is_single_character_number(sub_str1[j]))
+            j++;
+    }
+}
+*/
 
 struct Parsed {
     string value;
@@ -613,50 +752,127 @@ string turn_rpn_expression_to_glsl_expression_string(
     return rpn_stack.back();
 }
 
+/* static bool contains_nested_braces(std::string val) {
+    int brace_count = 0;
+    for (auto &e: val)
+        if (e == '}' || e == '{') 
+            brace_count++;
+    return brace_count > 2;
+}
+
+static bool contains_plus_minus(std::string val) {
+    int plus_minus_count = 0;
+    for (auto &e: val)
+        if (e == '+' || e == '-') 
+            plus_minus_count++;
+    return plus_minus_count > 1;
+}
+
+static bool contains_parenth(std::string val) {
+    return val[val.size() - 1] == ')';
+}*/
+
+struct RPNItem {
+    enum class Type {EXP, DIV, MUL, ADD, SUB, FUNCTION_CALL, VALUE} type;
+    string value;
+};
+
 string turn_rpn_expression_to_latex_string(
     vector<string> rpn_list) {
-    vector<string> rpn_stack {};
+    vector<RPNItem> rpn_stack {};
     while (rpn_list.size() > 0) {
         string e = deque(rpn_list);
         if (is_single_character_number(e[0]) || is_decimal_point(e[0])) {
-            rpn_stack.push_back("${" + e + "}");
+            rpn_stack.push_back(
+                {.type=RPNItem::Type::VALUE, .value="{" + e + "}"});
         } else if (is_single_character_op(e[0])) {
-            string r_val = rpn_stack.back();
+            RPNItem right = rpn_stack.back();
             rpn_stack.pop_back();
-            string l_val = rpn_stack.back();
+            if (rpn_stack.empty()) {
+                fprintf(stderr, "Invalid expression.");
+                return "";
+            }
+            RPNItem left = rpn_stack.back();
             rpn_stack.pop_back();
+            RPNItem item {};
             string val {};
             switch(e[0]) {
                 case '+':
-                val += "${" + l_val + "}+${" + r_val + "}";
+                item.type = RPNItem::Type::ADD;
+                val += " " + left.value + " + " + right.value + " ";
                 break;
                 case '-':
-                val = "${" + l_val + "}-${" + r_val + "}";
+                item.type = RPNItem::Type::SUB;
+                if (left.value == "{0}")
+                    val =  "-{" + right.value + "}";
+                else
+                    val = " " + left.value + " - " + right.value + " ";
                 break;
                 case '*':
-                val = "${" + l_val + "}${" + r_val + "}";
+                item.type = RPNItem::Type::MUL;
+                if (left.type == RPNItem::Type::ADD 
+                    || left.type == RPNItem::Type::SUB)
+                    left.value = "(" + left.value + ")";
+                if (right.type == RPNItem::Type::ADD 
+                    || right.type == RPNItem::Type::SUB)
+                    right.value = "(" + right.value + ")";
+                // val = left.value + " \\\\cdot " + right.value;
+                val = left.value + " \\\\cdot " + right.value;
                 break;
                 case '/':
-                val = "\\frac{${" + l_val + "}}{${" + r_val + "}}";
+                item.type = RPNItem::Type::DIV;
+                if (left.type == RPNItem::Type::ADD 
+                    || left.type == RPNItem::Type::SUB
+                    // || left.type == RPNItem::Type::MUL
+                    )
+                    left.value = "(" + left.value + ")";
+                if (right.type == RPNItem::Type::ADD 
+                    || right.type == RPNItem::Type::SUB
+                    // || right.type == RPNItem::Type::MUL
+                    )
+                    right.value = "(" + right.value + ")";
+                val = "\\\\frac{" + left.value + "}{" + right.value + "}";
+                break;
                 case '^':
-                val = "\\{${" + l_val + "}}^{${" + r_val + "}}";
+                item.type = RPNItem::Type::EXP;
+                if (left.type == RPNItem::Type::ADD 
+                    || left.type == RPNItem::Type::SUB
+                    || left.type == RPNItem::Type::MUL
+                    || left.type == RPNItem::Type::DIV)
+                    left.value = "(" + left.value + ")";
+                if (right.type == RPNItem::Type::ADD 
+                    || right.type == RPNItem::Type::SUB
+                    || right.type == RPNItem::Type::MUL
+                    || right.type == RPNItem::Type::DIV)
+                    right.value = "(" + right.value + ")";
+                val = "{" + left.value + "}^{" + right.value + "}";
                 break;
                 default:
                 break;
             }
-            rpn_stack.push_back(val);
+            item.value = val;
+            rpn_stack.push_back(item);
         } else if (is_a_letter(e[0])) {
             if (in_functions_list(e)) {
-                string in_val = rpn_stack.back();
+                RPNItem in = rpn_stack.back();
                 rpn_stack.pop_back();
-                string out_val = "\\${" + e + "}(${" + in_val + "})";
-                rpn_stack.push_back(out_val);
+                string out_val = "\\\\" + e + "( {" + in.value + "} )";
+                if (NON_LATEX_FUNCS.count(e) > 0)
+                    out_val = "\\\\text{" + e + "}( {" + in.value + "} )";
+                rpn_stack.push_back(
+                    {.type=RPNItem::Type::FUNCTION_CALL, .value=out_val});
             } else {
-                rpn_stack.push_back(e);
+                string val = e;
+                if (e == "KaTeX" || e == "LaTeX" || GREEK_LETTER_NAME_LIST.count(
+                    split(e, '_')[0]) > 0)
+                    val = "\\\\" + e;
+                rpn_stack.push_back(
+                    {.type=RPNItem::Type::VALUE, .value=val}
+                );
             }
         }
     }
-    return rpn_stack.back();
+    return rpn_stack.back().value;
 }
 
 set<string> get_variables_from_rpn_list(vector<string> rpn_list) {

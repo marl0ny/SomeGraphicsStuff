@@ -39,6 +39,7 @@ uniform ivec2 volumeTexelDimensions2D;
 uniform ivec3 dataTexelDimensions3D;
 uniform ivec2 dataTexelDimensions2D;
 uniform ivec2 screenDimensions;
+uniform bool usePerspectiveProjection;
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -143,10 +144,21 @@ vec4 sample2DTextureAs3D(sampler2D tex, vec3 position) {
     return mix(f0, f1, (dz == 0.0)? 0.0: (r.z - z0)/dz);
 }
 
+vec4 perspectiveProject(vec4 x) {
+    return vec4(
+        x.x*(x.z + 4.0)/4.0,
+        x.y*(x.z + 4.0)/4.0,
+        x.z,
+        x.w
+    );
+}
+
 void main() {
     vec4 viewPosition 
         = vec4(to3DVolumeTextureCoordinates(UV) - vec3(0.5), 1.0);
     viewPosition.y *= float(screenDimensions[1])/float(screenDimensions[0]);
+    if (usePerspectiveProjection)
+        viewPosition = perspectiveProject(viewPosition);
     for (int i = 0; i < 3; i += 1)
         viewPosition[i] *= preRotationScale[i];
     vec3 r = rotate(viewPosition, conj(rotation)).xyz/postRotationScale
