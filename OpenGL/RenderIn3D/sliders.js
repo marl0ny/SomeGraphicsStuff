@@ -8,23 +8,24 @@ const ENUM_CODES = {
     USER_TEXT_ENTRY: 6,
     LATEX_LABEL: 7,
     VISUALIZATION_SELECT: 8,
-    VOLUME_RENDER_SECTION_START: 9,
-    USE_LINEAR: 10,
-    ALPHA_BRIGHTNESS: 11,
-    COLOR_BRIGHTNESS: 12,
-    VOLUME_TEXEL_DIMENSIONS3_D: 13,
-    APPLY_BLUR: 14,
-    BLUR_SIZE: 15,
-    VOLUME_RENDER_SECTION_END: 16,
-    PLANAR_SLICES_SECTION_START: 17,
-    PLANAR_NORM_COORD_OFFSETS: 18,
-    PLANAR_SLICES_SECTION_END: 19,
-    ARROWS3_D_LINE_SECTION_START: 20,
-    ARROW_DIMENSIONS: 21,
-    USE_CONES: 22,
-    ARROWS3_D_LINE_SECTION_END: 23,
-    CANVAS_HOVER_DISPLAY: 24,
-    DUMMY_VALUE: 25,
+    USE_PERSPECTIVE_PROJECTION: 9,
+    VOLUME_RENDER_SECTION_START: 10,
+    USE_LINEAR: 11,
+    ALPHA_BRIGHTNESS: 12,
+    COLOR_BRIGHTNESS: 13,
+    VOLUME_TEXEL_DIMENSIONS3_D: 14,
+    APPLY_BLUR: 15,
+    BLUR_SIZE: 16,
+    VOLUME_RENDER_SECTION_END: 17,
+    PLANAR_SLICES_SECTION_START: 18,
+    PLANAR_NORM_COORD_OFFSETS: 19,
+    PLANAR_SLICES_SECTION_END: 20,
+    ARROWS3_D_LINE_SECTION_START: 21,
+    ARROW_DIMENSIONS: 22,
+    USE_CONES: 23,
+    ARROWS3_D_LINE_SECTION_END: 24,
+    CANVAS_HOVER_DISPLAY: 25,
+    DUMMY_VALUE: 26,
 };
 
 let gVecParams = {};
@@ -473,16 +474,17 @@ createSelectionList(controls, 5, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4
 createEntryBoxes(controls, 6, "Enter function f(x, y, z)", 1, []);
 createKaTeXLabel(controls, 7, "KaTeX Label");
 createSelectionList(controls, 8, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
+createCheckbox(controls, 9, "Use perspective projection", false);
 let subControls0 = createSubDiv(controls, "Volume Render Controls", "");
-createCheckbox(subControls0, 10, "Linear interpolation", false);
-createScalarParameterSlider(subControls0, 11, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createScalarParameterSlider(subControls0, 12, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
-createVectorParameterSliders(subControls0, 13, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createCheckbox(subControls0, 14, "Enable bloom", true);
-createScalarParameterSlider(subControls0, 15, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
+createCheckbox(subControls0, 11, "Linear interpolation", false);
+createScalarParameterSlider(subControls0, 12, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createScalarParameterSlider(subControls0, 13, "Color brightness", "float", {'value': 1.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});
+createVectorParameterSliders(subControls0, 14, "Volume dimensions", "IVec3", {'value': [128, 128, 192], 'min': [16, 16, 16], 'max': [512, 512, 512], 'step': [2, 2, 4]});
+createCheckbox(subControls0, 15, "Enable bloom", true);
+createScalarParameterSlider(subControls0, 16, "Bloominess", "int", {'value': 5, 'min': 0, 'max': 10});
 let subControls1 = createSubDiv(controls, "Three Orthogonal Planar Slices Controls", "");
-createVectorParameterSliders(subControls1, 18, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
+createVectorParameterSliders(subControls1, 19, "Planar slices offsets (in normalized coordinates) for xy, yz, xz", "Vec3", {'value': [0.5, 0.5, 0.5], 'min': [0.0, 0.0, 0.0], 'max': [1.0, 1.0, 1.0], 'step': [0.001, 0.001, 0.001]});
 let subControls2 = createSubDiv(controls, "Arrows Plot", "");
-createVectorParameterSliders(subControls2, 21, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
-createCheckbox(subControls2, 22, "Use conical arrows", false);
-createHoveringLabelOnCanvas(24, "");
+createVectorParameterSliders(subControls2, 22, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
+createCheckbox(subControls2, 23, "Use conical arrows", false);
+createHoveringLabelOnCanvas(25, "");

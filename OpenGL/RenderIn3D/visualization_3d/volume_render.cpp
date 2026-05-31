@@ -282,6 +282,7 @@ static void sample_data(
     Vec3 pre_rotation_scale,
     float post_rotation_scale,
     Quaternion rotation,
+    bool use_perspective_projection,
     IVec3 volume_texel_dimensions3d,
     IVec2 volume_texel_dimensions2d,
     IVec3 data_texel_dimensions3d,
@@ -300,7 +301,7 @@ static void sample_data(
             {"volumeTexelDimensions2D", volume_texel_dimensions2d},
             {"dataTexelDimensions2D", data_texel_dimensions2d},
             {"screenDimensions", screen_dimensions},
-            {"usePerspectiveProjection", int(0)}
+            {"usePerspectiveProjection", int(use_perspective_projection)}
         }
     );
 }
@@ -410,6 +411,7 @@ void VolumeRender::view(
     RenderTarget &dst,
     const Quad &src_data, float scale, Quaternion rotation,
     float alpha_brightness, float color_brightness,
+    bool use_perspective_projection,
     Uniforms additional_uniforms
 ) {
     float max_x = 0.0, max_y = 0.0, max_z = 0.0;
@@ -460,6 +462,7 @@ void VolumeRender::view(
         sample_scale,
         scale,
         rotation,
+        use_perspective_projection,
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
         this->data_texel_dimensions3d,
@@ -473,6 +476,7 @@ void VolumeRender::view(
         sample_scale,
         scale,
         rotation,
+        use_perspective_projection,
         this->volume_texel_dimensions3d,
         this->volume_texel_dimensions2d,
         this->data_texel_dimensions3d,
@@ -503,6 +507,8 @@ void VolumeRender::view(
     view_uniforms.insert({"debugRotation", this->debug_rotation});
     view_uniforms.insert({"debugShow2DTexture", int(0)});
     view_uniforms.insert({"scale", display_scale});
+    view_uniforms.insert({"usePerspectiveProjection", 
+        int(use_perspective_projection)});
     display_volume(dst, 
         this->programs.show_volume,
         view_uniforms,

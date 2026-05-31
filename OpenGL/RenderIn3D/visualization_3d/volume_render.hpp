@@ -82,6 +82,7 @@ namespace volume_render {
             Quaternion rotation,
             float alpha_brightness=1.0,
             float color_brightness=1.0,
+            bool use_perspective_projection=false,
             Uniforms additional_uniforms={}
         );
         const Quad &get_gradient_half_precision() const;

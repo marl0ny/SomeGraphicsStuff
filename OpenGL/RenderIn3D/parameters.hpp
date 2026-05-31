@@ -44,6 +44,7 @@ struct SimParams {
     EntryBoxes userTextEntry = EntryBoxes{"0"};
     KaTeXLabel latexLabel = KaTeXLabel{};
     SelectionList visualizationSelect = SelectionList{0, {"Volume render", "Three orthogonal planar slices", "Vector field", "Three orthogonal planar slices, vector field", "Volume render, vector field"}};
+    bool usePerspectiveProjection = (bool)(false);
     SubSectionStart volumeRenderSectionStart = SubSectionStart{};
     bool useLinear = (bool)(false);
     float alphaBrightness = (float)(2.0F);
@@ -71,23 +72,24 @@ struct SimParams {
         USER_TEXT_ENTRY=6,
         LATEX_LABEL=7,
         VISUALIZATION_SELECT=8,
-        VOLUME_RENDER_SECTION_START=9,
-        USE_LINEAR=10,
-        ALPHA_BRIGHTNESS=11,
-        COLOR_BRIGHTNESS=12,
-        VOLUME_TEXEL_DIMENSIONS3_D=13,
-        APPLY_BLUR=14,
-        BLUR_SIZE=15,
-        VOLUME_RENDER_SECTION_END=16,
-        PLANAR_SLICES_SECTION_START=17,
-        PLANAR_NORM_COORD_OFFSETS=18,
-        PLANAR_SLICES_SECTION_END=19,
-        ARROWS3_D_LINE_SECTION_START=20,
-        ARROW_DIMENSIONS=21,
-        USE_CONES=22,
-        ARROWS3_D_LINE_SECTION_END=23,
-        CANVAS_HOVER_DISPLAY=24,
-        DUMMY_VALUE=25,
+        USE_PERSPECTIVE_PROJECTION=9,
+        VOLUME_RENDER_SECTION_START=10,
+        USE_LINEAR=11,
+        ALPHA_BRIGHTNESS=12,
+        COLOR_BRIGHTNESS=13,
+        VOLUME_TEXEL_DIMENSIONS3_D=14,
+        APPLY_BLUR=15,
+        BLUR_SIZE=16,
+        VOLUME_RENDER_SECTION_END=17,
+        PLANAR_SLICES_SECTION_START=18,
+        PLANAR_NORM_COORD_OFFSETS=19,
+        PLANAR_SLICES_SECTION_END=20,
+        ARROWS3_D_LINE_SECTION_START=21,
+        ARROW_DIMENSIONS=22,
+        USE_CONES=23,
+        ARROWS3_D_LINE_SECTION_END=24,
+        CANVAS_HOVER_DISPLAY=25,
+        DUMMY_VALUE=26,
     };
     void set(int enum_val, Uniform val) {
         switch(enum_val) {
@@ -102,6 +104,9 @@ struct SimParams {
             break;
             case DATA_TEXEL_DIMENSIONS3_D:
             dataTexelDimensions3D = val.ivec3;
+            break;
+            case USE_PERSPECTIVE_PROJECTION:
+            usePerspectiveProjection = val.b32;
             break;
             case USE_LINEAR:
             useLinear = val.b32;
@@ -145,6 +150,8 @@ struct SimParams {
             return {(Vec3)simulationDimensions3D};
             case DATA_TEXEL_DIMENSIONS3_D:
             return {(IVec3)dataTexelDimensions3D};
+            case USE_PERSPECTIVE_PROJECTION:
+            return {(bool)usePerspectiveProjection};
             case USE_LINEAR:
             return {(bool)useLinear};
             case ALPHA_BRIGHTNESS:

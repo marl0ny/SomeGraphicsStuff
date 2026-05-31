@@ -15,7 +15,7 @@
 #include <functional>
 #include <utility>
 
-#include "wasm_wrappers.hpp"
+#include "wrappers_wasm.hpp"
 
 
 static std::function <void()> s_loop;

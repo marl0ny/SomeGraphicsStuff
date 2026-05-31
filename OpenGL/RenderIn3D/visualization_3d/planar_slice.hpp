@@ -42,6 +42,15 @@ class PlanarSlices {
         int offset_xy, int offset_yz, int offset_xz,
         Vec2 screen_cursor_pos
     );
+    void view(
+        RenderTarget &dst,
+        const Quad &src, IVec3 id_3d,
+        Quaternion rotate,
+        float scale,
+        int offset_xy, int offset_yz, int offset_xz,
+        Vec2 screen_cursor_pos,
+        bool use_perspective_projection
+    );
     Vec3 most_perpendicular_intersection(
         IVec3 id_3d,
         Quaternion rotate, float scale,

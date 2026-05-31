@@ -129,7 +129,8 @@ const RenderTarget &Simulation
                     *params.planarNormCoordOffsets[1]),
                 int(params.dataTexelDimensions3D.y
                     *params.planarNormCoordOffsets[2]),
-                (hover.has_value())? scaled_hover: Vec2{.ind {0.0, 0.0}}
+                (hover.has_value())? scaled_hover: Vec2{.ind {0.0, 0.0}},
+                params.usePerspectiveProjection
             );
             this->m_cursor_location = m_planar_slices.most_perpendicular_intersection(
                 params.dataTexelDimensions3D,
@@ -177,7 +178,9 @@ const RenderTarget &Simulation
                             params.arrowDimensions,
                             params.dataTexelDimensions3D,
                             {
-                                {"useOrthogonalProjection", int(1)},
+                                {"useOrthogonalProjection",
+                                        (params.usePerspectiveProjection)? 
+                                        int(0): int(1)},
                                 {"rescaleZ", int(0)}
                             });
                     } else {
@@ -187,7 +190,9 @@ const RenderTarget &Simulation
                             params.arrowDimensions,
                             params.dataTexelDimensions3D,
                             {
-                                {"useOrthogonalProjection", int(1)},
+                                {"useOrthogonalProjection",
+                                        (params.usePerspectiveProjection)? 
+                                        int(0): int(1)},
                                 {"rescaleZ", int(0)}
                             });
                     }
@@ -237,11 +242,12 @@ const RenderTarget &Simulation
             if (params.useCones) {
                 m_conical_arrows3d.view(
                     this->m_frames.render, this->m_frames.tmp,
-                    2.0*scale, rotation, 
+                    2.0*scale, rotation,
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {
-                        {"useOrthogonalProjection", int(0)},
+                        {"useOrthogonalProjection", 
+                                (params.usePerspectiveProjection)? int(0): int(1)},
                         {"rescaleZ", int(0)}
                     });
             } else {
@@ -251,7 +257,8 @@ const RenderTarget &Simulation
                     params.arrowDimensions,
                     params.dataTexelDimensions3D,
                     {
-                        {"useOrthogonalProjection", int(0)},
+                        {"useOrthogonalProjection", 
+                                (params.usePerspectiveProjection)? int(0): int(1)},
                         {"rescaleZ", int(0)}
                     });
             }
@@ -262,7 +269,8 @@ const RenderTarget &Simulation
                     {"rotation", rotation},
                     {"viewScale", scale},
                     {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
-                    {"usePerspectiveProjection", int(1)},
+                    {"usePerspectiveProjection",
+                        (params.usePerspectiveProjection)? int(1): int(0)},
                     {"screenDimensions", m_frames.render.texture_dimensions()}
                 },
                 cube_outline
@@ -289,7 +297,8 @@ const RenderTarget &Simulation
                             {"viewScale", scale},
                             {"cursorPosition", r},
                             {"color", Vec4{.ind{0.3, 0.3, 0.3, 0.1}}},
-                            {"usePerspectiveProjection", int(1)}
+                            {"usePerspectiveProjection",
+                                (params.usePerspectiveProjection)? int(1): int(0)}
                         },
                         cursor_frame
                     );
@@ -306,7 +315,8 @@ const RenderTarget &Simulation
                 this->m_frames.render, this->m_frames.data,
                 scale, rotation,
                 params.alphaBrightness, 
-                params.colorBrightness
+                params.colorBrightness,
+                params.usePerspectiveProjection
                 // {{"noiseScale", params.noiseScale}}
             );
             if (params.blurSize >= 1 && params.applyBlur) { 
@@ -365,7 +375,8 @@ const RenderTarget &Simulation
                         params.arrowDimensions,
                         params.dataTexelDimensions3D,
                         {
-                            {"useOrthogonalProjection", int(1)},
+                            {"useOrthogonalProjection",
+                                (params.usePerspectiveProjection)? int(0): int(1)},
                             {"rescaleZ", int(1)}
                         });
                 } else {
@@ -375,7 +386,8 @@ const RenderTarget &Simulation
                         params.arrowDimensions,
                         params.dataTexelDimensions3D,
                         {
-                            {"useOrthogonalProjection", int(1)},
+                            {"useOrthogonalProjection",
+                                (params.usePerspectiveProjection)? int(0): int(1)},
                             {"rescaleZ", int(1)}
                         });
                 }
@@ -386,7 +398,8 @@ const RenderTarget &Simulation
                     {"rotation", rotation},
                     {"viewScale", scale},
                     {"color", Vec4{.ind{1.0, 1.0, 1.0, 0.5}}},
-                    {"usePerspectiveProjection", int(0)},
+                    {"usePerspectiveProjection", 
+                            int(params.usePerspectiveProjection)},
                     {"screenDimensions", m_frames.render.texture_dimensions()}
                 },
                 cube_outline
@@ -413,7 +426,8 @@ const RenderTarget &Simulation
                             {"viewScale", scale},
                             {"cursorPosition", r},
                             {"color", Vec4{.ind{0.3, 0.3, 0.3, 0.1}}},
-                            {"usePerspectiveProjection", int(0)},
+                            {"usePerspectiveProjection", 
+                                    int(params.usePerspectiveProjection)},
                             {"screenDimensions", m_frames.render.texture_dimensions()}
                         },
                         cursor_frame

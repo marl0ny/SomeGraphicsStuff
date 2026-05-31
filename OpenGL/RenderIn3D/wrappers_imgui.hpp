@@ -121,7 +121,6 @@ void imgui_controls(void *void_params) {
             s_selection_set(params->VISUALIZATION_SELECT, 6);
         ImGui::EndMenu();
     }
-    ImGui::Checkbox("Use perspective projection", &params->usePerspectiveProjection);
     ImGui::Checkbox("Linear interpolation", &params->useLinear);
     if (ImGui::SliderFloat("Alpha brightness", &params->alphaBrightness, 0.0, 10.0))
            s_sim_params_set(params->ALPHA_BRIGHTNESS, params->alphaBrightness);

@@ -308,6 +308,20 @@ void PlanarSlices::view(
     Quaternion rotate, float scale,
     int offset_xy, int offset_yz, int offset_xz,
     Vec2 screen_cursor_pos) {
+    this->view(
+        dst, src, id_3d, rotate, scale, 
+        offset_xy, offset_yz, offset_xz, 
+        screen_cursor_pos, false
+    );
+}
+
+void PlanarSlices::view(
+    RenderTarget &dst,
+    const Quad &src, IVec3 id_3d, 
+    Quaternion rotate, float scale,
+    int offset_xy, int offset_yz, int offset_xz,
+    Vec2 screen_cursor_pos,
+    bool use_perspective_projection) {
     Quaternion rotate_xy = rotate;
     Quaternion rotate_yz = Quaternion::rotator(
         PI/2.0, {.x=0.0, .y=1.0, .z=0.0})*rotate;
@@ -353,6 +367,7 @@ void PlanarSlices::view(
                     {"rotation", {rotations[slice_index]}},
                     {"offset", {offset_vectors[slice_index]}},
                     {"slice", {slices[slice_index]}},
+                    {"usePerspectiveProjection", int(use_perspective_projection)}
 
                 },
                 m_planar_slice
@@ -396,6 +411,7 @@ void PlanarSlices::view(
                         {"rotation", {rotations[most_perp]}},
                         {"screenDimensions", {screen_dimensions}},
                         {"color", {Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}},
+                        {"usePerspectiveProjection", int(use_perspective_projection)}
                     },
                     m_quartered_outline
                 );
@@ -409,6 +425,7 @@ void PlanarSlices::view(
                         {"rotation", {rotations[most_perp]}},
                         {"screenDimensions", {screen_dimensions}},
                         {"color", {Vec4{.r=1.0, .g=1.0, .b=1.0, .a=1.0}}},
+                        {"usePerspectiveProjection", int(use_perspective_projection)}
                     },
                     m_quartered_outline
                 );

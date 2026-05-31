@@ -18,7 +18,7 @@ https://en.wikipedia.org/wiki/Volume_ray_casting
 #if (__VERSION__ > 120) || defined(GL_ES)
 precision highp float;
 #endif
- 
+
 #if __VERSION__ <= 120
 varying vec2 UV;
 #define fragColor gl_FragColor
@@ -157,8 +157,7 @@ void main() {
     vec4 viewPosition 
         = vec4(to3DVolumeTextureCoordinates(UV) - vec3(0.5), 1.0);
     viewPosition.y *= float(screenDimensions[1])/float(screenDimensions[0]);
-    if (usePerspectiveProjection)
-        viewPosition = perspectiveProject(viewPosition);
+    // if (usePerspectiveProjection) viewPosition = perspectiveProject(viewPosition);
     for (int i = 0; i < 3; i += 1)
         viewPosition[i] *= preRotationScale[i];
     vec3 r = rotate(viewPosition, conj(rotation)).xyz/postRotationScale

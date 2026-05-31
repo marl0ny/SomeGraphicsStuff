@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <html>
     <head>
+        <title>Some very basic 3D plotting</title>
         <!--
 			Originally, I had numerous issues trying to get consistent and proper scaling
 			on mobile devices. To fix this, it turns out that the viewport throught the meta tag 
@@ -23,7 +24,7 @@
             id="katex-stylesheet"
             href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css"
             integrity="sha384-vlBdW0r3AcZO/HboRPznQNowvexd3fY8qHOWkBi5q7KGgqJ+F48+DceybYmrVbmB"
-            onerror="this.onerror=null; this.href='./libraries/katex.min.css'"
+            onerror="this.onerror=null; this.href='./other-ext-libraries/katex.min.css'"
             crossorigin="anonymous">
         <script 
             src="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.js"
@@ -46,14 +47,14 @@
 
             if (document.getElementById('katex-offline') !== null) {
                 let katexOffline = document.getElementById('katex-offline');
-                katexOffline.src = './libraries/katex.min.js';
+                katexOffline.src = './other-ext-libraries/katex.min.js';
                 document.head.appendChild(katexOffline);
             }
 
             if (document.getElementById('auto-rend-offline') !== null) {
                 let autoRendOffline 
                     = document.getElementById('auto-rend-offline');
-                autoRendOffline.src = './libraries/auto-render.min.js';
+                autoRendOffline.src = './other-ext-libraries/auto-render.min.js';
                 autoRendOffline.onload 
                     = () => renderMathInElement(document.body);
                 document.head.appendChild(autoRendOffline);

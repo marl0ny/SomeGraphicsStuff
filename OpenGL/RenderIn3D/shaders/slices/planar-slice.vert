@@ -22,6 +22,7 @@ uniform vec3 offset;
 uniform float scale;
 uniform quaternion rotation;
 uniform ivec2 screenDimensions;
+uniform bool usePerspectiveProjection;
     
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -62,7 +63,11 @@ vec4 orthoProject(vec4 x) {
 
 void main() {
     UV = position.xy/2.0 + vec2(0.5, 0.5);
-    gl_Position = orthoProject(
-        rotate(quaternion(scale*(position + offset), 1.0), rotation));
+    if (usePerspectiveProjection)
+        gl_Position = perspectiveProject(
+            rotate(quaternion(scale*(position + offset), 1.0), rotation));
+    else
+        gl_Position = orthoProject(
+            rotate(quaternion(scale*(position + offset), 1.0), rotation));
 }
 
