@@ -424,13 +424,15 @@ void VolumeRender::view(
 
     }
     Vec3 sample_scale = Vec3{.x=1.0, 1.0, scale*max_z};
-    Vec3 display_scale = Vec3{.x=1.0, 1.0, 1.0};
+    Vec4 display_scale = Vec4{.x=1.0, 1.0, 1.0, scale};
     float w2h_prop = float(this->view_dimensions[0])
         / float(this->view_dimensions[1]);
     if (scale*max_x < 1.0 && scale*max_y < w2h_prop){
         sample_scale.x = scale*max_x;
         sample_scale.y = scale*max_y*w2h_prop;
-        display_scale = Vec3{.x=scale*max_x, scale*max_y*w2h_prop, 1.0};
+        // printf("%g\n", scale);
+        display_scale = Vec4{
+            .x=scale*max_x, scale*max_y*w2h_prop, scale*max_z, scale};
     }
     this->frames.data_half_precision.draw(
         // this->programs.modify_boundaries,

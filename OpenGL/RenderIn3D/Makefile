@@ -66,7 +66,7 @@ TOP_LEVEL_SOURCES = main.cpp simulation.cpp
 VISUALIZATION_3D_SOURCES = ./visualization_3d/volume_render.cpp \
 	./visualization_3d/planar_slice.cpp ./visualization_3d/line_arrows3d.cpp \
 	./visualization_3d/conical_arrow3d.cpp ./visualization_3d/cube_outline.cpp \
-	./visualization_3d/cursor_outline3d.cpp
+	./visualization_3d/cursor_outline3d.cpp ./visualization_3d/axes3d.cpp
 GL_WRAPPER_SOURCES = ./gl_wrappers/gl_wrappers.cpp
 GLFW_WRAPPER_SOURCES = ./glfw_wrappers/glfw_window.cpp ./glfw_wrappers/interactor.cpp
 MATRIX_SOURCES = ./matrix/matrix.cpp
@@ -77,7 +77,7 @@ TOP_LEVEL_OBJECTS = main.o simulation.o
 VISUALIZATION_3D_OBJECTS = ./volume_render.o \
 	./planar_slice.o ./line_arrows3d.o \
 	./conical_arrow3d.o ./cube_outline.o \
-	./cursor_outline3d.o
+	./cursor_outline3d.o axes3d.o
 GL_WRAPPER_OBJECTS = ./gl_wrappers.o
 GLFW_WRAPPER_OBJECTS = ./glfw_window.o ./interactor.o
 MATRIX_OBJECTS = ./matrix.o

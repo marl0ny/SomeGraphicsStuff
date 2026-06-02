@@ -114,14 +114,15 @@ function createVectorParameterSliders(
     let label = document.createElement("label");
     // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
     label.textContent = `${sliderLabelName} = (${spec.value})`;
-    label.id = `slider-label-${enumCode}`;
     gVecParams[sliderLabelName] = spec.value;
+    label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
     for (let i = 0; i < spec.value.length; i++) {
         let slider = document.createElement("input");
         slider.type = "range";
-        slider.style ="width: 95%;"
+        // slider.style ="width: 95%;"
+        slider.className = 'vec-slider';
         for (let k of Object.keys(spec))
             slider[k] = spec[k][i];
         slider.value = spec.value[i];
@@ -149,6 +150,25 @@ function createVectorParameterSliders(
             }
         });
     }
+    /* let altDiv = document.createElement("div");
+    controls.appendChild(altDiv);
+    altDiv.hidden = true;
+    altDiv.className = 'vec-slider';
+    altDiv.style.display = 'inline-block';
+    // altDiv.style.width = '3em';
+    for (let i = 0; i < spec.value.length; i++) {
+        let newInput = document.createElement("input");
+        newInput.type = "text";
+        newInput.value = `${gVecParams[sliderLabelName][i]}`;
+        newInput.style.width = '3em';
+        altDiv.appendChild(newInput);
+        // if (i !== spec.value.length - 1)
+        //     altDiv.style['grid-template-columns'] += ' fr';
+    }
+    label.addEventListener("click", () => {
+        altDiv.hidden = !altDiv.hidden;
+        console.log(`${label.id} clicked`);
+    });*/
     if (isOnMobile())
         controls.appendChild(document.createElement("br"));
 };
@@ -162,6 +182,7 @@ function createSelectionList(
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
     let selector = document.createElement("select");
+    selector.className = 'dropdown';
     for (let i = 0; i < textOptions.length; i++) {
         let option = document.createElement("option");
         option.value = i;

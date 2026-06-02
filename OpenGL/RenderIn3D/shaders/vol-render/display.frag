@@ -42,7 +42,7 @@ uniform ivec2 fragmentTexelDimensions2D;
 uniform float alphaBrightness;
 uniform float colorBrightness;
 
-uniform bool usePerspectiveProjection;
+// uniform bool usePerspectiveProjection;
 
 quaternion mul(quaternion q1, quaternion q2) {
     quaternion q3;
@@ -308,11 +308,11 @@ vec4 perspectiveProject(vec4 x) {
 
 void main() {
     vec3 r = to3DTextureCoordinates(UV);
-    if (usePerspectiveProjection) {
-        r = (r - vec3(0.5));
-        r = perspectiveProject(vec4(r, 1.0)).xyz;
-        r = r + vec3(0.5);
-    }
+    // if (usePerspectiveProjection) {
+    //     r = (r - vec3(0.5));
+    //     r = perspectiveProject(vec4(r, 1.0)).xyz;
+    //     r = r + vec3(0.5);
+    // }
     vec2 uv2 = to2DTextureCoordinates(r);
     
     vec3 grad = texture2D(gradientTex, uv2).xyz;
