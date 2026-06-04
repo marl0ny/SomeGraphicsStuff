@@ -2,29 +2,46 @@
 
 #include <vector>
 
-static std::vector<float> get_x_line_vertices() {
-    return {};
+static std::vector<float> get_xyz_line_vertices() {
+    return {
+        -1.0, -1.0, 0.0,
+        1.0, 1.0, 0.0,
+        -1.0, 1.0, 0.0,
+        1.0, -1.0, 0.0,
+
+        0.0, -1.0, 1.0,
+        0.0, 0.0, 1.0,
+        -1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0,
+
+        1.0, -1.0, 2.0,
+        -1.0, -1.0, 2.0,
+        1.0, 1.0, 2.0,
+        -1.0, 1.0, 2.0
+    };
 }
 
-static std::vector<float> get_y_line_vertices() {
-    return {};
-}
-
-static std::vector<float> get_z_line_vertices() {
-    return {};
+static std::vector<int> get_xyz_elements() {
+    return {
+        0, 1, 2, 3,
+        0 + 4, 1 + 4, 1 + 4, 2 + 4, 1 + 4, 3 + 4,
+        0 + 8, 1 + 8, 1 + 8, 2 + 8, 2 + 8, 3 + 8
+    };
 }
 
 static std::vector<float> get_axes_vertices() {
     return std::vector{
-        0.0F, 0.0F, 0.0F,
-        1.0F, 0.0F, 0.0F,
-        0.0F, 1.0F, 0.0F,
-        0.0F, 0.0F, 1.0F
+        0.0F, 0.0F, 0.0F, 0.0F,
+        1.0F, 0.0F, 0.0F, 0.0F,
+        0.0F, 0.0F, 0.0F, 1.0F,
+        0.0F, 1.0F, 0.0F, 1.0F,
+        0.0F, 0.0F, 0.0F, 2.0F,
+        0.0F, 0.0F, 1.0F, 2.0F,
     };
 }
 
 static std::vector<int> get_axes_elements() {
-    return {0, 1, 0, 2, 0, 3};
+    return {0, 1, 2, 3, 4, 5};
 }
 
 WireFrame axes3d::get_axes_wireframe() {
@@ -32,7 +49,56 @@ WireFrame axes3d::get_axes_wireframe() {
     std::vector<float> vertices = get_axes_vertices();
     return WireFrame(
         {{"position", Attribute{
+                .size=4, .type=GL_FLOAT, .normalized=false,
+                .stride=0, .offset=0}}
+        }, vertices, elements, WireFrame::LINES);
+}
+
+WireFrame axes3d::get_xyz_axes_labels_wireframe() {
+    std::vector<int> elements = get_xyz_elements();
+    std::vector<float> vertices = get_xyz_line_vertices();
+    return WireFrame(
+        {{"position", Attribute{
                 .size=3, .type=GL_FLOAT, .normalized=false,
                 .stride=0, .offset=0}}
         }, vertices, elements, WireFrame::LINES);
 }
+
+void axes3d::draw_axes(
+    RenderTarget &dst,
+    const Programs &programs,
+    WireFrame &axes_wf, WireFrame &labels_wf,
+    const Quaternion &rotation, float view_scale,
+    float color_scale,
+    bool use_perspective_projection,
+    IVec2 screen_dimensions) {
+    dst.draw(
+        programs.axes,
+        {
+            {"rotation", rotation},
+            {"viewScale", view_scale},
+            {"usePerspectiveProjection",
+                int(use_perspective_projection)},
+            {"offset", 
+                Vec3{.x=-0.83F, .y=-0.83F, 0.0}},
+            {"screenDimensions", screen_dimensions}
+        },
+        axes_wf
+    );
+    dst.draw(
+        programs.labels,
+        {
+            {"rotation", rotation},
+            {"viewScale", view_scale},
+            {"colorScale", color_scale},
+            {"usePerspectiveProjection",
+                int(use_perspective_projection)},
+            {"offset", Vec3{
+                .x=-0.83F, .y=-0.83F, 0.0}},
+            {"screenDimensions", screen_dimensions}
+        },
+        labels_wf
+    );
+
+}
+

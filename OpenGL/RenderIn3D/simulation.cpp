@@ -1,6 +1,7 @@
 #include "simulation.hpp"
 #include "cube_outline.hpp"
 #include "cursor_outline3d.hpp"
+#include "axes3d.hpp"
 
 #include <iostream>
 
@@ -40,6 +41,14 @@ Programs::Programs() {
     this->cursor_outline = make_program_from_paths(
         "./shaders/cursor/outline3d.vert",
         "./shaders/util/uniform-color.frag"
+    );
+    this->axes_3d = make_program_from_paths(
+        "./shaders/axes/axes3d.vert",
+        "./shaders/axes/axes3d.frag"
+    );
+    this->axes_labels_3d = make_program_from_paths(
+        "./shaders/axes/axes-labels3d.vert",
+        "./shaders/axes/axes3d.frag"
     );
     this->user_defined = 0;
 }
@@ -199,6 +208,15 @@ const RenderTarget &Simulation
                 }
                 
             }
+            WireFrame axes = axes3d::get_axes_wireframe();
+            WireFrame axes_labels = axes3d::get_xyz_axes_labels_wireframe();
+            axes3d::draw_axes(
+                this->m_frames.render,
+                {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
+                axes, axes_labels,
+                rotation, 0.1F, 0.0F,
+                params.usePerspectiveProjection, 
+                m_frames.render.texture_dimensions());
             /*glDisable(GL_DEPTH_TEST);
             WireFrame cube_outline = get_cube_outline_wire_frame();
             this->m_frames.render.draw(
@@ -275,6 +293,15 @@ const RenderTarget &Simulation
                 },
                 cube_outline
             );
+            WireFrame axes = axes3d::get_axes_wireframe();
+            WireFrame axes_labels = axes3d::get_xyz_axes_labels_wireframe();
+            axes3d::draw_axes(
+                this->m_frames.render,
+                {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
+                axes, axes_labels,
+                rotation, 0.1F, 0.0F,
+                params.usePerspectiveProjection, 
+                m_frames.render.texture_dimensions());
             if (hover.has_value()) {
                 IVec2 tex_dims = m_frames.render.texture_dimensions();
                 Vec3 r = Vec3{
@@ -434,6 +461,15 @@ const RenderTarget &Simulation
                     );
                 }
             }
+            WireFrame axes = axes3d::get_axes_wireframe();
+            WireFrame axes_labels = axes3d::get_xyz_axes_labels_wireframe();
+            axes3d::draw_axes(
+                this->m_frames.render,
+                {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
+                axes, axes_labels,
+                rotation, 0.1F, 0.0F,
+                params.usePerspectiveProjection, 
+                m_frames.render.texture_dimensions());
             return this->m_frames.render;
         }
     }

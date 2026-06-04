@@ -33,6 +33,8 @@ struct Programs {
     unsigned int gradient;
     unsigned int cube_outline;
     unsigned int cursor_outline;
+    unsigned int axes_3d;
+    unsigned int axes_labels_3d;
     Programs();
 };
 
