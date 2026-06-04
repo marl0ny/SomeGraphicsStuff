@@ -6,5 +6,6 @@ __pycache__
 *.gch
 !.gitignore
 program
+/imgui
 /libraries/*
 /other-ext-libraries/*

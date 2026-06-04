@@ -766,19 +766,20 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
     
 
 IMGUI_CONTROLS_START = """
-#include "{}"
+// #include "{}"
 
 #ifndef _IMGUI_CONTROLS_
 #define _IMGUI_CONTROLS_
-using namespace {};
+// using namespace {};
 
 #include "gl_wrappers.hpp"
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "common_imgui.hpp"
 
-#include <functional>
+/* #include <functional>
 #include <set>
 
 #include "parameters.hpp"
@@ -792,6 +793,11 @@ static std::function<std::string(int)>
     s_user_edit_get_comma_separated_variables;
 static std::function<void(int)> s_button_pressed;
 static std::function<void(int, int)> s_selection_set;
+static std::function<void(
+    int, const std::string &image_data, int, int)> s_image_set;
+static std::function<unsigned char *()> s_bmp_image;
+static std::function<unsigned int ()> s_bmp_image_size;
+static std::function<void (int, bool)> s_configure_bmp_recording;
 static std::function<void(int, std::string, float)>
     s_sim_params_set_user_float_param;
 
@@ -803,7 +809,10 @@ void edit_label_display(int c, std::string text_content) {{
 }}
 
 void display_parameters_as_sliders(
-    int c, std::set<std::string> variables) {{
+    int c, std::set<std::string> variables, 
+    std::set<std::string> do_not_show={{ 
+    }}
+    ) {{
     std::string string_val = "[";
     for (auto &e: variables)
         string_val += "\"" + e + "\", ";
@@ -811,6 +820,19 @@ void display_parameters_as_sliders(
     string_val 
         = "modifyUserSliders(" + std::to_string(c) + ", " + string_val + ");";
     // TODO
+}}
+
+void download_bmp_image(std::string postfix_name) {{
+    unsigned char *image_data = s_bmp_image();
+    int image_size = s_bmp_image_size();
+    std::string time = std::to_string(
+        std::chrono::system_clock().now().time_since_epoch().count());
+    std::string fname = time + postfix_name + ".bmp";
+    FILE *f = fopen(&fname[0], "wb");
+    // TODO: check file!
+    fwrite(image_data, 1, image_size, f);
+    // TOO: check file writing!
+
 }}
 
 void start_gui(void *window) {{
@@ -821,7 +843,7 @@ void start_gui(void *window) {{
     ImGui::StyleColorsClassic();
     ImGui_ImplGlfw_InitForOpenGL((GLFWwindow *)window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
-}}
+}}*/
 
 void imgui_controls(void *void_params) {{
     SimParams *params = (SimParams *)void_params;
@@ -832,11 +854,11 @@ void imgui_controls(void *void_params) {{
 IMGUI_CONTROLS_END = """
 }
 
-bool outside_gui() {{
-    return !global_io.WantCaptureMouse;
-}}
+// bool outside_gui() {
+//     return !global_io.WantCaptureMouse;
+// }
 
-void display_gui(void *data) {{
+void display_gui(void *data) {
     global_io = ImGui::GetIO();
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -848,7 +870,7 @@ void display_gui(void *data) {{
     ImGui::End();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}}
+}
 
 #endif
 """
@@ -864,16 +886,93 @@ IMGUI_SLIDER_INT  = \
 """
 
 IMGUI_CHECKBOX  = \
-"""    ImGui::Checkbox("{}", &params->{});
+"""    if (ImGui::Checkbox("{}", &params->{}))
+            s_sim_params_set({}, {});
+"""
+
+IMGUI_BMP_RECORD  = \
+"""    if (ImGui::Checkbox("{}", &params->{}.is_recording))
+            s_configure_bmp_recording({}, {}.is_recording);
 """
 
 IMGUI_TEXT = \
 """    ImGui::Text("{}");
 """
 
+IMGUI_BUTTON = \
+"""    if (ImGui::Button("{}"))
+           s_button_pressed({});
+"""
+
 IMGUI_MENU = \
 """    if (ImGui::MenuItem({}))
             s_selection_set({}, {});
+"""
+
+# TODO: Issue with inputting text, in that whenever one
+# leaves the text input area any text written here disappears.
+# Trying to place text into the global_user_text_entries
+# so that it shall be loaded later to the text input doesn't
+# work properly.
+# Currently doing a workaround where one must hit the
+# enter button for the text expression to get parsed and used,
+# where it is then displayed at the bottom below, while
+# the original text in the text area disappears.
+IMGUI_ENTRY_BOX = \
+""" ImGui::Text("{}");  // name
+    {{
+        std::string string_val = std::string(240, '\\0');
+        /* if (global_user_text_entries.count({}) > 0) {{ // i
+            std::string prev = global_user_text_entries.at({}); // i
+            string_val = prev;
+        }} else {{
+            string_val = std::string(240, '\\0');
+        }} */
+        if (ImGui::InputText(
+            "[{}]", (char *)string_val.c_str(), 240   // k
+            , ImGuiInputTextFlags_EnterReturnsTrue
+            )) {{
+            std::string string_val2 = "";
+            for (const char &c: string_val) {{
+                if (c != '\\0')
+                    string_val2 += c;
+                else
+                    break;
+            }}
+            if (string_val2[0] == '\\0')
+                string_val2 = "0";
+            if (global_user_text_entries.count({}) == 0) {{ // i
+                global_user_text_entries.insert({{{}, {{string_val2}} }}); // i
+            }} else {{
+                if (global_user_text_entries.at({}).size() <= {}) // i, k
+                    global_user_text_entries.at({}).push_back(string_val2); // i 
+                global_user_text_entries.at({})[{}] = string_val2; // i, k
+            }}
+            s_sim_params_set_string({}, {}, string_val2); // i, k
+        }}
+    }}
+    if (global_user_text_entries.count({}) > 0) // i
+        ImGui::Text(
+            (char *)global_user_text_entries.at({})[{}].c_str()); // i, k
+    // name, i, i, k, i, i, i, k, i, i, k, i, k, i, i, k
+"""
+
+IMGUI_USER_SLIDERS = \
+"""  
+    if (global_user_defined_variables_in_use.count({}) > 0
+        ) {{ // i
+        std::set<std::string> variables 
+            = global_user_defined_variables_in_use.at({});  // i
+        if (variables.size() > 0) {{
+            for (std::string e: variables) {{
+                float value = global_user_defined_variables.at({}).at(e); // i
+                if (ImGui::SliderFloat(e.c_str(), &value, -5.0, 5.0)) {{
+                    s_sim_params_set_user_float_param({}, e, value); // i
+                    global_user_defined_variables.at({}).at(e) = value;  // i
+                }}
+            }}  
+        }}
+    }}
 """
 
 def write_imgui_controls(
@@ -894,6 +993,13 @@ def write_imgui_controls(
         if name in names:
             name += f" ({k})"
         names.add(name)
+        if 'EntryBoxes' in type_:
+            for k in range((value.count('"')//2)):
+                # print(k)
+                file_contents += \
+                    IMGUI_ENTRY_BOX.format(name,
+                        i, i, k, i, i, i, k, i, i, k, i, k, i, i, k)
+                file_contents += IMGUI_USER_SLIDERS.format(i, i, i, i, i)
         if 'Vec2' == type_ or 'Vec3' == type_ or 'Vec4' == type_:
             if "min" in parameter and "max" in parameter:
                 min_, max_ = parameter["min"], parameter["max"]
@@ -901,6 +1007,17 @@ def write_imgui_controls(
                 n_elem = int(type_[-1])
                 for i in range(n_elem):
                     file_contents += IMGUI_SLIDER_FLOAT.format(
+                        f"{k}[{i}]", k + f".ind[{i}]", min_[i], max_[i],
+                        "params->" + camel_to_snake(k, True),
+                        "params->" + k
+                    )
+        if 'IVec2' == type_ or 'IVec3' == type_ or 'IVec4' == type_:
+            if "min" in parameter and "max" in parameter:
+                min_, max_ = parameter["min"], parameter["max"]
+                file_contents += IMGUI_TEXT.format(name)
+                n_elem = int(type_[-1])
+                for i in range(n_elem):
+                    file_contents += IMGUI_SLIDER_INT.format(
                         f"{k}[{i}]", k + f".ind[{i}]", min_[i], max_[i],
                         "params->" + camel_to_snake(k, True),
                         "params->" + k
@@ -921,36 +1038,57 @@ def write_imgui_controls(
                     "params->" + camel_to_snake(k, True),
                     "params->" + k)
         if 'bool' in type_:
-            file_contents += IMGUI_CHECKBOX.format(name, k)
+            str_val = 'true' if value else 'false'
+            file_contents += IMGUI_CHECKBOX.format(
+                name, k, 
+                "params->" + camel_to_snake(k, True),
+                "params->" + k)
         if 'BoolRecord' in type_:
-            file_contents += IMGUI_CHECKBOX.format(name, k)
-        if 'Label' in type_:
+            file_contents += IMGUI_CHECKBOX.format(
+                name, k,
+                "params->" + camel_to_snake(k, True),
+                "params->" + k)
+        if 'Button' in type_:
+            file_contents += IMGUI_BUTTON.format(
+                name,
+                "params->" + camel_to_snake(k, True))
+        if type_ == 'Label':
             file_contents += IMGUI_TEXT.format(name)
         if 'LineDivider' in type_:
             file_contents += f"    ImGui::Text(\"{'-'*80}\");\n"
+        if 'SubSectionStart' in type_:
+            file_contents += f"    if (ImGui::TreeNode(\"{name}\"))" + " {\n"
+            # file_contents += f"    ImGui::Text(\"{name}\");\n"
+        if 'SubSectionEnd' in type_:
+            file_contents += "    ImGui::TreePop();\n"
+            file_contents += "    }\n \n"
+        if 'BMPRecord' in type_:
+            file_contents += IMGUI_BMP_RECORD.format(
+                name, k,
+                "params->" + camel_to_snake(k, True),
+                "params->" + k)
         if 'SelectionList' in type_:
             val2 = ''.join([c for c in value if (c != '}' and c != '{')])
-            list_val = val2.split(',')[1:]
-            # file_contents \
-            #     += f"    std::vector<bool> sel_{k} ({len(list_val)});\n"
-            # file_contents \
-            #     += f"    for (int i = 0; i < {len(list_val)}; i++)\n"
-            # file_contents \
-            #     += f"        sel_{k}[i] = (i == params->{k}.selected);\n"
+            w = ''
+            in_quote = False
+            list_val = []
+            for c in val2:
+                if in_quote and c == '"':
+                    list_val.append(w[1::])
+                    w = ''
+                    in_quote = False
+                elif not in_quote and c == '"':
+                    in_quote = True
+                if in_quote:
+                    w += c
             file_contents += "    if (ImGui::BeginMenu(\"{}\")) {{\n".format(name)
             for i, e in enumerate(list_val):
                 file_contents += "    " + IMGUI_MENU.format(
-                    e, f"params->{camel_to_snake(k, True)}", i
+                    "\"" + e.strip(' ').strip('"') 
+                    + "\"", f"params->{camel_to_snake(k, True)}", i
                 )
             file_contents += "        ImGui::EndMenu();\n"
             file_contents += "    }\n"
-            # file_contents \
-            #     += f"    for (int i = 0; i < {len(list_val)}; i++)\n"
-            # file_contents \
-            #     += f"        if (sel_{k}[i]) params->{k}.selected = i;\n"
-            # file_contents \
-            #     += (f"    s_selection_set(params->{camel_to_snake(k, True)},"
-            #          + f" params->{k}.selected);\n")
     file_contents += IMGUI_CONTROLS_END
     with open(dst_file_name, "w") as f:
         f.write(file_contents)
@@ -971,5 +1109,5 @@ if __name__ == '__main__':
 
     write_sliders_js(parameters, "sliders.js")
     write_imgui_controls(
-        parameters, "sim_2d", "parameters.hpp", "imgui_wrappers.hpp")
+        parameters, "sim_2d", "parameters.hpp", "./ui_wrappers/imgui.hpp")
     write_typed_sim_parameters_hpp(parameters, "sim_2d", "parameters.hpp")

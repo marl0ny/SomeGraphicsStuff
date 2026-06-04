@@ -11,11 +11,13 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/bind.h>
+#include "ui_wrappers/wasm.hpp"
+#else
+#include "ui_wrappers/imgui.hpp"
 #endif
+
 #include <functional>
 #include <utility>
-
-#include "ui_wrappers/wasm.hpp"
 
 
 static std::function <void()> s_loop;
@@ -91,6 +93,7 @@ void simulation_ui_interface_handler(
             if (c == params.USER_TEXT_ENTRY) {
                 int program;
                 std::vector<std::string> latex_out {""};
+                // printf("input: %s\n", &params.userTextEntry[0][0]);
                 std::set<std::string> variables_set = 
                     initialize_glsl_program_from_strings(
                         program, latex_out, params.userTextEntry);
@@ -162,6 +165,7 @@ void simulation_ui_interface_handler(
         user_text_edit.add_new_program(program, variables_set);
     }
 
+    start_gui(main_render.get_window());
     s_loop = [&] {
 
         if (start_position.has_value()) {
@@ -192,15 +196,16 @@ void simulation_ui_interface_handler(
         if (hover_position.has_value()) {
             Vec3 loc = sim.get_cursor_location();
             Vec3 scaled_loc = sim.get_scaled_cursor_location(params);
-            if (hover_position.has_value()
-                && loc.x >= -1.0 && loc.x < 1.0 && loc.y >= -1.0 && loc.y < 1.0
+            if (loc.x >= -1.0 && loc.x < 1.0 && loc.y >= -1.0 && loc.y < 1.0
                 && loc.z >= -1.0 && loc.z < 1.0) {
+                #ifdef __EMSCRIPTEN__
                 edit_hovering_canvas_label_display(
                     SimParams::CANVAS_HOVER_DISPLAY,
                     "x: " + std::to_string(scaled_loc.x) + ", "
                     + "y: " + std::to_string(scaled_loc.y) + ", "
                     + "z: " + std::to_string(scaled_loc.z)
                 );
+                #endif
                 /* edit_hovering_canvas_visibility_top_left_offset(
                     SimParams::CANVAS_HOVER_DISPLAY, true, 50, 50
                 );*/
@@ -216,7 +221,7 @@ void simulation_ui_interface_handler(
 
             // Handle mouse or single touch events
             Vec2 pos = interactor.get_mouse_position();
-            if (pos.x > 0.0 && pos.x < 1.0 && 
+            if (outside_gui() && pos.x > 0.0 && pos.x < 1.0 && 
                 pos.y > 0.0 && pos.y < 1.0) { 
                 if (interactor.left_pressed()) {
                     if (!start_position.has_value())
@@ -259,6 +264,7 @@ void simulation_ui_interface_handler(
             #ifndef __EMSCRIPTEN__
             #endif
         };
+        display_gui(&params);
         poll_events();
 
         glfwSwapBuffers(main_render.get_window());
@@ -274,7 +280,7 @@ void simulation_ui_interface_handler(
 
 
 int main(int argc, char *argv[]) {
-    int window_width = 1024, window_height = 1024;
+    int window_width = 1800, window_height = 1440;
     if (argc >= 3) {
         window_width = std::atoi(argv[1]);
         window_height = std::atoi(argv[2]);

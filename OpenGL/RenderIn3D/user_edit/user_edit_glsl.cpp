@@ -293,6 +293,13 @@ initialize_glsl_program_from_strings(
         std::string text = texts[i];
         std::vector<std::string> rpn_list 
                 = shunting_yard(get_expression_stack(text));
+        // TODO: if rpn_list is empty, signal a failure and don't create
+        // a new program.
+        #ifndef __EMSCRIPTEN__
+        if (rpn_list.size() == 0) {
+            rpn_list = {""};
+        }
+        #endif
         std::set<std::string> line_variables
             = get_variables_from_rpn_list(rpn_list);
         remove_reserved_variables(line_variables);

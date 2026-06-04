@@ -28,7 +28,8 @@
 ifeq ($(shell uname),Darwin)
 INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers -I${PWD}/glfw_wrappers \
 	-I/opt/homebrew/include -I${PWD}/visualization_3d -I${PWD}/matrix \
-	 -I${PWD}/parse -I${PWD}/user_edit
+	 -I${PWD}/parse -I${PWD}/user_edit \
+	 -I${PWD}/imgui
 LIBS = -ldl -L/opt/homebrew/lib -lglfw\
        -framework CoreVideo -framework OpenGL -framework IOKit \
        -framework Cocoa -framework Carbon
@@ -40,19 +41,37 @@ endif
 
 ##############################################################################
 
-# TARGET = ${PWD}/program
-# FLAGS = -O2 -g
-# FLAGS2 = 
-# CPP_COMPILE = clang++ -std=c++17
+IMGUI_DIR = ${PWD}/imgui
+IMGUI_SOURCES = ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp \
+                ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp \
+                ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp \
+                ${IMGUI_DIR}/imgui_tables.cpp \
+                ${IMGUI_DIR}/imgui_widgets.cpp
+IMGUI_OBJECTS = ./imgui.o ./imgui_draw.o ./imgui_impl_glfw.o \
+				./imgui_impl_opengl3.o \
+                ./imgui_tables.o ./imgui_widgets.o
 
-TARGET = main.js
-FLAGS = -std=c++17 -Os -O2
-FLAGS2 = -v -s WASM=2 -s USE_GLFW=3 -s MAX_WEBGL_VERSION=2 \
-	-s ALLOW_MEMORY_GROWTH=1 -s LLD_REPORT_UNDEFINED \
-	-lembind --embed-file shaders
-CPP_COMPILE = emcc
-LIBS = 
+##############################################################################
+##############################################################################
+##############################################################################
 
+TARGET = ${PWD}/program
+FLAGS = -O2 -g
+FLAGS2 = 
+CPP_COMPILE = clang++ -std=c++17
+
+# TARGET = main.js
+# FLAGS = -std=c++17 -Os -O2
+# FLAGS2 = -v -s WASM=2 -s USE_GLFW=3 -s MAX_WEBGL_VERSION=2 \
+# 	-s ALLOW_MEMORY_GROWTH=1 -s LLD_REPORT_UNDEFINED \
+# 	-lembind --embed-file shaders
+# CPP_COMPILE = emcc
+# LIBS = 
+# IMGUI_SOURCES =
+# IMGUI_OBJECTS = 
+
+##############################################################################
+##############################################################################
 ##############################################################################
 
 DATA_DEPENDENCIES = parameters.json
@@ -86,7 +105,7 @@ USER_EDIT_OBJECTS = ./user_edit_glsl.o
 
 OBJECTS = ${TOP_LEVEL_OBJECTS} ${VISUALIZATION_3D_OBJECTS} \
 	${GL_WRAPPER_OBJECTS} ${GLFW_WRAPPER_OBJECTS} ${MATRIX_OBJECTS} \
-	${PARSE_OBJECTS} ${USER_EDIT_OBJECTS}
+	${PARSE_OBJECTS} ${USER_EDIT_OBJECTS} ${IMGUI_OBJECTS}
 
 SHADERS := $(wildcard ./shaders/**/*.frag) $(wildcard ./shaders/**/*.vert)
 
@@ -116,6 +135,14 @@ ${USER_EDIT_OBJECTS}: ${USER_EDIT_SOURCES} ${DEPENDENCIES}
 
 ${GENERATED_DEPENDENCIES}: ${DATA_DEPENDENCIES} ${GENERATION_SCRIPTS}
 	python3 make_parameter_files.py
+
+${IMGUI_OBJECTS}: ${IMGUI_SOURCES}
+	clang++ -std=c++17 -O2 -g -c $^ ${INCLUDE}
+
+${IMGUI_SOURCES}:
+	wget "https://github.com/ocornut/imgui/archive/refs/heads/master.zip"
+	unzip master.zip
+	mv ./imgui-master ./imgui
 
 clean_obj:
 	rm -f *.o
