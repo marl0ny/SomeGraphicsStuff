@@ -92,6 +92,10 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
     );
 }
 
+function editBoolDisplay(enumCode, value) {
+    document.getElementById(`checkbox-${enumCode}`).checked = value;
+}
+
 function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
     let slider = document.getElementById(`slider-${enumCode}`);
     let label = document.getElementById(`slider-label-${enumCode}`);

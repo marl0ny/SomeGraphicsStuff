@@ -15,7 +15,7 @@ namespace axes3d {
         RenderTarget &dst,
         const Programs &programs,
         WireFrame &axes_wf, WireFrame &labels_wf,
-        const Quaternion &rotation, float view_scale,
+        const Quaternion &rotation, int size,
         float color_scale,
         bool use_perspective_projection,
         IVec2 screen_dimensions);

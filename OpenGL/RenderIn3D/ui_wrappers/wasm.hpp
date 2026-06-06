@@ -73,6 +73,18 @@ void edit_hovering_canvas_visibility_top_left_offset(
     #endif
 }
 
+void edit_bool_display(int c, bool value) {
+    std::string string_val = "";
+    string_val += "(";
+    string_val += std::to_string(c);
+    string_val += ", ";
+    string_val += (value)? "true": "false";
+    string_val += ");";
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&string_val[0]);
+    #endif
+}
+
 void edit_katex_label_display(
     int c, std::string text_content
 ) {

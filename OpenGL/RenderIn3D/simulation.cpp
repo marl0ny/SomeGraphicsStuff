@@ -61,7 +61,7 @@ Frames(const TextureParams &default_tex_params, const SimParams &params):
             params.dataTexelDimensions3D)[0],
         .height=(unsigned int)get_2d_from_3d_dimensions(
             params.dataTexelDimensions3D)[1],
-        .generate_mipmap=1, // default_tex_params.generate_mipmap,
+        .generate_mipmap=default_tex_params.generate_mipmap,
         .min_filter=default_tex_params.min_filter,
         .mag_filter=default_tex_params.mag_filter,
         .wrap_s=GL_REPEAT,
@@ -70,7 +70,7 @@ Frames(const TextureParams &default_tex_params, const SimParams &params):
     data(data_tex_params),
     tmp(data_tex_params),
     render_tmp(default_tex_params),
-    render_tmp2(default_tex_params),
+    // render_tmp2(default_tex_params),
     render(default_tex_params),
     quad_wire_frame(get_quad_wire_frame()),
     arrows3d_frame(
@@ -214,7 +214,7 @@ const RenderTarget &Simulation
                 this->m_frames.render,
                 {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
                 axes, axes_labels,
-                rotation, 0.1F, 0.0F,
+                rotation, 110, 0.0F,
                 params.usePerspectiveProjection, 
                 m_frames.render.texture_dimensions());
             /*glDisable(GL_DEPTH_TEST);
@@ -299,7 +299,7 @@ const RenderTarget &Simulation
                 this->m_frames.render,
                 {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
                 axes, axes_labels,
-                rotation, 0.1F, 0.0F,
+                rotation, 110, 0.0F,
                 params.usePerspectiveProjection, 
                 m_frames.render.texture_dimensions());
             if (hover.has_value()) {
@@ -336,7 +336,7 @@ const RenderTarget &Simulation
         case VOL_RENDER_VIEW: case VOL_RENDER_VECTOR_FIELD_VIEW: {
             this->m_frames.render.clear();
             this->m_frames.render_tmp.clear();
-            this->m_frames.render_tmp2.clear();
+            // this->m_frames.render_tmp2.clear();
             WireFrame cube_outline = get_cube_outline_wire_frame();
             m_volume_render.view(
                 this->m_frames.render, this->m_frames.data,
@@ -467,7 +467,7 @@ const RenderTarget &Simulation
                 this->m_frames.render,
                 {.axes=m_programs.axes_3d, .labels=m_programs.axes_labels_3d},
                 axes, axes_labels,
-                rotation, 0.1F, 0.0F,
+                rotation, 110, 0.0F,
                 params.usePerspectiveProjection, 
                 m_frames.render.texture_dimensions());
             return this->m_frames.render;

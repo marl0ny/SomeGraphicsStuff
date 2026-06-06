@@ -172,6 +172,12 @@
         var canvas = document.getElementById('canvas');
         let clientW = document.documentElement.clientWidth;
         let clientH = document.documentElement.clientHeight;
+
+        function isProbablyOnAnIPad() {
+            return (window.navigator.userAgent.includes('Safari')
+                && clientH > clientW);
+        }
+
         // adjustControlsDimensions(clientW, clientH);
         let sideLength = Number.parseInt(
             0.94*((clientW < clientH)? clientW: clientH));
@@ -180,8 +186,9 @@
             let w = document.getElementById('inner-div1').clientWidth;
             args = [`${Number.parseInt(0.98*(clientW - w))}`, `${sideLength}`];
         }
-        if (window.navigator.userAgent.includes('Safari')
+        if ((window.navigator.userAgent.includes('Safari')
             && window.navigator.userAgent.includes('iPhone'))
+            || isProbablyOnAnIPad())
             args.push('nearest');
         else
             args.push('linear');
@@ -203,6 +210,17 @@
             return [x, y];
         }
 
+        function getMobileNormalizedCanvasCoordinates(e) {
+            let x = (
+                e.clientX - canvas.offsetLeft
+            )/canvas.offsetWidth;
+            let y = (
+                (canvas.offsetTop + canvas.offsetHeight) 
+                - e.clientY
+            )/canvas.offsetHeight;
+            return [x, y];
+        }
+
         document.getElementById('canvas').addEventListener('mousemove', e => {
             let [x, y] = getNormalizedCanvasCoordinates(e);
             Module.set_left_xy(x, y);
@@ -217,48 +235,93 @@
         });
 
         function startSingleTouch(touches) {
-            let [x, y] = getNormalizedCanvasCoordinates(
+            let [x, y] = getMobileNormalizedCanvasCoordinates(
                 {clientX: touches[0].pageX, clientY: touches[0].pageY});
             Module.set_left_xy_type(x, y, 1);
         }
 
         function continueSingleTouch(touches) {
-            let [x, y] = getNormalizedCanvasCoordinates(
+            let [x, y] = getMobileNormalizedCanvasCoordinates(
                 {clientX: touches[0].pageX, clientY: touches[0].pageY});
             Module.set_left_xy(x, y);
         }
 
         function endSingleTouch(touches) {
-            let [x, y] = getNormalizedCanvasCoordinates(
+            let [x, y] = getMobileNormalizedCanvasCoordinates(
                 {clientX: touches[0].pageX, clientY: touches[0].pageY});
             Module.set_left_xy_type(x, y, 0);
         }
 
-        function startDoubleTouches(touches) {
-            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
-            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
-            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
-            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
-            Module.set_double_touch_position_type(x1, y1, x2, y2, 1);
+        let gTouchStart = false;
+        let gDoubleTouches = {
+            isActive: false,
+            finger1: [],
+            finger2: [],
+            fingerDistances: [],
+        };
+
+        function emptyDoubleTouches() {
+            gDoubleTouches.finger1 = [];
+            gDoubleTouches.finger2 = [];
+            gDoubleTouches.fingerDistances = [];
         }
 
-        function continueDoubleTouches(touches) {
-            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
-            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
-            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
-            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
-            Module.set_double_touch_position(x1, y1, x2, y2);
+        function beginTouchZoomRotate(e) {
+            let touches = e.changedTouches;
+            if (touches.length < 2)
+                return;
+            gDoubleTouches.isActive = true;
+            let t1X = touches[0].pageX;
+            let t1Y = touches[0].pageY;
+            let t2X = touches[1].pageX;
+            let t2Y = touches[1].pageY;
+            let fingerDistance = Math.sqrt(
+                (t2X - t1X)*(t2X - t1X) + (t2Y - t1Y)*(t2Y - t1Y));
+            gDoubleTouches.finger1.push([t1X, t1Y]);
+            gDoubleTouches.finger2.push([t2X, t2Y]);
+            gDoubleTouches.fingerDistances.push(fingerDistance);
         }
 
-        function endDoubleTouches(touches) {
-            let e1 = {clientX: touches[0].pageX, clientY: touches[0].pageY};
-            let e2 = {clientX: touches[1].pageX, clientY: touches[1].pageY};
-            let [x1, y1] = getNormalizedCanvasCoordinates(e1);
-            let [x2, y2] = getNormalizedCanvasCoordinates(e2);
-            Module.set_double_touch_position_type(x1, y1, x2, y2, 0);
+        function continueTouchZoomRotate(e) {
+            let touches = e.changedTouches;
+            if (touches.length < 2)
+                return;
+            gDoubleTouches.isActive = true;
+            let t1X = touches[0].pageX;
+            let t1Y = touches[0].pageY;
+            let t2X = touches[1].pageX;
+            let t2Y = touches[1].pageY;
+            /* let delta1X = t1X - gDoubleTouches.finger1[0];
+            let delta1Y = t1Y - gDoubleTouches.finger1[1];
+            let delta2X = t2X - gDoubleTouches.finger2[0];
+            let delta2Y = t2Y - gDoubleTouches.finger2[1];*/
+            let fingerDistance = Math.sqrt(
+                (t2X - t1X)*(t2X - t1X) + (t2Y - t1Y)*(t2Y - t1Y));
+            gDoubleTouches.finger1.push([t1X, t1Y]);
+            gDoubleTouches.finger2.push([t2X, t2Y]);
+            let len1 = gDoubleTouches.finger1.length;
+            let len2 = gDoubleTouches.finger2.length;
+            /* setRotationDoubleTouch(
+                gDoubleTouches.finger1[len1 - 2],
+                gDoubleTouches.finger1[len1 - 1],
+                gDoubleTouches.finger2[len2 - 2],
+                gDoubleTouches.finger2[len2 - 1]
+            );*/
+            if (gDoubleTouches.fingerDistances.length > 1) {
+                let scaleFactor
+                    = fingerDistance/gDoubleTouches.fingerDistances.pop();
+                Module.multiply_scroll_value(scaleFactor);
+            }
+            gDoubleTouches.fingerDistances.push(fingerDistance);
+        }
+
+        function endTouchZoomRotate() {
+            gDoubleTouches.isActive = false;
+            emptyDoubleTouches();
         }
 
         document.getElementById('canvas').addEventListener('touchstart', e => {
+            gTouchStart = true;
             let touches = e.changedTouches;
             // This if statement is evaluated when the screen is already
             // touched by a single finger and another finger makes contact.
@@ -268,9 +331,13 @@
             if (touches.length === 1)
                 startSingleTouch(touches);
             else
-                startDoubleTouches(touches);
+                beginTouchZoomRotate(e);
         });
         document.getElementById('canvas').addEventListener('touchmove', e => {
+            // if (gDoubleTouches.isActive()) {
+            //     continueTouchZoomRotate(e);
+            //     return;
+            // }
             let touches = e.changedTouches;
             if (sNumberOfTouches === 1 && touches.length > 1) {
                 endSingleTouch(touches);
@@ -278,14 +345,18 @@
             if (touches.length === 1)
                 continueSingleTouch(touches);
             else
-                continueDoubleTouches(touches);
+                continueTouchZoomRotate(e);
         });
         document.getElementById('canvas').addEventListener('touchend', e => {
+            // if (gDoubleTouches.isActive()) {
+            //     endTouchZoomRotate();
+            //     return;
+            // }
             let touches = e.changedTouches;
             if (touches.length === 1)
                 endSingleTouch(touches);
             else
-                endDoubleTouches(touches);
+                endTouchZoomRotate();
             sNumberOfTouches = 0;
         });
 

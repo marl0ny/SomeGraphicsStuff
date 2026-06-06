@@ -49,6 +49,10 @@ void set_double_touch_position(
     return;
 }
 
+void multiply_scroll_value(float value) {
+    Interactor::multiply_scroll_value(value);
+}
+
 EMSCRIPTEN_BINDINGS(my_module) {
     function("set_left_xy_type", &set_left_xy_type);
     function("set_left_xy", &set_left_xy);
@@ -56,6 +60,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
              &set_double_touch_position_type);
     function("set_double_touch_position",
              &set_double_touch_position);
+    function("multiply_scroll_value", &multiply_scroll_value);
 }
 #endif
 

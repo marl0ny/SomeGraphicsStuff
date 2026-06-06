@@ -293,10 +293,11 @@ int main(int argc, char *argv[]) {
     }
     SimParams params {};
     TextureParams default_tex_params = {
-        .format=GL_RGBA32F,
+        .format=GL_RGBA16F,
         .width=(unsigned int)window_width,
         .height=(unsigned int)window_height,
-        .generate_mipmap=!(filter_type == GL_NEAREST),
+        .generate_mipmap=false,
+        // .generate_mipmap=!(filter_type == GL_NEAREST),
         .wrap_s=GL_CLAMP_TO_EDGE,
         .wrap_t=GL_CLAMP_TO_EDGE,
         .mag_filter=(unsigned int)filter_type,

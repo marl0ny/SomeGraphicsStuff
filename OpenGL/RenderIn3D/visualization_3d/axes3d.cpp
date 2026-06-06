@@ -68,10 +68,14 @@ void axes3d::draw_axes(
     RenderTarget &dst,
     const Programs &programs,
     WireFrame &axes_wf, WireFrame &labels_wf,
-    const Quaternion &rotation, float view_scale,
+    const Quaternion &rotation, int size,
     float color_scale,
     bool use_perspective_projection,
     IVec2 screen_dimensions) {
+    float view_scale = float(size)/(float)screen_dimensions[0];
+    float offset = -float(screen_dimensions[0] - size)
+        / (float)screen_dimensions[0];
+    // printf("view_scale: %f\n", view_scale);
     dst.draw(
         programs.axes,
         {
@@ -80,7 +84,7 @@ void axes3d::draw_axes(
             {"usePerspectiveProjection",
                 int(use_perspective_projection)},
             {"offset", 
-                Vec3{.x=-0.83F, .y=-0.83F, 0.0}},
+                Vec3{.x=offset, .y=offset, 0.0}},
             {"screenDimensions", screen_dimensions}
         },
         axes_wf
@@ -94,7 +98,7 @@ void axes3d::draw_axes(
             {"usePerspectiveProjection",
                 int(use_perspective_projection)},
             {"offset", Vec3{
-                .x=-0.83F, .y=-0.83F, 0.0}},
+                .x=offset, .y=offset, 0.0}},
             {"screenDimensions", screen_dimensions}
         },
         labels_wf
