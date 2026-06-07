@@ -32,6 +32,7 @@ static std::function<unsigned int ()> s_bmp_image_size;
 static std::function<void (int, bool)> s_configure_bmp_recording;
 static std::function<void(int, std::string, float)>
     s_sim_params_set_user_float_param;
+static std::function<bool()> s_is_on_touch_screen;
 
 static ImGuiIO global_io;
 static std::map<int, std::string> global_labels;
@@ -70,6 +71,10 @@ void display_parameters_as_sliders(
 
 
 void edit_katex_label_display(int c, std::string val) {
+    // TODO
+}
+
+void edit_bool_display(int c, bool value) {
     // TODO
 }
 

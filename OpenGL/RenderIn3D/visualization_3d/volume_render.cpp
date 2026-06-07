@@ -384,21 +384,26 @@ void VolumeRender::reset_volume_dimensions(
 }
 
 void VolumeRender::reset_filtering(unsigned int filtering) {
-    this->frames.volume_f16.min_filter = filtering;
-    this->frames.volume_f16.mag_filter = filtering;
-    this->frames.volume_f32.min_filter = filtering;
-    this->frames.volume_f32.mag_filter = filtering;
-    this->frames.data_f16.min_filter = filtering;
-    this->frames.data_f16.mag_filter = filtering;
-    this->frames.data_f32.min_filter = filtering;
-    this->frames.data_f32.mag_filter = filtering;
-    this->frames.view_tex.min_filter = filtering;
-    this->frames.view_tex.mag_filter = filtering;
-    this->frames.reset_data(this->data_texel_dimensions2d);
-    this->frames.reset_volume(
-        this->volume_texel_dimensions2d,
-        this->volume_texel_dimensions3d);
-    // this->frames.reset_view(this->view_dimensions);
+    unsigned int current_min_filter = this->frames.volume_f16.min_filter;
+    unsigned int current_mag_filter = this->frames.volume_f16.mag_filter;
+    if (filtering != current_mag_filter || 
+        filtering != current_min_filter) {
+        this->frames.volume_f16.min_filter = filtering;
+        this->frames.volume_f16.mag_filter = filtering;
+        this->frames.volume_f32.min_filter = filtering;
+        this->frames.volume_f32.mag_filter = filtering;
+        this->frames.data_f16.min_filter = filtering;
+        this->frames.data_f16.mag_filter = filtering;
+        this->frames.data_f32.min_filter = filtering;
+        this->frames.data_f32.mag_filter = filtering;
+        this->frames.view_tex.min_filter = filtering;
+        this->frames.view_tex.mag_filter = filtering;
+        this->frames.reset_data(this->data_texel_dimensions2d);
+        this->frames.reset_volume(
+            this->volume_texel_dimensions2d,
+            this->volume_texel_dimensions3d);
+        // this->frames.reset_view(this->view_dimensions);
+    }
 }
 
 enum BoundaryType {

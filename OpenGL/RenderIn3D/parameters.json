@@ -21,7 +21,7 @@
     "visualizationSelect": {
         "name": "Visualization select", "type": "SelectionList", "value": "{0, {\"Volume render\", \"Three orthogonal planar slices\", \"Vector field\", \"Three orthogonal planar slices, vector field\", \"Volume render, vector field\"}}"},
     "usePerspectiveProjection": {
-        "name": "Use perspective projection", "type": "bool", "value": false},
+        "name": "Use perspective projection", "type": "bool", "value": true},
 
     "volumeRenderSectionStart": {"name": "Volume Render Controls", "type": "SubSectionStart", "value": {}},
         "useLinear": {

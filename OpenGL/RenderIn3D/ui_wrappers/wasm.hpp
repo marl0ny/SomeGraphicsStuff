@@ -22,6 +22,7 @@ static std::function<void(
     int, const std::string &image_data, int, int)> s_image_set;
 static std::function<void(int, std::string, float)>
     s_sim_params_set_user_float_param;
+static std::function<bool()> s_is_on_touch_screen;
 
 
 void edit_label_display(int c, std::string text_content) {
@@ -75,7 +76,7 @@ void edit_hovering_canvas_visibility_top_left_offset(
 
 void edit_bool_display(int c, bool value) {
     std::string string_val = "";
-    string_val += "(";
+    string_val += "editBoolDisplay(";
     string_val += std::to_string(c);
     string_val += ", ";
     string_val += (value)? "true": "false";
@@ -151,7 +152,6 @@ void display_parameters_as_sliders(
     emscripten_run_script(&string_val[0]);
     #endif
 }
-
 
 /* Setters for the simulation parameters struct, where they act
 as the exposed entry point for JavaScript code in the WASM build.

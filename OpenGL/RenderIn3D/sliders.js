@@ -43,6 +43,8 @@ function createScalarParameterSlider(
     let slider = document.createElement("input");
     slider.type = "range";
     slider.style ="width: 95%;"
+    if (isOnMobile())
+        slider.style ="width: 90%; justify-content: center; "
     for (let k of Object.keys(spec))
         slider[k] = spec[k];
     slider.value = spec.value;
@@ -103,12 +105,24 @@ function createCheckbox(controls, enumCode, name, value, xorListName='') {
     );
 }
 
+
+function editBoolDisplay(enumCode, value) {
+    document.getElementById(`checkbox-${enumCode}`).checked = value;
+}
+
+function addExpansionSigns(value, text) {
+    if (value !== null) {
+        return ((value === true)? `▾ `: `▸ `) + text;
+    }
+}
+
 function editScalarParameterSliderDisplay(enumCode, sliderLabelName, value) {
     let slider = document.getElementById(`slider-${enumCode}`);
     let label = document.getElementById(`slider-label-${enumCode}`);
     slider.value = value;
     label.textContent 
-       = `${sliderLabelName} = ${value}`;
+       = addExpansionSigns(
+            false, `${sliderLabelName} = ${value}`);
 }
 
 function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, value) {
@@ -117,18 +131,45 @@ function editVectorParameterSliderDisplay(enumCode, sliderLabelName, index, valu
     slider.value = value;
     gVecParams[sliderLabelName][Number.parseInt(index)] = value;
     label.textContent 
-        = `${sliderLabelName} = (${gVecParams[sliderLabelName]})`;
+        = addExpansionsSigns(
+            label.hidden,
+            `${sliderLabelName} = (${gVecParams[sliderLabelName]})`);
 }
 
 function createVectorParameterSliders(
     controls, enumCode, sliderLabelName, type, spec) {
     let label = document.createElement("label");
     // label.style = "color:white; font-family:Arial, Helvetica, sans-serif";
-    label.textContent = `${sliderLabelName} = (${spec.value})`;
+    {
+        label.textContent 
+            = addExpansionSigns(
+                !isOnMobile(),
+                `${sliderLabelName} = (${spec.value})`);
+    }
     gVecParams[sliderLabelName] = spec.value;
     label.id = `slider-label-${enumCode}`;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
+    // 
+    let subDiv = document.createElement("div");
+    controls.appendChild(subDiv);
+    let subControls = subDiv;
+    {
+        subDiv.hidden = isOnMobile();
+        // let subControls = (isOnMobile())? subDiv: controls;
+        label.addEventListener(
+            "click", e => {
+                subControls.hidden = !subControls.hidden;
+                if (label.textContent.at(0) === '▾')
+                    label.textContent 
+                        = '▸' + label.textContent.substring(1);
+                else
+                    label.textContent 
+                        = '▾' + label.textContent.substring(1);
+            }
+        );
+    }
+    // 
     for (let i = 0; i < spec.value.length; i++) {
         let slider = document.createElement("input");
         slider.type = "range";
@@ -138,8 +179,8 @@ function createVectorParameterSliders(
             slider[k] = spec[k][i];
         slider.value = spec.value[i];
         slider.id = `slider-${enumCode}-${i}`;
-        controls.appendChild(slider);
-        controls.appendChild(document.createElement("br"));
+        subControls.appendChild(slider);
+        subControls.appendChild(document.createElement("br"));
         slider.style.touchAction = 'none';
         slider.addEventListener("input", e => {
             let valueF = Number.parseFloat(e.target.value);
@@ -147,20 +188,25 @@ function createVectorParameterSliders(
             if (type === "Vec2" || 
                 type === "Vec3" || type === "Vec4") {
                 gVecParams[sliderLabelName][i] = valueF;
-                label.textContent 
-                    = `${sliderLabelName} = (${gVecParams[sliderLabelName]})`
+                label.textContent
+                    = addExpansionSigns(
+                        true,
+                        `${sliderLabelName} = (${gVecParams[sliderLabelName]})`);
                 Module.set_vec_param(
                     enumCode, spec.value.length, i, valueF);
             } else if (type === "IVec2" || 
                         type === "IVec3" || type === "IVec4") {
                 gVecParams[sliderLabelName][i] = valueI;
-                label.textContent 
-                    = `${sliderLabelName} = (${gVecParams[sliderLabelName]})`
+                label.textContent
+                    = addExpansionSigns(
+                        true,
+                        `${sliderLabelName} = (${gVecParams[sliderLabelName]})`);
                 Module.set_ivec_param(
                     enumCode, spec.value.length, i, valueI);
             }
         });
     }
+    controls.appendChild(subControls);
     /* let altDiv = document.createElement("div");
     controls.appendChild(altDiv);
     altDiv.hidden = true;
@@ -495,7 +541,7 @@ createSelectionList(controls, 5, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4
 createEntryBoxes(controls, 6, "Enter function f(x, y, z)", 1, []);
 createKaTeXLabel(controls, 7, "KaTeX Label");
 createSelectionList(controls, 8, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
-createCheckbox(controls, 9, "Use perspective projection", false);
+createCheckbox(controls, 9, "Use perspective projection", true);
 let subControls0 = createSubDiv(controls, "Volume Render Controls", "");
 createCheckbox(subControls0, 11, "Linear interpolation", false);
 createScalarParameterSlider(subControls0, 12, "Alpha brightness", "float", {'value': 2.0, 'min': 0.0, 'max': 10.0, 'step': 0.01});

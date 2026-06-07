@@ -29,7 +29,6 @@ static void s_main_loop() {
 
 using namespace sim_2d;
 
-
 void simulation_ui_interface_handler(
     MainGLFWQuad main_render,
     TextureParams default_tex_params,  // Default texture parameters
@@ -46,7 +45,8 @@ void simulation_ui_interface_handler(
     std::vector<Vec2> cursor_positions {};
     std::optional<std::pair<Vec2, Vec2>> start_double_touches;
     std::vector<std::pair<Vec2, Vec2>> double_touches_positions {};
-    Quaternion rotation = Quaternion{.i=0.0, .j=0.0, .k=0.0, .real=1.0};
+    Quaternion rotation // = Quaternion::rotator(0.25*PI, Vec3{.x=0.0, 1.0, 0.0});
+        = Quaternion::rotator(-1.0, Vec3{.x=1.0, 1.0, 0.0});
 
     {
         /* Set those parameters of the Parameters struct that are treated
@@ -163,6 +163,8 @@ void simulation_ui_interface_handler(
                 program,
                 {params.presetFunctionsDropdown.options[index]});
         user_text_edit.add_new_program(program, variables_set);
+        edit_bool_display(params.USE_LINEAR, 
+            default_tex_params.min_filter == GL_LINEAR);
     }
 
     start_gui(main_render.get_window());
@@ -172,6 +174,8 @@ void simulation_ui_interface_handler(
             if (cursor_positions.size() > 1) {
                 Vec2 delta_2d = interactor.get_mouse_delta();
                 Vec3 delta {.ind={delta_2d[0], delta_2d[1], 0.0}};
+                if (s_is_on_touch_screen() && delta.length() > 0.01)
+                    delta = 0.01*delta/delta.length();
                 Vec3 view_vec {.ind={0.0, 0.0, -1.0}};
                 Vec3 axis = cross_product(delta, view_vec);
                 Quaternion rot = Quaternion::rotator(
@@ -191,7 +195,7 @@ void simulation_ui_interface_handler(
         }
         main_render.draw(
             sim.view(params, hover_position, 
-                rotation, 0.05*Interactor::get_scroll()));
+                rotation, 0.01*Interactor::get_scroll()));
 
         if (hover_position.has_value()) {
             Vec3 loc = sim.get_cursor_location();
@@ -290,6 +294,17 @@ int main(int argc, char *argv[]) {
         std::string s(argv[3]);
         if (s == "nearest")
             filter_type = GL_NEAREST;
+    }
+    if (argc >= 5) {
+        std::string s(argv[4]);
+        s_is_on_touch_screen = []() {
+            return true;
+        };
+    } else {
+        std::string s(argv[4]);
+        s_is_on_touch_screen = []() {
+            return false;
+        };
     }
     SimParams params {};
     TextureParams default_tex_params = {

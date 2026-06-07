@@ -44,7 +44,7 @@ struct SimParams {
     EntryBoxes userTextEntry = EntryBoxes{"0"};
     KaTeXLabel latexLabel = KaTeXLabel{};
     SelectionList visualizationSelect = SelectionList{0, {"Volume render", "Three orthogonal planar slices", "Vector field", "Three orthogonal planar slices, vector field", "Volume render, vector field"}};
-    bool usePerspectiveProjection = (bool)(false);
+    bool usePerspectiveProjection = (bool)(true);
     SubSectionStart volumeRenderSectionStart = SubSectionStart{};
     bool useLinear = (bool)(false);
     float alphaBrightness = (float)(2.0F);
