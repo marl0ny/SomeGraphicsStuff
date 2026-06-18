@@ -3,7 +3,7 @@
 
 #ifndef _IMGUI_WRAPPER_CONTROLS_
 #define _IMGUI_WRAPPER_CONTROLS_
-using namespace sim_2d;
+using namespace sim_3d;
 
 #include "gl_wrappers.hpp"
 

@@ -8,7 +8,7 @@
 #ifndef _SIMULATION_
 #define _SIMULATION_
 
-using namespace sim_2d;
+using namespace sim_3d;
 
 struct Frames {
     TextureParams data_tex_params;
@@ -45,6 +45,8 @@ class Simulation {
     Vec3 m_cursor_location;
     Programs m_programs;
     Frames m_frames;
+    std::vector<unsigned char> m_image_rgba_arr;
+    std::vector<unsigned char> m_image_data;
     const RenderTarget
     &view_volume_render(
         SimParams &params, ::Quaternion rotation, float scale);
@@ -73,6 +75,7 @@ class Simulation {
     void reset_volume_filtering(unsigned int filtering);
     Vec3 get_cursor_location();
     Vec3 get_scaled_cursor_location(const SimParams &params);
+    std::vector<unsigned char> &get_image_data();
 };
 
 #endif

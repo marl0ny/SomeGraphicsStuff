@@ -137,6 +137,7 @@ function createVectorParameterSliders(
     }
     gVecParams[sliderLabelName] = spec.value;
     label.id = `slider-label-${enumCode}`;
+    label.className = `drop-down-label`;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
     // 
@@ -714,6 +715,9 @@ def write_typed_sim_parameters_hpp(parameters, name_space, dst_file_name):
     file_contents += "\nstruct UploadImage {};\n"
     file_contents += "\ntypedef std::string Label;\n"
     file_contents += "\ntypedef bool BoolRecord;\n"
+    file_contents += "\nstruct BMPRecord {\n"
+    file_contents += "    bool is_recording;\n"
+    file_contents += "    int width, height;\n};\n"
     file_contents += "\ntypedef std::vector<std::string> EntryBoxes;\n"
     file_contents += "\nstruct SelectionList {\n"
     file_contents += "    int selected;\n"
@@ -1155,5 +1159,5 @@ if __name__ == '__main__':
 
     write_sliders_js(parameters, "sliders.js")
     write_imgui_controls(
-        parameters, "sim_2d", "parameters.hpp", "./ui_wrappers/imgui.hpp")
-    write_typed_sim_parameters_hpp(parameters, "sim_2d", "parameters.hpp")
+        parameters, "sim_3d", "parameters.hpp", "./ui_wrappers/imgui.hpp")
+    write_typed_sim_parameters_hpp(parameters, "sim_3d", "parameters.hpp")

@@ -28,14 +28,14 @@
 ifeq ($(shell uname),Darwin)
 INCLUDE =  -I${PWD} -I${PWD}/gl_wrappers -I${PWD}/glfw_wrappers \
 	-I/opt/homebrew/include -I${PWD}/visualization_3d -I${PWD}/matrix \
-	 -I${PWD}/parse -I${PWD}/user_edit \
+	 -I${PWD}/parse -I${PWD}/user_edit  -I${PWD}/bmp\
 	 -I${PWD}/imgui
 LIBS = -ldl -L/opt/homebrew/lib -lglfw\
        -framework CoreVideo -framework OpenGL -framework IOKit \
        -framework Cocoa -framework Carbon
 else
 INCLUDE = -I${PWD} -I${PWD}/gl_wrappers -I${PWD}/glfw_wrappers -I${PWD}/visualization_3d \
-	 -I${PWD}/matrix -I${PWD}/parse -I${PWD}/user_edit
+	 -I${PWD}/matrix -I${PWD}/parse -I${PWD}/user_edit -I${PWD}/bmp
 LIBS = -lm -lGL -lGLEW -lglfw
 endif
 
@@ -91,6 +91,7 @@ GLFW_WRAPPER_SOURCES = ./glfw_wrappers/glfw_window.cpp ./glfw_wrappers/interacto
 MATRIX_SOURCES = ./matrix/matrix.cpp
 PARSE_SOURCES = ./parse/parse.cpp
 USER_EDIT_SOURCES = ./user_edit/user_edit_glsl.cpp
+BMP_SOURCES = ./bmp/bmp.cpp
 
 TOP_LEVEL_OBJECTS = main.o simulation.o
 VISUALIZATION_3D_OBJECTS = ./volume_render.o \
@@ -102,10 +103,11 @@ GLFW_WRAPPER_OBJECTS = ./glfw_window.o ./interactor.o
 MATRIX_OBJECTS = ./matrix.o
 PARSE_OBJECTS = ./parse.o
 USER_EDIT_OBJECTS = ./user_edit_glsl.o
+BMP_OBJECTS = ./bmp.o
 
 OBJECTS = ${TOP_LEVEL_OBJECTS} ${VISUALIZATION_3D_OBJECTS} \
 	${GL_WRAPPER_OBJECTS} ${GLFW_WRAPPER_OBJECTS} ${MATRIX_OBJECTS} \
-	${PARSE_OBJECTS} ${USER_EDIT_OBJECTS} ${IMGUI_OBJECTS}
+	${PARSE_OBJECTS} ${USER_EDIT_OBJECTS} ${BMP_OBJECTS} ${IMGUI_OBJECTS}
 
 SHADERS := $(wildcard ./shaders/**/*.frag) $(wildcard ./shaders/**/*.vert)
 
@@ -133,6 +135,9 @@ ${PARSE_OBJECTS}: ${PARSE_SOURCES} ${DEPENDENCIES}
 ${USER_EDIT_OBJECTS}: ${USER_EDIT_SOURCES} ${DEPENDENCIES}
 	${CPP_COMPILE} ${FLAGS} -c ${USER_EDIT_SOURCES} ${INCLUDE}
 
+${BMP_OBJECTS}: ${BMP_SOURCES} ${DEPENDENCIES}
+	${CPP_COMPILE} ${FLAGS} -c ${BMP_SOURCES} ${INCLUDE}
+
 ${GENERATED_DEPENDENCIES}: ${DATA_DEPENDENCIES} ${GENERATION_SCRIPTS}
 	python3 make_parameter_files.py
 
@@ -146,6 +151,9 @@ ${IMGUI_SOURCES}:
 
 clean_obj:
 	rm -f *.o
+
+clean_bmp:
+	rm -f *.bmp
 
 clean:
 	rm -f *.o ${TARGET} *.wasm *.js

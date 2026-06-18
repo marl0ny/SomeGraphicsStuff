@@ -27,7 +27,7 @@ static void s_main_loop() {
 }
 #endif
 
-using namespace sim_2d;
+using namespace sim_3d;
 
 void simulation_ui_interface_handler(
     MainGLFWQuad main_render,
@@ -153,6 +153,19 @@ void simulation_ui_interface_handler(
         // s_image_set = [&params]
         //     (int c, const std::string &image_data, int w, int h) {
         // };
+        s_configure_bmp_recording = [&params](int c, bool is_recording) {
+            if (c == params.TAKE_SCREENSHOTS) {
+                params.takeScreenshots.is_recording = is_recording;
+            }
+        };
+        s_bmp_image = [&sim] () {
+            std::vector<unsigned char> &image_data = sim.get_image_data();
+            return (unsigned char *)&image_data[0];
+        };
+        s_bmp_image_size = [&sim]() {
+            std::vector<unsigned char> &image_data = sim.get_image_data();
+            return image_data.size();
+        };
     }
 
     { // Initial configuration from the default preset option
@@ -215,6 +228,9 @@ void simulation_ui_interface_handler(
                 );*/
             }
         }
+
+        if (params.takeScreenshots.is_recording)
+            download_bmp_image("render-in-3d");
 
         auto poll_events = [&] {
             // Tell GLFW to poll events
@@ -284,7 +300,7 @@ void simulation_ui_interface_handler(
 
 
 int main(int argc, char *argv[]) {
-    int window_width = 1800, window_height = 1440;
+    int window_width = 1440, window_height = 1440;
     if (argc >= 3) {
         window_width = std::atoi(argv[1]);
         window_height = std::atoi(argv[2]);

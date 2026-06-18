@@ -24,8 +24,9 @@ const ENUM_CODES = {
     ARROW_DIMENSIONS: 22,
     USE_CONES: 23,
     ARROWS3_D_LINE_SECTION_END: 24,
-    CANVAS_HOVER_DISPLAY: 25,
-    DUMMY_VALUE: 26,
+    TAKE_SCREENSHOTS: 25,
+    CANVAS_HOVER_DISPLAY: 26,
+    DUMMY_VALUE: 27,
 };
 
 let gVecParams = {};
@@ -148,6 +149,7 @@ function createVectorParameterSliders(
     }
     gVecParams[sliderLabelName] = spec.value;
     label.id = `slider-label-${enumCode}`;
+    label.className = `drop-down-label`;
     controls.appendChild(label);
     controls.appendChild(document.createElement("br"));
     // 
@@ -537,7 +539,7 @@ createLinkedLabel(controls, 0, "Source", "https://github.com/marl0ny/SomeGraphic
 createScalarParameterSlider(controls, 2, "Scale", "float", {'value': 10.0, 'min': 0.0, 'max': 20.0, 'step': 0.01});
 createVectorParameterSliders(controls, 3, "Domain dimensions", "Vec3", {'value': [128.0, 128.0, 128.0], 'min': [32.0, 32.0, 32.0], 'max': [512.0, 512.0, 512.0], 'step': [0.1, 0.1, 0.1]});
 createVectorParameterSliders(controls, 4, "Discretization dimensions", "IVec3", {'value': [64, 64, 64], 'min': [32, 32, 32], 'max': [512, 512, 512], 'step': [2, 2, 4]});
-createSelectionList(controls, 5, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"]);
+createSelectionList(controls, 5, 2, "Presets", [ "exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)",  "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))",  "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6",  "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))",  "a*sin(x/10)*sin(y/10)*sin(z/10)",  "step(sqrt(x^2 + y^2 + z^2) - 80)",  "1 - step(x - 30) - step(-x - 30)",  "abs(cos(k*x*y*z^2/1500000))^100",  "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10",  "cos(10*x*y*z/100000)^3",  "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)",  "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))",  "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)",  "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)",  "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)",  "cos(pi*omega*10.0*(a*x^2 + b*y^2 + c*z^2 - t)/depth^2)"]);
 createEntryBoxes(controls, 6, "Enter function f(x, y, z)", 1, []);
 createKaTeXLabel(controls, 7, "KaTeX Label");
 createSelectionList(controls, 8, 0, "Visualization select", [ "Volume render",  "Three orthogonal planar slices",  "Vector field",  "Three orthogonal planar slices,  vector field",  "Volume render,  vector field"]);
@@ -554,4 +556,4 @@ createVectorParameterSliders(subControls1, 19, "Planar slices offsets (in normal
 let subControls2 = createSubDiv(controls, "Arrows Plot", "");
 createVectorParameterSliders(subControls2, 22, "Arrows dimensions", "IVec3", {'value': [8, 8, 8], 'min': [8, 8, 8], 'max': [128, 128, 128]});
 createCheckbox(subControls2, 23, "Use conical arrows", false);
-createHoveringLabelOnCanvas(25, "");
+createHoveringLabelOnCanvas(26, "");

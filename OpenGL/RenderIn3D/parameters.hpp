@@ -1,6 +1,6 @@
 #include "gl_wrappers.hpp"
 
-namespace sim_2d {
+namespace sim_3d {
 
 #ifndef _PARAMETERS_
 #define _PARAMETERS_
@@ -12,6 +12,11 @@ struct UploadImage {};
 typedef std::string Label;
 
 typedef bool BoolRecord;
+
+struct BMPRecord {
+    bool is_recording;
+    int width, height;
+};
 
 typedef std::vector<std::string> EntryBoxes;
 
@@ -40,7 +45,7 @@ struct SimParams {
     float brightness = (float)(10.0F);
     Vec3 simulationDimensions3D = (Vec3)(Vec3 {.ind={128.0, 128.0, 128.0}});
     IVec3 dataTexelDimensions3D = (IVec3)(IVec3 {.ind={64, 64, 64}});
-    SelectionList presetFunctionsDropdown = SelectionList{2, {"exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)", "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))", "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6", "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))", "a*sin(x/10)*sin(y/10)*sin(z/10)", "step(sqrt(x^2 + y^2 + z^2) - 80)", "1 - step(x - 30) - step(-x - 30)", "abs(cos(k*x*y*z^2/1500000))^100", "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10", "cos(10*x*y*z/100000)^3", "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)", "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))", "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)", "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)", "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"}};
+    SelectionList presetFunctionsDropdown = SelectionList{2, {"exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)", "20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))", "(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6", "exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))", "a*sin(x/10)*sin(y/10)*sin(z/10)", "step(sqrt(x^2 + y^2 + z^2) - 80)", "1 - step(x - 30) - step(-x - 30)", "abs(cos(k*x*y*z^2/1500000))^100", "log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10", "cos(10*x*y*z/100000)^3", "exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)", "exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))", "(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)", "exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)", "(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)", "cos(pi*omega*10.0*(a*x^2 + b*y^2 + c*z^2 - t)/depth^2)"}};
     EntryBoxes userTextEntry = EntryBoxes{"0"};
     KaTeXLabel latexLabel = KaTeXLabel{};
     SelectionList visualizationSelect = SelectionList{0, {"Volume render", "Three orthogonal planar slices", "Vector field", "Three orthogonal planar slices, vector field", "Volume render, vector field"}};
@@ -60,6 +65,7 @@ struct SimParams {
     IVec3 arrowDimensions = (IVec3)(IVec3 {.ind={8, 8, 8}});
     bool useCones = (bool)(false);
     SubSectionEnd arrows3DLineSectionEnd = SubSectionEnd{};
+    BMPRecord takeScreenshots = BMPRecord{false, 1440, 1440};
     HoveringCanvasLabel canvasHoverDisplay = HoveringCanvasLabel{};
     int dummyValue = (int)(0);
     enum {
@@ -88,8 +94,9 @@ struct SimParams {
         ARROW_DIMENSIONS=22,
         USE_CONES=23,
         ARROWS3_D_LINE_SECTION_END=24,
-        CANVAS_HOVER_DISPLAY=25,
-        DUMMY_VALUE=26,
+        TAKE_SCREENSHOTS=25,
+        CANVAS_HOVER_DISPLAY=26,
+        DUMMY_VALUE=27,
     };
     void set(int enum_val, Uniform val) {
         switch(enum_val) {

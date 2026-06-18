@@ -3,7 +3,7 @@
 
 #ifndef _IMGUI_CONTROLS_
 #define _IMGUI_CONTROLS_
-// using namespace sim_2d;
+// using namespace sim_3d;
 
 #include "gl_wrappers.hpp"
 
@@ -129,6 +129,8 @@ void imgui_controls(void *void_params) {
             s_selection_set(params->PRESET_FUNCTIONS_DROPDOWN, 13);
         if (ImGui::MenuItem("(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)"))
             s_selection_set(params->PRESET_FUNCTIONS_DROPDOWN, 14);
+        if (ImGui::MenuItem("cos(pi*omega*10.0*(a*x^2 + b*y^2 + c*z^2 - t)/depth^2)"))
+            s_selection_set(params->PRESET_FUNCTIONS_DROPDOWN, 15);
         ImGui::EndMenu();
     }
  ImGui::Text("Enter function f(x, y, z)");  // name
@@ -242,6 +244,8 @@ void imgui_controls(void *void_params) {
     ImGui::TreePop();
     }
  
+    if (ImGui::Checkbox("Take screenshots at every frame (uncompressed bitmap)", &params->takeScreenshots.is_recording))
+            s_configure_bmp_recording(params->TAKE_SCREENSHOTS, params->takeScreenshots.is_recording);
 
 }
 

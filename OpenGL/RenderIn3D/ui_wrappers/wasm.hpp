@@ -23,6 +23,9 @@ static std::function<void(
 static std::function<void(int, std::string, float)>
     s_sim_params_set_user_float_param;
 static std::function<bool()> s_is_on_touch_screen;
+static std::function<unsigned char *()> s_bmp_image;
+static std::function<unsigned int ()> s_bmp_image_size;
+static std::function<void (int, bool)> s_configure_bmp_recording;
 
 
 void edit_label_display(int c, std::string text_content) {
@@ -244,6 +247,29 @@ void image_set(
     int param_code, const std::string &image_data,
     int width, int height) {
     s_image_set(param_code, image_data, width, height);
+}
+
+void download_bmp_image(std::string postfix_name) {
+    /*
+    std::string js_code1 = R"(
+    let imageData = Module.bmp_image();
+    let blob = new Blob([imageData], {type: "octet/stream"});
+    let aTag = document.createElement('a');
+    let url = URL.createObjectURL(blob);
+    aTag.hidden = true;
+    aTag.href = url;
+    let time = Date.now();
+    aTag.download = `${time}-)";
+    std::string js_code2 = R"(.bmp`;
+    new Promise(() => aTag.click()).then(
+        () => aTag.href=``).then(() => aTag.remove())
+        .then(() => aTag = null);
+    )";
+    std::string js_code = js_code1 + postfix_name + js_code2;
+    #ifdef __EMSCRIPTEN__
+    emscripten_run_script(&js_code[0]);
+    #endif
+    */
 }
 
 // void set_mouse_mode(int type) {

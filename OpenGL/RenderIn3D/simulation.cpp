@@ -2,10 +2,11 @@
 #include "cube_outline.hpp"
 #include "cursor_outline3d.hpp"
 #include "axes3d.hpp"
+#include "bmp.hpp"
 
 #include <iostream>
 
-using namespace sim_2d;
+using namespace sim_3d;
 
 
 static const std::vector<float> QUAD_VERTICES = {
@@ -97,6 +98,49 @@ static Vec3 scale_rotate(Vec3 r, float scale, Quaternion rotation) {
     return Vec3{.x=q.i/scale, q.j/scale, q.k/scale};
 }
 
+static void take_screenshot(
+    const SimParams &params, RenderTarget &render,
+    std::vector<unsigned char> &image_data,
+    std::vector<unsigned char> &image_rgba_arr) {
+    if (params.takeScreenshots.is_recording) {
+        BMPHeader header (
+            params.takeScreenshots.width, 
+            params.takeScreenshots.height);
+        memcpy(
+            (unsigned char *)&image_data[0], 
+            &header, sizeof(BMPHeader));
+        render.fill_array_with_contents(
+            (unsigned char *)&image_rgba_arr[0]);
+        for (int i = 0; i < params.takeScreenshots.height; i++) {
+            for (int j = 0; j < params.takeScreenshots.width; j++) {
+                // unsigned char a = image_rgba_arr[
+                //     4*(i*params.takeScreenshots.width + j)];
+                unsigned char r = image_rgba_arr[
+                    4*(i*params.takeScreenshots.width + j) + 2];
+                unsigned char g = image_rgba_arr[
+                    4*(i*params.takeScreenshots.width + j) + 1];
+                unsigned char b = image_rgba_arr[
+                    4*(i*params.takeScreenshots.width + j)];
+                image_data[
+                    54 + 3*(i*params.takeScreenshots.width + j)
+                ] = r;
+                image_data[
+                    54 + 3*(i*params.takeScreenshots.width + j) + 1
+                ] = g;
+                image_data[
+                    54 + 3*(i*params.takeScreenshots.width + j) + 2
+                ] = b;
+            }
+        }
+        BMPHeader *header_ptr = (BMPHeader *)(&image_data[0]);
+        int max_val = 0;
+        for (int i = 54; i < image_data.size(); i++)
+            max_val = (image_data[i] > max_val)? image_data[i]: max_val;
+        printf("Max val: %d\n", max_val);
+        print_bmp_header(*header_ptr);
+    }
+}
+
 Simulation::
 Simulation(const TextureParams &default_tex_params, const SimParams &params
 ) : m_volume_render(default_tex_params,
@@ -106,6 +150,12 @@ Simulation(const TextureParams &default_tex_params, const SimParams &params
     m_arrows3d(params.arrowDimensions, default_tex_params),
     m_conical_arrows3d(params.arrowDimensions, 13, default_tex_params),
     m_frames(default_tex_params, params) {
+    m_image_data = std::vector<unsigned char>(
+        54 + get_bmp_row_byte_size(params.takeScreenshots.width)
+        *params.takeScreenshots.height, 0
+    );
+    m_image_rgba_arr = std::vector<unsigned char>(
+        4*params.takeScreenshots.width*params.takeScreenshots.height, 0);
 }
 
 const RenderTarget &Simulation
@@ -230,6 +280,9 @@ const RenderTarget &Simulation
                 },
                 cube_outline
             );*/
+            take_screenshot(
+                params, m_frames.render, 
+                m_image_data, m_image_rgba_arr);
             return m_frames.render;
         }
         case VECTOR_FIELD_VIEW: {
@@ -331,6 +384,9 @@ const RenderTarget &Simulation
                     );
                 }
             }
+            take_screenshot(
+                params, m_frames.render, 
+                m_image_data, m_image_rgba_arr);
             return this->m_frames.render;
         }
         case VOL_RENDER_VIEW: case VOL_RENDER_VECTOR_FIELD_VIEW: {
@@ -470,6 +526,9 @@ const RenderTarget &Simulation
                 rotation, 110, 0.0F,
                 params.usePerspectiveProjection, 
                 m_frames.render.texture_dimensions());
+            take_screenshot(
+                params, m_frames.render, 
+                m_image_data, m_image_rgba_arr);
             return this->m_frames.render;
         }
     }
@@ -574,3 +633,8 @@ Vec3 Simulation::get_scaled_cursor_location(const SimParams &params) {
         .z=m_cursor_location.z*params.simulationDimensions3D.z/2.0F,
     };
 }
+
+std::vector<unsigned char> &Simulation::get_image_data() {
+    return m_image_data;
+}
+

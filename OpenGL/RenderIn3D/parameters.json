@@ -13,7 +13,7 @@
         "name": "Discretization dimensions", "type": "IVec3", "value": [64, 64, 64], "min": [32, 32, 32], "max": [512, 512, 512], "step": [2, 2, 4]},
     "presetFunctionsDropdown": {
         "name": "Presets", "type": "SelectionList", 
-        "value": "{2, {\"exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)\", \"20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))\", \"(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6\", \"exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))\", \"a*sin(x/10)*sin(y/10)*sin(z/10)\", \"step(sqrt(x^2 + y^2 + z^2) - 80)\", \"1 - step(x - 30) - step(-x - 30)\", \"abs(cos(k*x*y*z^2/1500000))^100\", \"log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10\", \"cos(10*x*y*z/100000)^3\", \"exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)\", \"exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))\", \"(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)\", \"exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)\", \"(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)\"}}"},
+        "value": "{2, {\"exp(-0.5*x^2/(10.0)^2)*sin(z/4.0)*sin(y/4.0)/(z*y)\", \"20.0*exp(0.0-0.5*((x/(sx*10.0))^2 + (y/(sy*10.0))^2))\", \"(x + i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6\", \"exp(-0.5*((x/(sx*10.0))^2 + (y/(sy*15.0))^2 + (z/(sz*10.0))^2))\", \"a*sin(x/10)*sin(y/10)*sin(z/10)\", \"step(sqrt(x^2 + y^2 + z^2) - 80)\", \"1 - step(x - 30) - step(-x - 30)\", \"abs(cos(k*x*y*z^2/1500000))^100\", \"log(abs(x/10))*log(abs(y/10))*log(abs(z/10))/10\", \"cos(10*x*y*z/100000)^3\", \"exp(-sqrt((x/5)^2 + (y/5)^2 + (z/5)^2))*(z + x)\", \"exp(-0.5*((x-x0)^2 + (y-y0)^2 + (z - z0)^2)/(s*15)^2)*exp(-i*(nx*x/50 + ny*y/50 + nz*z/50))\", \"(x+ i*y)^8*exp(-(x^2 + y^2 + z^2)/100)*(z/depth)^6*exp(-f*i*t)\", \"exp(-0.5*z^2/(sz*4)^2) - exp(-0.5*y^2/(sy*4)^2) - i*exp(-0.5*x^2/(sx*4)^2)\", \"(x+i*y)^18/(x^2 + y^2)*exp(-(x^2+y^2 + z^2)/100)*(z/depth)^16*exp(-i*f*t)\", \"cos(pi*omega*10.0*(a*x^2 + b*y^2 + c*z^2 - t)/depth^2)\"}}"},
     "userTextEntry": {
         "name": "Enter function f(x, y, z)", "type": "EntryBoxes", "value": "{\"0\"}", "subLabels": []},
     "latexLabel": {
@@ -51,6 +51,8 @@
         "useCones": {
             "name": "Use conical arrows", "type": "bool", "value": false},
     "arrows3DLineSectionEnd": {"name": "Arrows Plot", "type": "SubSectionEnd", "value": {}},
+
+    "takeScreenshots": {"name": "Take screenshots at every frame (uncompressed bitmap)", "type": "BMPRecord", "value": "{false, 1440, 1440}"},
 
     "canvasHoverDisplay": {"name": "", "type": "HoveringCanvasLabel", "value": {}},
 
